@@ -1,0 +1,21 @@
+root = true
+
+[*.cs]
+# 한글 주석·테스트 이름이 깨지지 않도록 UTF-8로 저장 (한국어 Windows 기본값 CP949 방지)
+charset = utf-8
+
+# 중괄호는 Allman 스타일: 여는 중괄호를 항상 다음 줄에
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+
+# 중괄호 생략 금지 (한 줄짜리 if 등에도 필수)
+csharp_prefer_braces = true:warning
+
+# 짧은 한 줄 블록은 허용: if (isDead) { return; }
+csharp_preserve_single_line_blocks = true
+csharp_preserve_single_line_statements = false
+
+[*.md]
+charset = utf-8

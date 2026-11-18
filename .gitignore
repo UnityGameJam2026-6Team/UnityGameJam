@@ -118,6 +118,7 @@ crashlytics-build.properties
 /[Aa]ssets/Plugins/Android/**/local.properties
 
 # Test Framework generated files
+/[Tt]est[Rr]esults/
 /[Aa]ssets/Resources/PerformanceTestRunInfo.json
 /[Aa]ssets/Resources/PerformanceTestRunInfo.json.meta
 /[Aa]ssets/Resources/PerformanceTestRunSettings.json
