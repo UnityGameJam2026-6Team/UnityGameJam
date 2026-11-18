@@ -27,7 +27,7 @@
 - [x] B3 졸개 몸 (Spec `MinionAgent.md`) — 실제 판에서 고블린이 1층 → 2층 → 3층 간부실에 도착해 탐색을 시작하는 것까지 확인
 - [x] B4 ContaminationView (Spec `ContaminationView.md`) — 가짜 판과 실제 판에서 오염 표시 및 슬롯별 외형 확인.
 - [ ] B5 HUD (Spec `Hud.md`) — 실제 판에서 Tab 현황 패널과 직접 청소 게이지 확인. 타이머 형식 D5 검토 대기.
-- [ ] B6 대화와 제안 UI (Spec `AssignmentUi.md`)
+- [ ] B6 대화와 제안 UI (Spec `AssignmentUi.md`) — Facility에서 우측 하단 제안 스택, F 승인·R 보류, 방 선택 중 입력 차단과 만료 확인. 대면 배정부터 자연 발생 제안까지의 통합 플레이는 M2에서 확인한다.
 - [ ] B7 마감 연출과 결과 (Spec `ResultUi.md`)
 
 ## 통합 (A+B)

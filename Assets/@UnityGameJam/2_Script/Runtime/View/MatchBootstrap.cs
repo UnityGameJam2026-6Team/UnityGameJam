@@ -34,6 +34,7 @@ namespace UnityGameJam.View
         public IReadOnlyDictionary<int, string> HomeSlotKinds => _homeSlotKinds;
         public ViewSettingsSO ViewSettings => _viewSettings;
         public IMatchSession Session { get; private set; }
+        public float InitialMatchTime { get; private set; }
         public FacilityLayout Layout { get; private set; }
         public PlayerBody Player { get; private set; }
         public IReadOnlyList<MinionAgent> Minions => _minions;
@@ -81,6 +82,7 @@ namespace UnityGameJam.View
             if (_camera != null) { _camera.SetTarget(Player.transform); }
 
             Session.StartMatch();
+            InitialMatchTime = Session.RemainingTime;
             MatchStarted?.Invoke(this);
         }
 

@@ -19,6 +19,7 @@ namespace UnityGameJam.UI
         [SerializeField] private Button[] _rooms;
         [SerializeField] private Button _cancel;
         [SerializeField] private MinionStatusPanel _minionPanel;
+        [SerializeField] private ProposalStackView _proposalStack;
         [SerializeField] private GameObject _workGauge;
         [SerializeField] private RectTransform _workFill;
         private MatchBootstrap _bootstrap;
@@ -74,6 +75,8 @@ namespace UnityGameJam.UI
             if (_talking.HasValue && EventSystem.current != null &&
                 EventSystem.current.currentInputModule is InputSystemUIInputModule input &&
                 input.cancel?.action?.WasPressedThisFrame() == true) { Cancel(); }
+            _proposalStack.Show(session, _bootstrap.InitialMatchTime - session.RemainingTime,
+                (RectTransform)_choices.transform, talking.HasValue);
         }
 
         private static void ShowProgress(TMP_Text label, string title, float value, float threshold)

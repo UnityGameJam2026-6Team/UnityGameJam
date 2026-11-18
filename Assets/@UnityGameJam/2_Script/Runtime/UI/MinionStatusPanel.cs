@@ -46,7 +46,7 @@ namespace UnityGameJam.UI
             _rows.SetText(_text);
         }
 
-        private static string WorkerName(EWorkerType worker) => worker switch
+        internal static string WorkerName(EWorkerType worker) => worker switch
         {
             EWorkerType.Goblin => "고블린",
             EWorkerType.Orc => "오크",
