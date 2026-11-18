@@ -37,12 +37,12 @@ namespace UnityGameJam.UI
         private readonly List<InputAction> _suspendedActions = new List<InputAction>();
         private static readonly EZoneId[] Zones = (EZoneId[])Enum.GetValues(typeof(EZoneId));
         private int _lastSecond = -1;
-        private DemonKing.UI.DemonKingCountdownHUD _countdown;
+        [SerializeField] private DemonKing.UI.DemonKingCountdownHUD _countdown;
 
         private void Awake()
         {
             _bootstrap = FindFirstObjectByType<MatchBootstrap>();
-            _countdown = GetComponentInChildren<DemonKing.UI.DemonKingCountdownHUD>(true);
+            if (_countdown == null) { _countdown = GetComponentInChildren<DemonKing.UI.DemonKingCountdownHUD>(true); }
             if (_countdown != null) { _countdown.PauseTimer(); }
             _assignmentPanel = (RectTransform)_choices.transform;
             _assignmentOrigin = _assignmentPanel.anchoredPosition;
@@ -216,11 +216,16 @@ namespace UnityGameJam.UI
 
         private void ShowTime(float remaining)
         {
-            if (_countdown != null) { _countdown.PauseTimer(); _countdown.NotifyRemaining(remaining); }
+            if (_countdown != null)
+            {
+                _countdown.PauseTimer();
+                if (_lastSecond < 0) { _countdown.JumpTo(remaining); }
+                else { _countdown.NotifyRemaining(remaining); }
+            }
             int seconds = Mathf.Max(0, Mathf.CeilToInt(remaining));
             if (seconds == _lastSecond) { return; }
             _lastSecond = seconds;
-            _time.text = $"{seconds / 60:00}:{seconds % 60:00}";
+            if (_time != null) { _time.text = $"{seconds / 60:00}:{seconds % 60:00}"; }
         }
 
         private static void ShowProgress(TMP_Text label, string title, float value, float threshold)
