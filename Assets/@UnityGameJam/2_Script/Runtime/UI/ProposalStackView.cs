@@ -84,6 +84,7 @@ namespace UnityGameJam.UI
             {
                 _reportedZones.Clear();
                 Array.Clear(_assignedZones, 0, _assignedZones.Length);
+                foreach (ProposalCard card in _cards) { card.gameObject.SetActive(false); }
             }
             _session = session;
             RememberAssignments(minions);
@@ -102,21 +103,40 @@ namespace UnityGameJam.UI
             _rect.anchoredPosition = origin;
             Array.Clear(_heights, 0, _heights.Length);
             Array.Clear(_counts, 0, _counts.Length);
+            foreach (ProposalCard card in _cards)
+            {
+                if (!card.gameObject.activeSelf) { continue; }
+                if (!isRunning) { card.gameObject.SetActive(false); continue; }
+                bool isPresent = false;
+                for (int i = 0; i < count; i++)
+                {
+                    if (messages[i].MessageId == card.MessageId) { isPresent = true; break; }
+                }
+                if (!isPresent) { card.BeginDismiss(); }
+            }
             float fallbackBottom = 0f;
             for (int i = 0; i < count; i++)
             {
-                while (_cards.Count <= i)
-                {
-                    ProposalCard created = Instantiate(_template, transform);
-                    created.Bind(_response);
-                    _cards.Add(created);
-                }
+
                 MessageEntry message = messages[i];
                 bool isTarget = !isTalking && message.IsInputTarget && message.Kind == EMessageKind.Proposal;
                 if (isTarget) { _targetId = message.MessageId; }
                 int laneIndex = LaneIndex(message.Minion);
                 UnityEngine.UI.ScrollRect lane = laneIndex < _lanes.Length ? _lanes[laneIndex] : null;
-                ProposalCard card = _cards[i];
+                ProposalCard card = FindCard(message.MessageId);
+                if (card == null)
+                {
+                    foreach (ProposalCard pooled in _cards)
+                    {
+                        if (!pooled.gameObject.activeSelf) { card = pooled; break; }
+                    }
+                    if (card == null)
+                    {
+                        card = Instantiate(_template, transform);
+                        card.Bind(_response);
+                        _cards.Add(card);
+                    }
+                }
                 Transform parent = lane != null ? lane.content : transform;
                 bool changed = card.MessageId != message.MessageId || card.transform.parent != parent;
                 if (card.transform.parent != parent) { card.transform.SetParent(parent, false); }
@@ -129,9 +149,16 @@ namespace UnityGameJam.UI
                 _counts[laneIndex]++;
                 fallbackBottom += height + _spacing;
             }
-            for (int i = count; i < _cards.Count; i++)
+            foreach (ProposalCard card in _cards)
             {
-                if (_cards[i].gameObject.activeSelf) { _cards[i].gameObject.SetActive(false); }
+                if (!card.gameObject.activeSelf || !card.IsDismissing) { continue; }
+                for (int laneIndex = 0; laneIndex < _lanes.Length && laneIndex < _heights.Length; laneIndex++)
+                {
+                    if (_lanes[laneIndex] == null || card.transform.parent != _lanes[laneIndex].content) { continue; }
+                    _heights[laneIndex] += card.Height + _spacing;
+                    _counts[laneIndex]++;
+                    break;
+                }
             }
             float availableHeight = _parent != null ? Mathf.Max(0f, _parent.rect.height - origin.y - _topReserve) : _maximumHeight;
             float sharedHeight = Mathf.Min(_sharedMaximumHeight, Mathf.Max(0f, _heights[SharedLane] - _spacing));
@@ -172,7 +199,9 @@ namespace UnityGameJam.UI
                     for (int j = 0; j < count; j++)
                     {
                         if (messages[j].MessageId != _targetId || LaneIndex(messages[j].Minion) != i) { continue; }
-                        var target = (RectTransform)_cards[j].transform;
+                        ProposalCard targetCard = FindCard(_targetId);
+                        if (targetCard == null) { break; }
+                        var target = (RectTransform)targetCard.transform;
                         float scrollRange = lane.content.rect.height - lane.viewport.rect.height;
                         if (scrollRange > 0f)
                         {
@@ -188,6 +217,15 @@ namespace UnityGameJam.UI
             if (_targetId < 0) { return; }
             if (_approve != null && _approve.action.WasPressedThisFrame()) { Respond(_targetId, true); }
             else if (_hold != null && _hold.action.WasPressedThisFrame()) { Respond(_targetId, false); }
+        }
+
+        private ProposalCard FindCard(int messageId)
+        {
+            foreach (ProposalCard card in _cards)
+            {
+                if (card.gameObject.activeSelf && card.MessageId == messageId) { return card; }
+            }
+            return null;
         }
 
         private void RememberAssignments(IReadOnlyList<MinionStatus> minions)
@@ -230,6 +268,7 @@ namespace UnityGameJam.UI
                 bool accepted = approve ? _session.ApproveOldestProposal() : _session.HoldOldestProposal();
                 if (accepted)
                 {
+                    FindCard(messageId)?.ShowResponse(approve);
                     GameAudioPresenter.MarkHandled(messageId);
                     GameSfxPlayer.Play(approve ? ESfxCue.Confirm : ESfxCue.Cancel);
                 }
