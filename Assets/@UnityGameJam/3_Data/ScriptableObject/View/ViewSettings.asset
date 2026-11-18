@@ -55,6 +55,8 @@ MonoBehaviour:
     _mopAnimationRate: 1
     _pickupRate: 1
     _dropRate: 1
+    _eatAnimationRate: 0
+    _dispatchAnimationRate: 0
   _goblinMotion:
     _walkRate: 1
     _runRate: 1
@@ -70,3 +72,73 @@ MonoBehaviour:
     _mopAnimationRate: 1
     _pickupRate: 1
     _dropRate: 1
+    _eatAnimationRate: 0
+    _dispatchAnimationRate: 0
+  _orcMotion:
+    _walkRate: 1
+    _runRate: 1
+    _carryRate: 1
+    _heavyCarryRate: 1
+    _mopWalkRate: 1
+    _idleAnimationRate: 1
+    _walkAnimationRate: 1
+    _runAnimationRate: 1
+    _carryAnimationRate: 1
+    _heavyCarryAnimationRate: 1
+    _mopWalkAnimationRate: 1
+    _mopAnimationRate: 1
+    _pickupRate: 1
+    _dropRate: 1
+    _eatAnimationRate: 1
+    _dispatchAnimationRate: 1
+  _skeletonMotion:
+    _walkRate: 1
+    _runRate: 1
+    _carryRate: 1
+    _heavyCarryRate: 1
+    _mopWalkRate: 1
+    _idleAnimationRate: 1
+    _walkAnimationRate: 1
+    _runAnimationRate: 1
+    _carryAnimationRate: 1
+    _heavyCarryAnimationRate: 1
+    _mopWalkAnimationRate: 1
+    _mopAnimationRate: 1
+    _pickupRate: 1
+    _dropRate: 1
+    _eatAnimationRate: 1
+    _dispatchAnimationRate: 1
+  _slimeMotion:
+    _walkRate: 1
+    _runRate: 1
+    _carryRate: 1
+    _heavyCarryRate: 1
+    _mopWalkRate: 1
+    _idleAnimationRate: 1
+    _walkAnimationRate: 1
+    _runAnimationRate: 1
+    _carryAnimationRate: 1
+    _heavyCarryAnimationRate: 1
+    _mopWalkAnimationRate: 1
+    _mopAnimationRate: 1
+    _pickupRate: 1
+    _dropRate: 1
+    _eatAnimationRate: 1
+    _dispatchAnimationRate: 1
+  _hellhoundMotion:
+    _walkRate: 1
+    _runRate: 1
+    _carryRate: 1
+    _heavyCarryRate: 1
+    _mopWalkRate: 1
+    _idleAnimationRate: 1
+    _walkAnimationRate: 1
+    _runAnimationRate: 1
+    _carryAnimationRate: 1
+    _heavyCarryAnimationRate: 1
+    _mopWalkAnimationRate: 1
+    _mopAnimationRate: 1
+    _pickupRate: 1
+    _dropRate: 1
+    _eatAnimationRate: 1
+    _dispatchAnimationRate: 1

@@ -56,11 +56,19 @@ namespace UnityGameJam.View
         [Header("이동·애니메이션 조정")]
         [SerializeField] private UnitMotionTuning _playerMotion;
         [SerializeField] private UnitMotionTuning _goblinMotion;
+        [SerializeField] private UnitMotionTuning _orcMotion;
+        [SerializeField] private UnitMotionTuning _skeletonMotion;
+        [SerializeField] private UnitMotionTuning _slimeMotion;
+        [SerializeField] private UnitMotionTuning _hellhoundMotion;
 
         public UnitMotionTuning GetMotionTuning(EWorkerType worker) => worker switch
         {
             EWorkerType.Player => _playerMotion,
             EWorkerType.Goblin => _goblinMotion,
+            EWorkerType.Orc => _orcMotion,
+            EWorkerType.Skeleton => _skeletonMotion,
+            EWorkerType.Slime => _slimeMotion,
+            EWorkerType.Hellhound => _hellhoundMotion,
             _ => default
         };
 

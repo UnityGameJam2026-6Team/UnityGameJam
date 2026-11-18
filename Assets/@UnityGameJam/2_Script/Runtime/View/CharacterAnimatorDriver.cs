@@ -178,11 +178,15 @@ namespace UnityGameJam.View
             }
             _handling = null;
 
-            if (CurrentPose == EPose.Eat && _set.Eat != null && Time.time - _eatStarted < _set.Eat.length)
+            if (CurrentPose == EPose.Eat && _set.Eat != null)
             {
-                _loop = null;
-                Sample(_set.Eat, Time.time - _eatStarted);
-                return;
+                float eatTime = (Time.time - _eatStarted) * _tuning.EatAnimationRate;
+                if (eatTime < _set.Eat.length)
+                {
+                    _loop = null;
+                    Sample(_set.Eat, eatTime);
+                    return;
+                }
             }
 
             bool moving = CurrentPose == EPose.Walk || CurrentPose == EPose.Dispatch ||
@@ -218,7 +222,7 @@ namespace UnityGameJam.View
         private (AnimationClip Clip, float Rate) SelectLoop(bool moving, bool heavy)
         {
             if (CurrentPose == EPose.Mop && _set.Mop != null) { return (_set.Mop, _tuning.MopAnimationRate); }
-            if (CurrentPose == EPose.Dispatch && _set.Dispatch != null) { return (_set.Dispatch, 1f); }
+            if (CurrentPose == EPose.Dispatch && _set.Dispatch != null) { return (_set.Dispatch, _tuning.DispatchAnimationRate); }
             if (heavy && _set.CarryHeavy != null) { return (_set.CarryHeavy, _tuning.HeavyCarryAnimationRate); }
             if (!moving) { return (_set.Idle, _tuning.IdleAnimationRate); }
             if (_holdingMop && _set.MopWalk != null) { return (_set.MopWalk, _tuning.MopWalkAnimationRate); }

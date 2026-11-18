@@ -24,6 +24,8 @@ namespace UnityGameJam.View
         [SerializeField] private float _mopAnimationRate;
         [SerializeField] private float _pickupRate;
         [SerializeField] private float _dropRate;
+        [SerializeField] private float _eatAnimationRate;
+        [SerializeField] private float _dispatchAnimationRate;
 
         public float IdleAnimationRate => NormalizeRate(_idleAnimationRate);
         public float WalkAnimationRate => NormalizeRate(_walkAnimationRate);
@@ -32,6 +34,8 @@ namespace UnityGameJam.View
         public float HeavyCarryAnimationRate => NormalizeRate(_heavyCarryAnimationRate);
         public float MopWalkAnimationRate => NormalizeRate(_mopWalkAnimationRate);
         public float MopAnimationRate => NormalizeRate(_mopAnimationRate);
+        public float EatAnimationRate => NormalizeRate(_eatAnimationRate);
+        public float DispatchAnimationRate => NormalizeRate(_dispatchAnimationRate);
 
         public float ResolveMoveSpeed(float walkSpeed, float measuredSpeed, float baseSpeed, float ruleSpeed,
             bool running, EContaminationType? carried, bool holdingMop)

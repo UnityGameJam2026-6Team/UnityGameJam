@@ -1,16 +1,24 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
+using UnityGameJam.Contract;
+using UnityGameJam.Data;
+using UnityGameJam.Match;
 using UnityGameJam.View;
 
 namespace UnityGameJam.Editor
 {
     public sealed class UnitMotionTuningWindow : EditorWindow
     {
-        private const string SettingsPath = "Assets/@UnityGameJam/3_Data/ScriptableObject/View/ViewSettings.asset";
-        private readonly List<(string Group, string Property, FloatField Field)> _fields = new();
-        private ViewSettingsSO _settings;
+        private const string DataPath = "Assets/@UnityGameJam/3_Data/ScriptableObject/";
+        private const string BootstrapPath = "Assets/@UnityGameJam/4_Prefab/System/SYS_Bootstrap.prefab";
+        private readonly List<SerializedObject> _assets = new();
+        private readonly List<Action> _readFields = new();
+        private readonly List<Action> _writeFields = new();
+        private readonly List<(IntegerField Minimum, IntegerField Maximum, string Label)> _ranges = new();
         private Label _status;
 
         [MenuItem("Tools/UnityGameJam/레벨 디자인")]
@@ -27,24 +35,30 @@ namespace UnityGameJam.Editor
         private void CreateGUI()
         {
             rootVisualElement.Clear();
-            _fields.Clear();
-            _settings = AssetDatabase.LoadAssetAtPath<ViewSettingsSO>(SettingsPath);
-            if (_settings == null)
+            _assets.Clear();
+            _readFields.Clear();
+            _writeFields.Clear();
+            _ranges.Clear();
+
+            var settings = AssetDatabase.LoadAssetAtPath<ViewSettingsSO>(DataPath + "View/ViewSettings.asset");
+            var factory = AssetDatabase.LoadAssetAtPath<MatchFactory>(DataPath + "MatchFactory.asset");
+            if (settings == null || factory == null)
             {
-                rootVisualElement.Add(new HelpBox("ViewSettings 에셋을 찾을 수 없습니다.", HelpBoxMessageType.Error));
+                rootVisualElement.Add(new HelpBox("ViewSettings 또는 MatchFactory 에셋을 찾을 수 없습니다.", HelpBoxMessageType.Error));
                 return;
             }
 
+            using var factoryData = new SerializedObject(factory);
+            var typeAsset = factoryData.FindProperty("_types").objectReferenceValue;
+            var types = typeAsset != null ? Track(typeAsset) : null;
             var scroll = new ScrollView();
             scroll.style.flexGrow = 1;
             scroll.style.paddingLeft = 12;
             scroll.style.paddingRight = 12;
-            scroll.Add(new Label("1은 기본 배율입니다. 애니메이션 배속은 재생 속도에 적용됩니다."));
-            var columns = new VisualElement();
-            columns.style.flexDirection = FlexDirection.Row;
-            columns.Add(CreateUnit("플레이어", "_playerMotion", true));
-            columns.Add(CreateUnit("고블린", "_goblinMotion", false));
-            scroll.Add(columns);
+            AddRules(scroll, factoryData.FindProperty("_rules").objectReferenceValue);
+            AddContamination(scroll, factoryData.FindProperty("_spawnTable").objectReferenceValue, types);
+            AddWorkerStats(scroll, factoryData.FindProperty("_workerStats"), types);
+            AddMotion(scroll, Track(settings));
             rootVisualElement.Add(scroll);
 
             var footer = new VisualElement();
@@ -61,77 +75,311 @@ namespace UnityGameJam.Editor
             Reload();
         }
 
-        private VisualElement CreateUnit(string title, string group, bool canCarryHeavy)
+        private void AddRules(VisualElement parent, UnityEngine.Object asset)
         {
-            var column = new VisualElement();
-            column.style.flexGrow = 1;
-            column.style.flexBasis = 0;
-            column.style.marginRight = 10;
-            var heading = new Label(title);
-            heading.style.unityFontStyleAndWeight = FontStyle.Bold;
-            heading.style.marginTop = 10;
-            heading.style.marginBottom = 4;
-            column.Add(heading);
-            AddSection("이동 속도 (배)");
-            Add("걷기", "_walkRate");
-            Add("달리기", "_runRate");
-            Add("한 손 운반", "_carryRate");
-            if (canCarryHeavy) { Add("두 손 운반", "_heavyCarryRate"); }
-            Add("걸레 이동", "_mopWalkRate");
+            var section = AddSection(parent, "판 규칙", true);
+            if (asset == null) { AddMissingAsset(section, "GameRule"); return; }
+            var rules = Track(asset);
+            AddFloat(section, rules.FindProperty("_matchSeconds"), "제한 시간 (초)", min: 0.01f);
+            AddFloat(section, rules.FindProperty("_zoneThreshold"), "구역 성공 기준 (%)", max: 100f);
+            AddFloat(section, rules.FindProperty("_facilityThreshold"), "시설 성공 기준 (%)", max: 100f);
+            AddFloat(section, rules.FindProperty("_interactionDistance"), "상호작용 거리 (m)", min: 0.01f);
+        }
 
-            AddSection("애니메이션 배속 (배)");
-            Add("대기", "_idleAnimationRate");
-            Add("걷기", "_walkAnimationRate");
-            Add("달리기", "_runAnimationRate");
-            Add("한 손 운반", "_carryAnimationRate");
-            if (canCarryHeavy) { Add("두 손 운반", "_heavyCarryAnimationRate"); }
-            Add("걸레 이동", "_mopWalkAnimationRate");
-            Add("물걸레질", "_mopAnimationRate");
-            Add("집기", "_pickupRate");
-            Add("내려놓기", "_dropRate");
-            return column;
-
-            void AddSection(string label)
+        private void AddContamination(VisualElement parent, UnityEngine.Object spawnAsset, SerializedObject types)
+        {
+            var section = AddSection(parent, "오염");
+            if (spawnAsset == null) { AddMissingAsset(section, "ZoneSpawnTable"); }
+            else
             {
-                var section = new Label(label);
-                section.style.unityFontStyleAndWeight = FontStyle.Bold;
-                section.style.marginTop = 6;
-                column.Add(section);
+                var spawn = Track(spawnAsset);
+                AddRange(section, "시설 초기 오염량", spawn.FindProperty("_minimumFacilityWeight"),
+                    spawn.FindProperty("_maximumFacilityWeight"), min: 1);
+
+                var ranges = spawn.FindProperty("_ranges");
+                var byZone = ArrayItems(ranges).ToLookup(row => (EZoneId)row.FindPropertyRelative("_zone").intValue);
+                foreach (EZoneId zone in Enum.GetValues(typeof(EZoneId)))
+                {
+                    var room = AddSection(section, ZoneDisplayName.GetFullName(zone));
+                    foreach (var row in byZone[zone].OrderBy(row => row.FindPropertyRelative("_type").intValue))
+                    {
+                        var type = (EContaminationType)row.FindPropertyRelative("_type").intValue;
+                        string typeName = GetContaminationName(type);
+                        AddRange(room, typeName, row.FindPropertyRelative("_minimum"),
+                            row.FindPropertyRelative("_maximum"), description: $"판 시작 시 이 구역에 배치할 {typeName}");
+                    }
+                }
             }
 
-            void Add(string label, string property)
+            var weights = AddSection(section, "오염 유형별 가중치");
+            if (types == null) { AddMissingAsset(weights, "ContaminationType"); return; }
+            foreach (var row in ArrayItems(types.FindProperty("_entries")))
             {
-                var field = new FloatField(label) { name = group + property };
-                field.labelElement.style.minWidth = 85;
-                _fields.Add((group, property, field));
-                column.Add(field);
+                var type = (EContaminationType)row.FindPropertyRelative("_type").intValue;
+                AddInt(weights, row.FindPropertyRelative("_weight"), GetContaminationName(type), min: 1,
+                    tooltip: "이 유형의 오염 하나가 청결도와 시설 초기 오염량에 반영되는 비중입니다.");
+            }
+        }
+
+        private void AddWorkerStats(VisualElement parent, SerializedProperty workerStats, SerializedObject types)
+        {
+            var section = AddSection(parent, "작업자");
+            var stats = ArrayItems(workerStats).Select(row => row.objectReferenceValue as WorkerStatsSO)
+                .Where(asset => asset != null).OrderBy(asset => asset.Worker);
+            foreach (var asset in stats)
+            {
+                var worker = AddSection(section, GetWorkerName(asset.Worker));
+                var data = Track(asset);
+                if (asset.Worker == EWorkerType.Player && types != null)
+                {
+                    AddFloat(worker, types.FindProperty("_playerMopSeconds"), "물걸레질 (초)", min: 0.01f);
+                }
+                if (asset.CanCarryHeavyDebris)
+                {
+                    AddFloat(worker, data.FindProperty("_heavyCarryMultiplier"), "무거운 잔해 운반 (배)");
+                }
+                if (asset.Worker != EWorkerType.Player && asset.CanCarryClutter)
+                {
+                    AddFloat(worker, data.FindProperty("_clutterCarryMultiplier"), "작은 물건 운반 (배)");
+                }
+                if (asset.Worker != EWorkerType.Player && asset.CanMop)
+                {
+                    AddFloat(worker, data.FindProperty("_mopSeconds"), "물걸레질 (초)", min: 0.01f);
+                }
+                if (asset.CanDigestWaste)
+                {
+                    AddFloat(worker, data.FindProperty("_digestSeconds"), "폐기물 소화 (초)", min: 0.01f);
+                }
+                if (asset.Worker == EWorkerType.Hellhound)
+                {
+                    AddFloat(worker, data.FindProperty("_dispatchSeconds"), "배출 왕복 (초)", min: 0.01f);
+                }
+            }
+        }
+
+        private void AddMotion(VisualElement parent, SerializedObject settings)
+        {
+            var section = AddSection(parent, "이동·애니메이션", true);
+            AddFloat(section, settings.FindProperty("_playerTurnSpeed"), "플레이어 회전 (도/초)", min: 1f);
+            AddFloat(section, settings.FindProperty("_stairApproachRadius"), "계단 접근 거리 (m)", min: 0.1f);
+            AddFloat(section, settings.FindProperty("_stairTransitSeconds"), "계단 이동 시간 (초)");
+
+            var bootstrap = AssetDatabase.LoadAssetAtPath<GameObject>(BootstrapPath)?.GetComponent<MatchBootstrap>();
+            if (bootstrap == null)
+            {
+                section.Add(new HelpBox("SYS_Bootstrap 프리팹을 찾을 수 없습니다.", HelpBoxMessageType.Error));
+                return;
+            }
+
+            using var bootstrapData = new SerializedObject(bootstrap);
+            AddUnit(section, settings, EWorkerType.Player, bootstrapData.FindProperty("_playerPrefab").objectReferenceValue as Component);
+            var minions = ArrayItems(bootstrapData.FindProperty("_minionPrefabs"))
+                .Select(row => row.objectReferenceValue as MinionAgent).Where(prefab => prefab != null).OrderBy(prefab => prefab.Worker);
+            foreach (var minion in minions)
+            {
+                AddUnit(section, settings, minion.Worker, minion);
+            }
+        }
+
+        private void AddUnit(VisualElement parent, SerializedObject settings, EWorkerType worker, Component prefab)
+        {
+            string path = worker switch
+            {
+                EWorkerType.Player => "_playerMotion",
+                EWorkerType.Goblin => "_goblinMotion",
+                EWorkerType.Orc => "_orcMotion",
+                EWorkerType.Skeleton => "_skeletonMotion",
+                EWorkerType.Slime => "_slimeMotion",
+                EWorkerType.Hellhound => "_hellhoundMotion",
+                _ => null
+            };
+            if (path == null || prefab == null) { return; }
+
+            var group = settings.FindProperty(path);
+            var clips = prefab.GetComponentInChildren<CharacterAnimationSet>(true);
+            string title = GetWorkerName(worker);
+            var section = AddSection(parent, title, worker == EWorkerType.Player);
+            var movement = AddSection(section, "이동 속도 (배)", true);
+            bool canWalk = worker != EWorkerType.Hellhound;
+            bool canRun = worker != EWorkerType.Slime;
+            bool isMissingSkeletonClips = worker == EWorkerType.Skeleton && clips?.Idle == null;
+            if (canWalk) { AddMovement(worker == EWorkerType.Slime ? "이동" : "걷기", "_walkRate"); }
+            if (canRun) { AddMovement("달리기", "_runRate"); }
+            if (clips?.Carry != null) { AddMovement("한 손 운반", "_carryRate"); }
+            if (clips?.CarryHeavy != null) { AddMovement("두 손 운반", "_heavyCarryRate"); }
+            if (clips?.MopWalk != null || isMissingSkeletonClips) { AddMovement("걸레 이동", "_mopWalkRate"); }
+            if (clips == null && !isMissingSkeletonClips) { return; }
+
+            string animationTitle = isMissingSkeletonClips ? "애니메이션 배속 (FBX 연결 필요)" : "애니메이션 배속 (배)";
+            var animation = AddSection(section, animationTitle, true);
+            if (clips?.Idle != null || isMissingSkeletonClips) { AddAnimation("대기", "_idleAnimationRate"); }
+            if (canWalk && (clips?.Walk != null || isMissingSkeletonClips))
+            {
+                AddAnimation(worker == EWorkerType.Slime ? "이동" : "걷기", "_walkAnimationRate");
+            }
+            if (canRun && (clips?.Run != null || isMissingSkeletonClips)) { AddAnimation("달리기", "_runAnimationRate"); }
+            if (clips?.Carry != null) { AddAnimation("한 손 운반", "_carryAnimationRate"); }
+            if (clips?.CarryHeavy != null) { AddAnimation("두 손 운반", "_heavyCarryAnimationRate"); }
+            if (clips?.MopWalk != null || isMissingSkeletonClips) { AddAnimation("걸레 이동", "_mopWalkAnimationRate"); }
+            if (clips?.Mop != null || isMissingSkeletonClips) { AddAnimation("물걸레질", "_mopAnimationRate"); }
+            if (clips?.PickUp != null || clips?.PickUpHeavy != null || isMissingSkeletonClips)
+            {
+                AddAnimation("집기", "_pickupRate");
+                AddAnimation("내려놓기", "_dropRate");
+            }
+            if (clips?.Eat != null) { AddAnimation("먹기", "_eatAnimationRate"); }
+            if (clips?.Dispatch != null) { AddAnimation("배출 이동", "_dispatchAnimationRate"); }
+
+            void AddMovement(string label, string property)
+            {
+                Add(movement, label, property, $"{title}의 {label} 속도 배율입니다. 1은 기본 속도입니다.");
+            }
+
+            void AddAnimation(string label, string property)
+            {
+                Add(animation, label, property, $"{title}의 {label} 애니메이션 재생 배율입니다. 1은 기본 배속입니다.");
+            }
+
+            void Add(VisualElement container, string label, string property, string tooltip)
+            {
+                var field = new FloatField(label);
+                field.labelElement.style.minWidth = 100;
+                AddNumber(container, group.FindPropertyRelative(property), field, p => p.floatValue,
+                    (p, value) => p.floatValue = value, UnitMotionTuning.NormalizeRate, tooltip);
             }
         }
 
         private void Save()
         {
-            var serialized = new SerializedObject(_settings);
-            foreach (var (group, property, field) in _fields)
+            foreach (var (minimum, maximum, label) in _ranges)
             {
-                float rate = UnitMotionTuning.NormalizeRate(field.value);
-                SerializedProperty value = serialized.FindProperty(group).FindPropertyRelative(property);
-                if (rate != UnitMotionTuning.NormalizeRate(value.floatValue)) { value.floatValue = rate; }
-                field.SetValueWithoutNotify(rate);
+                if (minimum.value <= maximum.value) { continue; }
+                _status.text = $"{label}의 최소값이 최대값보다 큽니다.";
+                return;
             }
-            if (serialized.ApplyModifiedProperties()) { AssetDatabase.SaveAssetIfDirty(_settings); }
+
+            Undo.IncrementCurrentGroup();
+            int undoGroup = Undo.GetCurrentGroup();
+            Undo.SetCurrentGroupName("레벨 디자인 수치 저장");
+            foreach (var asset in _assets) { asset.Update(); }
+            foreach (var write in _writeFields) { write(); }
+            foreach (var asset in _assets)
+            {
+                if (asset.ApplyModifiedProperties()) { AssetDatabase.SaveAssetIfDirty(asset.targetObject); }
+            }
+            Undo.CollapseUndoOperations(undoGroup);
+            Reload();
             _status.text = "저장 완료 · 다음 판부터 적용";
         }
 
         private void Reload()
         {
-            if (_settings == null || _status == null) { return; }
-            var serialized = new SerializedObject(_settings);
-            foreach (var (group, property, field) in _fields)
-            {
-                var value = serialized.FindProperty(group).FindPropertyRelative(property);
-                field.SetValueWithoutNotify(UnitMotionTuning.NormalizeRate(value.floatValue));
-            }
+            if (_status == null) { return; }
+            foreach (var asset in _assets) { asset.Update(); }
+            foreach (var read in _readFields) { read(); }
             _status.text = string.Empty;
         }
+
+        private SerializedObject Track(UnityEngine.Object asset)
+        {
+            var serialized = new SerializedObject(asset);
+            _assets.Add(serialized);
+            return serialized;
+        }
+
+        private static Foldout AddSection(VisualElement parent, string title, bool expanded = false)
+        {
+            var section = new Foldout { text = title, value = expanded };
+            section.style.marginTop = 6;
+            parent.Add(section);
+            return section;
+        }
+
+        private static void AddMissingAsset(VisualElement parent, string name)
+        {
+            parent.Add(new HelpBox($"MatchFactory에 {name} 에셋이 연결되지 않았습니다.", HelpBoxMessageType.Error));
+        }
+
+        private static IEnumerable<SerializedProperty> ArrayItems(SerializedProperty array)
+        {
+            for (int i = 0; i < array.arraySize; i++) { yield return array.GetArrayElementAtIndex(i); }
+        }
+
+        private void AddFloat(VisualElement parent, SerializedProperty property, string title,
+            float min = 0f, float max = float.MaxValue)
+        {
+            AddNumber(parent, property, new FloatField(title), p => p.floatValue,
+                (p, value) => p.floatValue = value, value => float.IsNaN(value) ? min : Mathf.Clamp(value, min, max));
+        }
+
+        private IntegerField AddInt(VisualElement parent, SerializedProperty property, string title, int min, string tooltip = null)
+        {
+            var field = new IntegerField(title);
+            AddNumber(parent, property, field, p => p.intValue,
+                (p, value) => p.intValue = value, value => Mathf.Max(min, value), tooltip);
+            return field;
+        }
+
+        private void AddRange(VisualElement parent, string title, SerializedProperty minimum,
+            SerializedProperty maximum, int min = 0, string description = null)
+        {
+            var row = new VisualElement();
+            row.style.flexDirection = FlexDirection.Row;
+            var label = new Label(title);
+            label.tooltip = description == null ? $"{minimum.tooltip}\n{maximum.tooltip}" : $"{description} 개수의 범위입니다.";
+            label.style.width = 140;
+            label.style.alignSelf = Align.Center;
+            row.Add(label);
+            var minField = AddInt(row, minimum, "최소", min, description == null ? null : $"{description} 최소 개수입니다.");
+            var maxField = AddInt(row, maximum, "최대", min, description == null ? null : $"{description} 최대 개수입니다.");
+            foreach (var field in new[] { minField, maxField })
+            {
+                field.style.flexGrow = 1;
+                field.labelElement.style.minWidth = 30;
+            }
+            _ranges.Add((minField, maxField, title));
+            parent.Add(row);
+        }
+
+        private void AddNumber<T>(VisualElement parent, SerializedProperty property, BaseField<T> field,
+            Func<SerializedProperty, T> read, Action<SerializedProperty, T> write, Func<T, T> normalize, string tooltip = null)
+        {
+            var asset = property.serializedObject;
+            string path = property.propertyPath;
+            T initial = default;
+            field.name = asset.targetObject.name + "." + path;
+            field.tooltip = tooltip ?? property.tooltip;
+            _readFields.Add(() =>
+            {
+                initial = normalize(read(asset.FindProperty(path)));
+                field.SetValueWithoutNotify(initial);
+            });
+            _writeFields.Add(() =>
+            {
+                T value = normalize(field.value);
+                if (!EqualityComparer<T>.Default.Equals(value, initial)) { write(asset.FindProperty(path), value); }
+            });
+            parent.Add(field);
+        }
+
+        private static string GetContaminationName(EContaminationType type) => type switch
+        {
+            EContaminationType.HeavyDebris => "무거운 잔해",
+            EContaminationType.Trash => "쓰레기",
+            EContaminationType.ClutterItem => "작은 물건",
+            EContaminationType.FloorStain => "바닥 얼룩",
+            _ => type.ToString()
+        };
+
+        private static string GetWorkerName(EWorkerType worker) => worker switch
+        {
+            EWorkerType.Player => "플레이어",
+            EWorkerType.Goblin => "고블린",
+            EWorkerType.Orc => "오크",
+            EWorkerType.Skeleton => "스켈레톤",
+            EWorkerType.Slime => "슬라임",
+            EWorkerType.Hellhound => "헬하운드",
+            _ => worker.ToString()
+        };
     }
 }
