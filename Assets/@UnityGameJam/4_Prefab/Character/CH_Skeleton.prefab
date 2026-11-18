@@ -137,7 +137,7 @@ MonoBehaviour:
   _pickUpEnd: 0.5
   _pickUpHeavyContact: 0
   _pickUpHeavyEnd: 0
-  _mopWalk: {fileID: 5930655806782267556, guid: 8828a7657cbac6a4697d2bfd6925f3ba, type: 3}
+  _mopWalk: {fileID: -1610863427237328480, guid: 8828a7657cbac6a4697d2bfd6925f3ba, type: 3}
   _mop: {fileID: -8303932156236803649, guid: 8828a7657cbac6a4697d2bfd6925f3ba, type: 3}
   _eat: {fileID: 0}
   _dispatch: {fileID: 0}
