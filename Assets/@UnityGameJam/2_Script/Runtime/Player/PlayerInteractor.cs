@@ -57,6 +57,8 @@ namespace UnityGameJam.Player
             _minions[minion] = body;
         }
 
+        public void SetInteractionDistance(float distance) => _interactionDistance = distance;
+
         private void Update()
         {
             if (_session == null || _session.MatchState != EMatchState.Running || _playerController.IsHandling

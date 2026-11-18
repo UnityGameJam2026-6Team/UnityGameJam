@@ -86,7 +86,22 @@ namespace UnityGameJam.View
             _supportArm = null;
         }
 
-        public void SetMotionTuning(UnitMotionTuning tuning) => _tuning = tuning;
+        public void SetMotionTuning(UnitMotionTuning tuning)
+        {
+            float now = Time.time;
+            if (IsHandling)
+            {
+                float progress = HandlingProgress;
+                _handlingTiming = tuning.ResolveHandling(_set, IsPickingUp, _handlingHeavy);
+                _handlingStart = now - progress * _handlingTiming.Duration;
+            }
+            if (CurrentPose == EPose.Eat)
+            {
+                float eatTime = (now - _eatStarted) * _tuning.EatAnimationRate;
+                _eatStarted = now - eatTime / tuning.EatAnimationRate;
+            }
+            _tuning = tuning;
+        }
 
         public void SetPose(EPose pose, float speed = 0f, bool running = false,
             EContaminationType? carried = null, bool holdingMop = false)

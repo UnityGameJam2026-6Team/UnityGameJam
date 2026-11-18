@@ -31,12 +31,13 @@ namespace UnityGameJam.View
 
         private readonly List<MinionAgent> _minions = new List<MinionAgent>();
         private RoomVisibility _roomVisibility;
+        private float _initialMatchTime;
 
         private readonly Dictionary<int, string> _homeSlotKinds = new Dictionary<int, string>();
         public IReadOnlyDictionary<int, string> HomeSlotKinds => _homeSlotKinds;
         public ViewSettingsSO ViewSettings => _viewSettings;
         public IMatchSession Session { get; private set; }
-        public float InitialMatchTime { get; private set; }
+        public float MatchDuration => _factory.MatchDuration ?? _initialMatchTime;
         public FacilityLayout Layout { get; private set; }
         public PlayerBody Player { get; private set; }
         public IReadOnlyList<MinionAgent> Minions => _minions;
@@ -102,13 +103,25 @@ namespace UnityGameJam.View
             if (_camera != null) { _camera.SetTarget(Player.transform); }
 
             Session.StartMatch();
-            InitialMatchTime = Session.RemainingTime;
+            _initialMatchTime = Session.RemainingTime;
             MatchStarted?.Invoke(this);
         }
 
         private void Update()
         {
             Session?.Tick(Time.deltaTime);
+        }
+
+        public void RefreshLevelDesign()
+        {
+            if (Session == null || Player == null) { return; }
+            ApplyMotionTuning(Player, EWorkerType.Player);
+            Player.GetComponent<PlayerInteractor>().SetInteractionDistance(_factory.InteractionDistance ?? _viewSettings.InteractRadius);
+            foreach (MinionAgent minion in _minions)
+            {
+                ApplyMotionTuning(minion, minion.Worker);
+                minion.SetStairTransitSeconds(_viewSettings.StairTransitSeconds);
+            }
         }
 
         private void LateUpdate()

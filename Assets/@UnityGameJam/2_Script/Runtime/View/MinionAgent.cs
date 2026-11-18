@@ -35,7 +35,7 @@ namespace UnityGameJam.View
         private EFloor _floor;
         private EFloor _targetFloor;
         private Vector3 _destination;
-        private float _transitTimer;
+        private float _transitElapsed;
         private bool _isRouteChanged;
         private bool _isStopRequested;
 
@@ -115,6 +115,8 @@ namespace UnityGameJam.View
             UpdateStrideSpeed();
         }
 
+        public void SetStairTransitSeconds(float seconds) => _stairSeconds = seconds;
+
         internal void ObserveItem(ItemSnapshot item) => _carry.Observe(item);
         internal void ObserveMop(bool holding) => _carry.ObserveMop(holding);
 
@@ -153,13 +155,13 @@ namespace UnityGameJam.View
                     if (!_agent.pathPending && _agent.remainingDistance <= StairReachDistance)
                     {
                         _agent.isStopped = true;
-                        _transitTimer = _stairSeconds;
+                        _transitElapsed = 0f;
                         _phase = EPhase.InTransit;
                     }
                     break;
                 case EPhase.InTransit:
-                    _transitTimer -= Time.deltaTime;
-                    if (_transitTimer <= 0f) { CrossStair(); }
+                    _transitElapsed += Time.deltaTime;
+                    if (_transitElapsed >= _stairSeconds) { CrossStair(); }
                     break;
             }
         }

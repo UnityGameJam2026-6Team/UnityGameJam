@@ -30,7 +30,8 @@ namespace UnityGameJam.Minion
         private int _nextPoint;
         private int? _workId;
         private int? _carriedId;
-        private float _mopTime;
+        private float _mopElapsed;
+        private float? _appliedMoveSpeed;
         private bool _isTalking;
         private bool _isMoving;
         private bool _isReassigningAfterReturn;
@@ -115,6 +116,7 @@ namespace UnityGameJam.Minion
 
         public void Tick(float deltaTime)
         {
+            UpdateMoveSpeed();
             if (_isTalking) { return; }
             switch (_step)
             {
@@ -231,7 +233,7 @@ namespace UnityGameJam.Minion
             if (item.Type == EContaminationType.FloorStain && _registry.TryClaim(item.Id, Worker))
             {
                 StopMoving();
-                _mopTime = _stats.MopSeconds;
+                _mopElapsed = 0f;
                 _step = EStep.Mopping;
             }
             else if (_digestion != null && _digestion.TryEat(item.Id))
@@ -283,8 +285,8 @@ namespace UnityGameJam.Minion
             ContaminationItem target = _registry.FindItem(_workId.Value);
             if (target.ClaimedBy == Worker && IsNear(target.Position))
             {
-                _mopTime -= deltaTime;
-                if (_mopTime > 0f) { return; }
+                _mopElapsed += deltaTime;
+                if (_mopElapsed < _stats.MopSeconds) { return; }
                 _registry.TryCompleteMop(target.Id, Worker);
             }
             ReleaseWork();
@@ -351,7 +353,7 @@ namespace UnityGameJam.Minion
         {
             if (_workId.HasValue) { _registry.TryRelease(_workId.Value, Worker); }
             _workId = null;
-            _mopTime = 0f;
+            _mopElapsed = 0f;
         }
 
         private void UpdateMoveSpeed()
@@ -363,7 +365,10 @@ namespace UnityGameJam.Minion
                 EContaminationType.ClutterItem => _stats.ClutterCarryMultiplier,
                 _ => 1f
             };
-            _body.SetMoveSpeed(_stats.MoveSpeed * multiplier);
+            float speed = _stats.MoveSpeed * multiplier;
+            if (_appliedMoveSpeed == speed) { return; }
+            _appliedMoveSpeed = speed;
+            _body.SetMoveSpeed(speed);
         }
 
         private EMinionActivity GetActivity()

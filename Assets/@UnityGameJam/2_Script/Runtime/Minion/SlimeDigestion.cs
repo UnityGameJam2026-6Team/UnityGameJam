@@ -8,10 +8,11 @@ namespace UnityGameJam.Minion
     internal sealed class SlimeDigestion
     {
         private readonly ContaminationRegistry _registry;
-        private readonly float _digestSeconds;
+        private readonly WorkerStatsSO _stats;
+        private float _elapsedTime;
         private int? _itemId;
 
-        public float RemainingTime { get; private set; }
+        public float RemainingTime => IsDigesting ? Math.Max(0f, _stats.DigestSeconds - _elapsedTime) : 0f;
         public bool IsDigesting => _itemId.HasValue;
 
         public SlimeDigestion(ContaminationRegistry registry, WorkerStatsSO stats)
@@ -22,7 +23,7 @@ namespace UnityGameJam.Minion
             {
                 throw new ArgumentException("슬라임의 소화 시간은 양수여야 합니다.", nameof(stats));
             }
-            _digestSeconds = stats.DigestSeconds;
+            _stats = stats;
         }
 
         public bool TryEat(int itemId)
@@ -31,11 +32,10 @@ namespace UnityGameJam.Minion
 
             // 레지스트리 이벤트가 즉시 발생하므로 현재 소화 상태를 먼저 기록한다.
             _itemId = itemId;
-            RemainingTime = _digestSeconds;
+            _elapsedTime = 0f;
             if (_registry.TryStartDigest(itemId)) { return true; }
 
             _itemId = null;
-            RemainingTime = 0f;
             return false;
         }
 
@@ -44,7 +44,7 @@ namespace UnityGameJam.Minion
             if (!float.IsFinite(deltaTime) || deltaTime < 0f) { throw new ArgumentOutOfRangeException(nameof(deltaTime)); }
             if (!_itemId.HasValue) { return; }
 
-            RemainingTime = Math.Max(0f, RemainingTime - deltaTime);
+            _elapsedTime += deltaTime;
             if (RemainingTime > 0f) { return; }
 
             int completedItemId = _itemId.Value;

@@ -11,7 +11,7 @@ namespace UnityGameJam.Minion
         private readonly Dictionary<EFloor, ToiletStation> _stations;
         private readonly Dictionary<EFloor, int> _available;
         private readonly Dictionary<EWorkerType, EFloor> _borrowed = new Dictionary<EWorkerType, EFloor>();
-        private readonly float _interactionDistanceSquared;
+        private readonly GameRuleSO _rules;
 
         public int AvailableCount => _available.Values.Sum();
 
@@ -32,7 +32,7 @@ namespace UnityGameJam.Minion
             }
 
             _available = floors.ToDictionary(floor => floor, _ => rules.MopsPerToilet);
-            _interactionDistanceSquared = rules.InteractionDistance * rules.InteractionDistance;
+            _rules = rules;
         }
 
         public int GetAvailableCount(EFloor floor)
@@ -93,7 +93,7 @@ namespace UnityGameJam.Minion
         private bool IsInReach(ToiletStation station, IWorkerBody body)
         {
             return station.Floor == body.Floor
-                && (body.Position - station.MopPickupPosition).sqrMagnitude <= _interactionDistanceSquared;
+                && (body.Position - station.MopPickupPosition).sqrMagnitude <= _rules.InteractionDistance * _rules.InteractionDistance;
         }
     }
 }

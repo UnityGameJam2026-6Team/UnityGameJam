@@ -129,7 +129,7 @@ namespace UnityGameJam.UI
                 float x = _dialogueArea.rect.xMin - _assignmentPanel.anchoredPosition.x;
                 _dialogueCard.position = _dialogueArea.TransformPoint(x, _dialogueArea.rect.center.y + 24f, 0f);
             }
-            _proposalStack.Show(session, _bootstrap.InitialMatchTime - session.RemainingTime,
+            _proposalStack.Show(session, _bootstrap.MatchDuration - session.RemainingTime,
                 _assignmentPanel, wasTalking || talking.HasValue);
         }
 

@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 using UnityGameJam.Contract;
 using UnityGameJam.Data;
@@ -20,6 +22,9 @@ namespace UnityGameJam.Editor
         private readonly List<Action> _writeFields = new();
         private readonly List<(IntegerField Minimum, IntegerField Maximum, string Label)> _ranges = new();
         private Label _status;
+        private MatchFactory _factory;
+        private bool _spawnSettingsEdited;
+        private bool _isRollingBack;
 
         [MenuItem("Tools/UnityGameJam/레벨 디자인")]
         public static void Open()
@@ -29,8 +34,8 @@ namespace UnityGameJam.Editor
             window.minSize = new Vector2(510f, 400f);
         }
 
-        private void OnEnable() => Undo.undoRedoPerformed += Reload;
-        private void OnDisable() => Undo.undoRedoPerformed -= Reload;
+        private void OnEnable() => Undo.undoRedoPerformed += OnUndoRedo;
+        private void OnDisable() => Undo.undoRedoPerformed -= OnUndoRedo;
 
         private void CreateGUI()
         {
@@ -41,14 +46,14 @@ namespace UnityGameJam.Editor
             _ranges.Clear();
 
             var settings = AssetDatabase.LoadAssetAtPath<ViewSettingsSO>(DataPath + "View/ViewSettings.asset");
-            var factory = AssetDatabase.LoadAssetAtPath<MatchFactory>(DataPath + "MatchFactory.asset");
-            if (settings == null || factory == null)
+            _factory = AssetDatabase.LoadAssetAtPath<MatchFactory>(DataPath + "MatchFactory.asset");
+            if (settings == null || _factory == null)
             {
                 rootVisualElement.Add(new HelpBox("ViewSettings 또는 MatchFactory 에셋을 찾을 수 없습니다.", HelpBoxMessageType.Error));
                 return;
             }
 
-            using var factoryData = new SerializedObject(factory);
+            using var factoryData = new SerializedObject(_factory);
             var typeAsset = factoryData.FindProperty("_types").objectReferenceValue;
             var types = typeAsset != null ? Track(typeAsset) : null;
             var scroll = new ScrollView();
@@ -89,6 +94,7 @@ namespace UnityGameJam.Editor
         private void AddContamination(VisualElement parent, UnityEngine.Object spawnAsset, SerializedObject types)
         {
             var section = AddSection(parent, "오염");
+            section.tooltip = "플레이 중 초기 오염 개수, 오염량 범위 또는 가중치를 저장하면 같은 시설에서 새 판을 시작합니다.";
             if (spawnAsset == null) { AddMissingAsset(section, "ZoneSpawnTable"); }
             else
             {
@@ -261,15 +267,61 @@ namespace UnityGameJam.Editor
             Undo.IncrementCurrentGroup();
             int undoGroup = Undo.GetCurrentGroup();
             Undo.SetCurrentGroupName("레벨 디자인 수치 저장");
+            _spawnSettingsEdited = false;
             foreach (var asset in _assets) { asset.Update(); }
             foreach (var write in _writeFields) { write(); }
+            var changed = new List<UnityEngine.Object>();
             foreach (var asset in _assets)
             {
-                if (asset.ApplyModifiedProperties()) { AssetDatabase.SaveAssetIfDirty(asset.targetObject); }
+                if (asset.ApplyModifiedProperties()) { changed.Add(asset.targetObject); }
             }
+
+            MatchBootstrap bootstrap = FindLiveMatch();
+            bool restart = bootstrap != null && _spawnSettingsEdited && changed.Count != 0;
+            if (restart)
+            {
+                using var live = new SerializedObject(bootstrap);
+                try
+                {
+                    _factory.ValidateInitialContamination(bootstrap.Layout, live.FindProperty("_seed").intValue);
+                }
+                catch (Exception error) when (error is ArgumentException or InvalidOperationException)
+                {
+                    _isRollingBack = true;
+                    try { Undo.RevertAllDownToGroup(undoGroup); }
+                    finally { _isRollingBack = false; }
+                    _status.text = error.GetBaseException().Message;
+                    return;
+                }
+            }
+
+            foreach (var asset in changed) { AssetDatabase.SaveAssetIfDirty(asset); }
             Undo.CollapseUndoOperations(undoGroup);
             Reload();
-            _status.text = "저장 완료 · 다음 판부터 적용";
+            if (restart)
+            {
+                EditorSceneManager.LoadSceneAsyncInPlayMode(bootstrap.gameObject.scene.path, new LoadSceneParameters(LoadSceneMode.Single));
+                _status.text = "저장 완료 · 초기 오염을 반영해 새 판 시작";
+                return;
+            }
+            if (changed.Count > 0) { bootstrap?.RefreshLevelDesign(); }
+            _status.text = bootstrap != null ? "저장 완료 · 플레이에 반영" : "저장 완료";
+        }
+
+        private void OnUndoRedo()
+        {
+            if (_isRollingBack) { return; }
+            Reload();
+            FindLiveMatch()?.RefreshLevelDesign();
+        }
+
+        private MatchBootstrap FindLiveMatch()
+        {
+            if (!Application.isPlaying || _factory == null) { return null; }
+            var bootstrap = UnityEngine.Object.FindFirstObjectByType<MatchBootstrap>();
+            if (bootstrap == null || bootstrap.Session == null) { return null; }
+            using var data = new SerializedObject(bootstrap);
+            return data.FindProperty("_factory").objectReferenceValue == _factory ? bootstrap : null;
         }
 
         private void Reload()
@@ -346,6 +398,8 @@ namespace UnityGameJam.Editor
         {
             var asset = property.serializedObject;
             string path = property.propertyPath;
+            bool affectsInitialContamination = asset.targetObject is ZoneSpawnTableSO
+                || (asset.targetObject is ContaminationTypeSO && path.StartsWith("_entries.", StringComparison.Ordinal));
             T initial = default;
             field.name = asset.targetObject.name + "." + path;
             field.tooltip = tooltip ?? property.tooltip;
@@ -357,7 +411,11 @@ namespace UnityGameJam.Editor
             _writeFields.Add(() =>
             {
                 T value = normalize(field.value);
-                if (!EqualityComparer<T>.Default.Equals(value, initial)) { write(asset.FindProperty(path), value); }
+                if (EqualityComparer<T>.Default.Equals(value, initial)) { return; }
+                var current = asset.FindProperty(path);
+                if (EqualityComparer<T>.Default.Equals(value, read(current))) { return; }
+                write(current, value);
+                _spawnSettingsEdited |= affectsInitialContamination;
             });
             parent.Add(field);
         }

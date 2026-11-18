@@ -31,7 +31,7 @@ namespace UnityGameJam.Player
         private StairDirectory _stairs;
         private ViewSettingsSO _settings;
         private FloorCameraFollow _camera;
-        private float _transitTimer;
+        private float _transitElapsed;
         private Vector3 _transitTarget;
         private Vector3? _landing;
 
@@ -117,7 +117,7 @@ namespace UnityGameJam.Player
                 _landing = null;
             }
             if (!_stairs.TryFindExit(_body.Floor, transform.position, radius, out _transitTarget)) { return false; }
-            _transitTimer = _settings.StairTransitSeconds;
+            _transitElapsed = 0f;
             IsInStairTransit = true;
             UpdatePose(0f);
             return true;
@@ -125,8 +125,8 @@ namespace UnityGameJam.Player
 
         private void UpdateStairTransit()
         {
-            _transitTimer -= Time.deltaTime;
-            if (_transitTimer > 0f) { return; }
+            _transitElapsed += Time.deltaTime;
+            if (_transitElapsed < _settings.StairTransitSeconds) { return; }
 
             _controller.enabled = false; // CharacterController는 꺼야 위치를 직접 옮길 수 있다
             transform.position = _transitTarget;

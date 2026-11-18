@@ -24,7 +24,6 @@ namespace UnityGameJam.Match
         private readonly MopStationService _mops;
         private readonly DischargeService _discharge;
         private readonly IMinionBody _hellhound;
-        private readonly float _halfDispatchSeconds;
         private EMinionActivity _hellhoundActivity = EMinionActivity.LobbyIdle;
         private Vector3 _hellhoundPost;
         private readonly SlimeDigestion _digestion;
@@ -33,10 +32,12 @@ namespace UnityGameJam.Match
         private EWorkerType? _talkingWith;
         private int? _mopTarget;
         private float _mopSeconds;
+        private float _elapsedTime;
         private IReadOnlyList<ItemSnapshot> _itemSnapshots;
 
         public EMatchState MatchState { get; private set; }
-        public float RemainingTime { get; private set; }
+        public float RemainingTime => MatchState is EMatchState.DemonKingArrived or EMatchState.Resolved
+            ? 0f : Math.Max(0f, _rules.MatchSeconds - _elapsedTime);
         public MatchResult Result { get; private set; }
         public float ZoneThreshold => _rules.ZoneThreshold;
         public float FacilityThreshold => _rules.FacilityThreshold;
@@ -83,7 +84,7 @@ namespace UnityGameJam.Match
 
         private IWorkerBody Player => _setup.PlayerBody;
         private bool CanAct => MatchState == EMatchState.Running && RemainingTime > 0f;
-        private float ElapsedTime => _rules.MatchSeconds - RemainingTime;
+        private float ElapsedTime => _elapsedTime;
 
         public MatchSimulation(MatchSetup setup, GameRuleSO rules, ContaminationTypeSO types, WorkerStatsSO[] workerStats,
             IReadOnlyList<ContaminationItem> items, IProposalDialogueProvider dialogue = null)
@@ -109,7 +110,6 @@ namespace UnityGameJam.Match
             _discharge = new DischargeService(_registry, stats[EWorkerType.Hellhound]);
             setup.MinionBodies.TryGetValue(EWorkerType.Hellhound, out _hellhound);
             _hellhound?.SetMoveSpeed(stats[EWorkerType.Hellhound].MoveSpeed);
-            _halfDispatchSeconds = stats[EWorkerType.Hellhound].DispatchSeconds * 0.5f;
             _digestion = new SlimeDigestion(_registry, stats[EWorkerType.Slime]);
             _proposals = new ProposalQueue(rules.ProposalSeconds, rules.NoticeSeconds, rules.ApiTimeoutSeconds,
                 dialogue ?? new DefaultProposalDialogueProvider());
@@ -124,7 +124,6 @@ namespace UnityGameJam.Match
                 minion.NeedsProposal += OnProposalNeeded;
                 _minions.Add(entry.Key, minion);
             }
-            RemainingTime = rules.MatchSeconds;
         }
 
         public float GetZoneCleanliness(EZoneId zone) => _cleanliness.GetZoneCleanliness(zone);
@@ -137,10 +136,11 @@ namespace UnityGameJam.Match
         public void Tick(float deltaTime)
         {
             if (!float.IsFinite(deltaTime) || deltaTime < 0f) { throw new ArgumentOutOfRangeException(nameof(deltaTime)); }
-            if (!CanAct || deltaTime == 0f) { return; }
+            if (MatchState != EMatchState.Running || deltaTime == 0f) { return; }
+            if (RemainingTime == 0f) { FinishMatch(); return; }
 
             float step = Math.Min(deltaTime, RemainingTime);
-            RemainingTime -= step;
+            _elapsedTime += step;
             TickPlayerMop(step);
             _discharge.Tick(step);
             TickHellhound();
@@ -206,7 +206,7 @@ namespace UnityGameJam.Match
 
         private void TickHellhound()
         {
-            if (_hellhoundActivity == EMinionActivity.Dispatching && _discharge.RemainingTime <= _halfDispatchSeconds)
+            if (_hellhoundActivity == EMinionActivity.Dispatching && _discharge.HasReachedReturnTime)
             {
                 _hellhoundActivity = EMinionActivity.ReturningToLobby;
                 _hellhound.MoveTo(EFloor.Floor1, _hellhoundPost);
