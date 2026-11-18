@@ -10,7 +10,8 @@ namespace UnityGameJam.Player
     /// 매 프레임 상호작용 대상을 골라 표시하고(Spec Player 규칙 4·6), 상호작용·내려놓기 입력을 규칙 명령으로 바꾼다(규칙 4·5).
     /// 고르는 기준은 PlayerInteractionSelector가 갖고 있다.
     /// </summary>
-    [RequireComponent(typeof(PlayerBody))]
+    [RequireComponent(typeof(PlayerBody), typeof(PlayerController))]
+    [DefaultExecutionOrder(-20)]
     public sealed class PlayerInteractor : MonoBehaviour
     {
         [Header("입력")]
@@ -28,6 +29,7 @@ namespace UnityGameJam.Player
         private PlayerInteractionSelector _selector;
         private ViewSettingsSO _settings;
         private PlayerBody _playerBody;
+        private PlayerController _playerController;
         private EFloor? _borrowedMopFloor;
         private Vector3? _hellhoundStart;
 
@@ -44,6 +46,7 @@ namespace UnityGameJam.Player
             _session = session;
             _settings = settings;
             _playerBody = GetComponent<PlayerBody>();
+            _playerController = GetComponent<PlayerController>();
             _borrowedMopFloor = null;
             _selector = new PlayerInteractionSelector(layout);
             _hellhoundStart = layout.StartPositions.TryGetValue(EWorkerType.Hellhound, out Vector3 hellhound) ? hellhound : (Vector3?)null;
@@ -58,9 +61,10 @@ namespace UnityGameJam.Player
 
         private void Update()
         {
-            if (_session == null || _session.MatchState != EMatchState.Running)
+            if (_session == null || _session.MatchState != EMatchState.Running || _playerController.IsHandling || _playerController.IsInStairTransit)
             {
-                SetMarker(InteractionChoice.None);
+                CurrentChoice = InteractionChoice.None;
+                SetMarker(CurrentChoice);
                 return;
             }
 
@@ -68,7 +72,7 @@ namespace UnityGameJam.Player
             SetMarker(CurrentChoice);
 
             if (_interactAction != null && _interactAction.action.WasPressedThisFrame()) { Execute(CurrentChoice); }
-            if (_dropAction != null && _dropAction.action.WasPressedThisFrame()) { _session.TryDrop(); }
+            if (!_playerController.IsHandling && _dropAction != null && _dropAction.action.WasPressedThisFrame()) { _session.TryDrop(); }
         }
 
         private void OnDestroy()
@@ -101,7 +105,9 @@ namespace UnityGameJam.Player
             _minionPositions.Clear();
             foreach (KeyValuePair<EWorkerType, Transform> pair in _minions)
             {
-                if (pair.Key != EWorkerType.Hellhound && pair.Value != null) { _minionPositions.Add((pair.Key, pair.Value.position)); }
+                if (pair.Key == EWorkerType.Hellhound || pair.Value == null) { continue; }
+                if (pair.Value.TryGetComponent(out MinionAgent minion) && minion.IsHandling) { continue; }
+                _minionPositions.Add((pair.Key, pair.Value.position));
             }
             return _minionPositions;
         }
@@ -112,13 +118,26 @@ namespace UnityGameJam.Player
             {
                 case EInteractionKind.PlaceAtHome: _session.TryPlaceAtHome(); break;
                 case EInteractionKind.ReturnMop:
-                    if (_session.TryReturnMop()) { _borrowedMopFloor = null; }
+                    if (_session.TryReturnMop())
+                    {
+                        _borrowedMopFloor = null;
+                        _playerController.RefreshMop();
+                    }
                     break;
                 case EInteractionKind.BorrowMop:
-                    if (_session.TryBorrowMop(choice.Floor)) { _borrowedMopFloor = choice.Floor; }
+                    if (_session.TryBorrowMop(choice.Floor))
+                    {
+                        _borrowedMopFloor = choice.Floor;
+                        _playerController.RefreshMop();
+                    }
                     break;
                 case EInteractionKind.DispatchHellhound: _session.DispatchHellhound(); break;
-                case EInteractionKind.TalkToMinion: _session.BeginTalk(choice.Minion); break;
+                case EInteractionKind.TalkToMinion:
+                    if (_session.BeginTalk(choice.Minion) && _minions.TryGetValue(choice.Minion, out Transform partner))
+                    {
+                        _playerController.FaceForTalk(choice.Minion, partner);
+                    }
+                    break;
                 case EInteractionKind.StartMop: _session.TryStartMop(choice.ItemId); break;
                 case EInteractionKind.PickUp: _session.TryPickUp(choice.ItemId); break;
             }

@@ -106,8 +106,49 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 6379178708371745832, guid: ac5f6bde031b2c74d9ddc12548fac8f0, type: 3}
       insertIndex: -1
       addedObject: {fileID: 9028408091784383909}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3568551456559729882, guid: ac5f6bde031b2c74d9ddc12548fac8f0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3878301101340757784}
   m_SourcePrefab: {fileID: 100100000, guid: ac5f6bde031b2c74d9ddc12548fac8f0, type: 3}
+--- !u!1 &4542101114876030821 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3568551456559729882, guid: ac5f6bde031b2c74d9ddc12548fac8f0, type: 3}
+  m_PrefabInstance: {fileID: 1048989354445595583}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &3878301101340757784
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4542101114876030821}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5653f5e930ff59478ce778287d6931b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.View.CharacterAnimationSet
+  _idle: {fileID: -5410675859753560720, guid: 38cf6c5be6d41d9418dc42c5319e6194, type: 3}
+  _walk: {fileID: 4422274127838047404, guid: 38cf6c5be6d41d9418dc42c5319e6194, type: 3}
+  _run: {fileID: 4422274127838047404, guid: 38cf6c5be6d41d9418dc42c5319e6194, type: 3}
+  _pickUp: {fileID: 0}
+  _pickUpHeavy: {fileID: 0}
+  _carry: {fileID: 0}
+  _carryHeavy: {fileID: 0}
+  _leftHandCarry: 0
+  _pickUpContact: 0
+  _pickUpEnd: 0
+  _pickUpHeavyContact: 0
+  _pickUpHeavyEnd: 0
+  _mopWalk: {fileID: 0}
+  _mop: {fileID: 0}
+  _eat: {fileID: 0}
+  _dispatch: {fileID: 4422274127838047404, guid: 38cf6c5be6d41d9418dc42c5319e6194, type: 3}
+  _walkSpeed: 4.565174
+  _runSpeed: 4.565174
+  _carrySpeed: 0
+  _carryHeavySpeed: 0
+  _mopWalkSpeed: 0
 --- !u!4 &6199670522530156439 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6379178708371745832, guid: ac5f6bde031b2c74d9ddc12548fac8f0, type: 3}

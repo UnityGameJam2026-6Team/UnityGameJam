@@ -8,6 +8,7 @@ namespace UnityGameJam.View
     /// 자세는 MinionPoseResolver로 고르고, 헬하운드는 배출하러 나가 도착하면 숨긴다.
     /// </summary>
     [RequireComponent(typeof(MinionAgent))]
+    [DefaultExecutionOrder(-30)]
     public sealed class MinionStatusPresenter : MonoBehaviour
     {
         [SerializeField] private CharacterAnimatorDriver _animatorDriver;
@@ -28,23 +29,42 @@ namespace UnityGameJam.View
         public void Initialize(IMatchReadModel model)
         {
             _model = model;
+            _model.ItemChanged += OnItemChanged;
         }
 
-        private void Update()
+        private void OnDestroy()
         {
-            if (_model == null || !TryGetStatus(out MinionStatus status)) { return; }
+            if (_model != null) { _model.ItemChanged -= OnItemChanged; }
+        }
 
-            EContaminationType? carried = null;
-            bool isDigesting = false;
-            foreach (ItemSnapshot item in _model.Items)
+        private void OnItemChanged(ItemSnapshot item)
+        {
+            if (_model.MatchState == EMatchState.Running) { _agent.ObserveItem(item); }
+        }
+
+        private void LateUpdate()
+        {
+            if (_model == null) { return; }
+            if (_model.MatchState != EMatchState.Running)
             {
-                if (item.Carrier != _agent.Worker) { continue; }
-                if (status.CarriedItemId == item.ItemId) { carried = item.Type; }
-                if (item.State == EItemState.Digesting) { isDigesting = true; }
+                _animatorDriver?.SetPose(EPose.Idle);
+                return;
+            }
+            if (!TryGetStatus(out MinionStatus status)) { return; }
+
+            _agent.ObserveMop(status.IsHoldingMop);
+            bool isDigesting = false;
+            if (_agent.Worker == EWorkerType.Slime)
+            {
+                foreach (ItemSnapshot item in _model.Items)
+                {
+                    if (item.Carrier == _agent.Worker && item.State == EItemState.Digesting) { isDigesting = true; break; }
+                }
             }
 
-            EPose pose = MinionPoseResolver.Resolve(_agent.CurrentSpeed, status.Activity, carried, status.IsHoldingMop, isDigesting);
-            if (_animatorDriver != null) { _animatorDriver.SetPose(pose); }
+            float speed = _agent.CurrentSpeed;
+            EPose pose = MinionPoseResolver.Resolve(speed, status.Activity, _agent.CarriedType, status.IsHoldingMop, isDigesting);
+            if (_animatorDriver != null) { _animatorDriver.SetPose(pose, speed, _agent.IsRunning, _agent.CarriedType, status.IsHoldingMop); }
 
             if (_agent.Worker == EWorkerType.Hellhound && _visual != null)
             {

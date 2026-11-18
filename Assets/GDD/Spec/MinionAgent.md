@@ -16,21 +16,22 @@
 | 입력 | `IMatchReadModel.Minions`(MinionStatus), `Items` | 자세 결정, 헬하운드 숨김 |
 | 입력 | `Player/Previous`(1), `Player/Next`(2) | 플레이어 계단 이동(아래층·위층) |
 | 출력 | `IMinionBody.Position`, `Floor`, `HasArrived` | 규칙이 읽는 몸 상태 |
-| 출력 | Animator `Pose`(int) | 모델이 들어오면 자세 클립 재생 |
+| 출력 | 자세, 실제 속도, 운반 상태 | 캐릭터별 FBX 클립과 재생 속도 선택 |
 
 ## 규칙
 1. 같은 층으로 이동하면 NavMeshAgent로 바로 간다.
 2. 다른 층으로 이동하면 현재 층 계단 → (계단 시간만큼 대기 후 다음 층 계단으로 이동)을 층 수만큼 반복 → 목적지로 간다. 계단 시간은 `ViewSettingsSO.StairTransitSeconds`(임시 2초, U19)다.
 3. 지나갈 층 목록은 출발 층과 도착 층 사이의 층을 순서대로 담는다(1층→3층이면 2층, 3층).
-4. `HasArrived`는 계단 이동 중이 아니고, 경로를 다 갔고, 남은 거리가 멈춤 거리 이내일 때 참이다. 처음 생성됐을 때와 `Stop()` 뒤에도 참이다.
+4. `HasArrived`는 경로를 다 갔고 남은 거리가 멈춤 거리 이내일 때 참이다. 계단 이동과 집기·내려놓기 동작 중에는 거짓이다. 집기·놓기와 걸레 대여·반납 중에는 내비게이션을 멈추고, 동작이 끝나면 마지막에 받은 목적지로 간다.
 5. `Floor`는 계단을 건너는 순간 바뀐다.
-6. **자세(U201 결정)**: 애니메이터 int 파라미터 `Pose` 하나로 고른다. 값은 클립 목록 순서(Idle 0, Walk 1, Carry 2, CarryHeavy 3, Mop 4, Eat 5, Talk 6, Dispatch 7)다. 우선순위는 다음과 같다.
+6. 자세(`EPose`)와 보행 속도, 보유 물건, 걸레 보유 여부로 유닛의 FBX 클립을 고른다. 자세 값은 Idle 0, Walk 1, Carry 2, CarryHeavy 3, Mop 4, Eat 5, Talk 6, Dispatch 7이다.
    1. 대화 중이거나 응답 대기 중이고 멈춰 있음 → Talk
-   2. 슬라임이 소화 중(운반자가 자기인 Digesting 개체가 있음) → Eat
+   2. 슬라임이 폐기물을 먹으면 대상이 즉시 사라지고 `EAT`를 2초간 재생한다. 소화 시간은 판 규칙을 따른다. 대기·이동은 모두 `Idle`을 사용한다.
    3. 움직이는 중: 배출 이동이면 Dispatch, 무거운 잔해를 들었으면 CarryHeavy, 다른 물건을 들었으면 Carry, 그 밖에는 Walk
    4. 멈춰 있음: 작업 중이고 걸레를 들었으면 Mop, 그 밖에는 Idle
    - "움직이는 중"은 속도가 0.1m/s를 넘을 때다.
-7. 헬하운드는 배출 이동(Dispatching) 중 목적지에 도착하면 모습을 숨긴다(현관 밖으로 나간 것으로 표현). 다른 상태가 되면 다시 보인다.
+   - 고블린·오크·스켈레톤이 빈손일 때 남은 경로가 0.6m를 넘으면 달리고, 그 이내면 걷는다. 물건과 걸레를 든 동안에는 전용 운반 보행을 쓴다. 보행 속도는 모델 크기와 발의 이동량에 맞추고 규칙상 운반 보정을 적용한다.
+7. 헬하운드는 배출을 시작하면 적치물을 제거하고 `dog_run`으로 왕복한다. 배출 목적지에 먼저 도착하면 남은 출발 구간 동안 모습을 숨긴다. 현관 대기 위치로 달려 돌아온 뒤에는 `dog_idle`을 쓴다.
 8. 플레이어는 계단 출입 지점 반경(`InteractRadius`) 안에서 1을 누르면 아래층, 2를 누르면 위층으로 간다(U208 임시). 계단 시간 동안 움직이지 않고, 끝나면 도착 층 계단 출입 지점으로 옮긴다. 작업 중이면 먼저 작업을 멈춘다.
 
 ## 예외 처리
@@ -45,7 +46,7 @@
 | `Runtime/View/MinionPoseResolver.cs` | 순수. 규칙 6. `EPose` enum 포함 (테스트 대상) |
 | `Runtime/View/StairDirectory.cs` | 층 → 계단 출입 지점. 층 프리팹의 `StairAuthoring`에서 만든다 |
 | `Runtime/View/MinionAgent.cs` | `IMinionBody` 구현(규칙 1~5). NavMeshAgent 사용, 계단은 대기 후 `Warp` |
-| `Runtime/View/CharacterAnimatorDriver.cs` | `ArtSlot.Animator`에 `Pose`를 넣는다. 모델이 없으면 아무것도 하지 않는다 |
+| `Runtime/View/CharacterAnimatorDriver.cs` | 유닛별 FBX 클립, 집기 구간과 역재생, 운반 자세 및 실제 이동 속도에 맞춘 보행 재생 |
 | `Runtime/View/MinionStatusPresenter.cs` | MinionStatus와 Items로 자세를 정해 드라이버에 넘기고(규칙 6), 헬하운드 숨김(규칙 7) |
 | `Runtime/Player/PlayerController.cs` (수정) | 계단 이동(규칙 8), 플레이어 자세 |
 | `Editor/Art/ArtAnimationBinder.cs` (수정) | `AC_Character`에 `Pose` 파라미터와 Any State 전이를 넣는다(멱등) |
@@ -54,7 +55,7 @@
 | `Runtime/View/MatchBootstrap.cs` (수정) | 졸개 생성(시작점), `MinionBodies` 전달, 플레이어 상호작용에 등록 |
 | 프리팹 `CH_MinionBase` → `CH_Goblin`, `CH_Orc`, `CH_Skeleton`, `CH_Slime`, `CH_Hellhound` | 표준 구조 + NavMeshAgent(반경 0.4) + MinionAgent + Presenter + Driver. 크기와 색은 권장 크기표 |
 
-**흐름**: 규칙 → `MoveTo` → MinionAgent(경로: 계단 → 대기 → Warp → 목적지) → 매 프레임 Presenter가 상태로 자세 결정 → Driver가 Animator에 `Pose`
+규칙에서 `MoveTo`를 호출하면 MinionAgent가 계단을 거쳐 목적지까지 이동한다. Presenter는 매 프레임 판 상태와 실제 이동을 읽고 Driver가 해당 유닛의 클립을 재생한다.
 
 ## 미정·보류
 - U201 캐릭터 애니메이터 상태: **결정** (규칙 6)
@@ -82,6 +83,6 @@
 | 1·2·5 | 가짜 판에서 고블린을 2층 회의실에 배정 | 플레이 | 계단을 거쳐 2층에 도착, Floor=2층 | (플레이 모드 확인) |
 | 8 | 플레이어가 1층 계단에서 2 | 플레이 | 2층 계단으로 이동 | (플레이 모드 확인) |
 
-### 실제 판에서 확인한 층간 배정
+### FBX 보행 속도 적용 전 확인한 층간 배정
 
 `Facility` 씬에서 1층 로비 고블린에게 대화 명령 후 3층 간부실을 배정했다. 플레이 중 관찰한 게임 시간 기준으로 13.6초에 1층 계단 대기를 시작했고, 15.6초에 2층, 17.6초에 3층 계단에 도착했다. 26.3초에는 간부실 첫 순찰점 (187.50, 0, 1.50)에서 수평 거리 약 0.20m인 지점에서 `MovingToRoom`이 `Surveying`으로 전환됐다.

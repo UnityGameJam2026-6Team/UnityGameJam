@@ -12,14 +12,14 @@
 ## 입력 / 출력
 | 구분 | 이름 | 설명 |
 |---|---|---|
-| 입력 | `Player/Move`(WASD), `Player/Interact`(J, Press), `Player/Drop`(Q) | Project-wide Input Actions |
+| 입력 | `Player/Move`(WASD), `Player/Sprint`(왼쪽 Shift), `Player/Interact`(J, Press), `Player/Drop`(Q) | Project-wide Input Actions |
 | 입력 | `IMatchReadModel` | 이동 속도, 운반 중인 개체, 걸레 보유, 작업 진행도, 개체 목록, 판 상태 |
 | 입력 | `FacilityLayout` | 화장실, 제자리 슬롯, 헬하운드 위치(시작점), 층 범위 |
 | 출력 | `IMatchCommands` 호출 | `TryPickUp`, `TryDrop`, `TryPlaceAtHome`, `TryStartMop`, `CancelWork`, `TryBorrowMop`, `TryReturnMop`, `DispatchHellhound`, `BeginTalk` |
 | 출력 | `IWorkerBody` | 플레이어의 위치와 층(규칙이 읽음) |
 
 ## 규칙
-1. 플레이어는 `IMatchReadModel.PlayerMoveSpeed`로 이동한다(무거운 잔해를 들면 규칙이 절반으로 준다, U20).
+1. 빈손 이동은 `Walking`, 왼쪽 Shift를 누른 채 이동하면 `Running`을 재생한다. 보행·달리기·운반·걸레 이동은 각각 FBX 보폭으로 측정한 속도를 사용한다. 플레이어가 무거운 잔해를 들면 빈손 걷기의 50%로 이동하고, 두 손 운반 클립의 재생 속도를 그 보폭에 맞춘다(U20). 클립 속도 값이 없으면 판의 `PlayerMoveSpeed`를 쓴다.
 2. 판 상태가 Running이 아니면 이동과 상호작용을 받지 않는다.
 3. 작업 중(`IsPlayerWorking`)에는 이동하지 않는다. 이동 입력이 들어오면 `CancelWork`를 보내 작업을 멈춘다(U205 임시).
 4. 상호작용 대상은 반경(`ViewSettingsSO.InteractRadius`, 임시 1.5m) 안에서만 고르고, 아래 **우선순위가 높은 행동 하나**를 고른다(U206 임시). 같은 우선순위 안에서는 가까운 대상이 먼저다.
@@ -30,6 +30,8 @@
    5. 걸레를 들고 있고 바닥 얼룩이 반경 안 → 물걸레질 시작(`TryStartMop`)
    6. 아무것도 들지 않았고 걸레도 없으며 주울 수 있는 개체(무거운 잔해, 일반 쓰레기, 작은 물건. 상태가 바닥 또는 배출 구역)가 반경 안 → 줍기(`TryPickUp`)
 5. 들고 있는 물건은 Drop(Q)으로 그 자리에 내려놓는다(`TryDrop`).
+   - 줍기, 내려놓기, 제자리 정리, 배출 구역 적치, 걸레 대여·반납이 성공하면 해당 클립 구간이 끝날 때까지 이동·계단·다른 상호작용을 멈춘다. 내려놓기와 반납은 집기 구간을 역재생한다. 종료 후 계속 누르고 있는 이동 키로 즉시 움직인다.
+   - 졸개와 대화를 시작하면 두 유닛이 제자리에서 서로를 향해 회전한다.
 6. 고른 대상 위에 표시(TargetMarker)를 띄운다. 대상이 없으면 숨긴다.
 7. 카메라는 플레이어를 따라가며 위에서 내려다본다. 층은 X축으로 100m 떨어져 있어서 다른 층은 화면에 들어오지 않는다.
 8. 플레이어의 층은 층 범위(`FacilityLayout.Floors`) 중 위치가 들어 있는 층이다.

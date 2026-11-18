@@ -98,13 +98,54 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 6379178708371745832, guid: ac5f6bde031b2c74d9ddc12548fac8f0, type: 3}
       insertIndex: -1
       addedObject: {fileID: 6334160834680406157}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3568551456559729882, guid: ac5f6bde031b2c74d9ddc12548fac8f0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 773878441314095033}
   m_SourcePrefab: {fileID: 100100000, guid: ac5f6bde031b2c74d9ddc12548fac8f0, type: 3}
 --- !u!4 &640254346141790858 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6379178708371745832, guid: ac5f6bde031b2c74d9ddc12548fac8f0, type: 3}
   m_PrefabInstance: {fileID: 5793255105836211874}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &7053706255791542904 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3568551456559729882, guid: ac5f6bde031b2c74d9ddc12548fac8f0, type: 3}
+  m_PrefabInstance: {fileID: 5793255105836211874}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &773878441314095033
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7053706255791542904}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5653f5e930ff59478ce778287d6931b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.View.CharacterAnimationSet
+  _idle: {fileID: 5569840603627603982, guid: 8828a7657cbac6a4697d2bfd6925f3ba, type: 3}
+  _walk: {fileID: -1610863427237328480, guid: 8828a7657cbac6a4697d2bfd6925f3ba, type: 3}
+  _run: {fileID: -9121621101649706817, guid: 8828a7657cbac6a4697d2bfd6925f3ba, type: 3}
+  _pickUp: {fileID: 5569840603627603982, guid: 8828a7657cbac6a4697d2bfd6925f3ba, type: 3}
+  _pickUpHeavy: {fileID: 0}
+  _carry: {fileID: 0}
+  _carryHeavy: {fileID: 0}
+  _leftHandCarry: 0
+  _pickUpContact: 0.25
+  _pickUpEnd: 0.5
+  _pickUpHeavyContact: 0
+  _pickUpHeavyEnd: 0
+  _mopWalk: {fileID: 5930655806782267556, guid: 8828a7657cbac6a4697d2bfd6925f3ba, type: 3}
+  _mop: {fileID: -8303932156236803649, guid: 8828a7657cbac6a4697d2bfd6925f3ba, type: 3}
+  _eat: {fileID: 0}
+  _dispatch: {fileID: 0}
+  _walkSpeed: 0.6649444
+  _runSpeed: 1.8082732
+  _carrySpeed: 0
+  _carryHeavySpeed: 0
+  _mopWalkSpeed: 0.3918204
 --- !u!1001 &5795513443518523238
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -189,10 +189,18 @@ namespace UnityGameJam.View
 
         public bool DispatchHellhound()
         {
-            if (!CanAct()) { return false; }
+            if (!CanAct() || GetStatus(EWorkerType.Hellhound).Activity != EMinionActivity.LobbyIdle) { return false; }
             List<FakeItem> batch = _items.Where(i => i.State == EItemState.InDischargeArea).ToList();
+            if (batch.Count == 0) { return false; }
+            if (_bodies.TryGetValue(EWorkerType.Hellhound, out IMinionBody body) && _layout.StartPositions.ContainsKey(EWorkerType.Hellhound))
+            {
+                _hellhoundAwayTimer = -1f;
+                SetActivity(EWorkerType.Hellhound, EMinionActivity.Dispatching);
+                Bounds exit = _layout.DischargeArea;
+                body.MoveTo(EFloor.Floor1, new Vector3(exit.center.x, exit.min.y, exit.center.z));
+            }
             foreach (FakeItem item in batch) { SetItemState(item, EItemState.Dispatched); }
-            return batch.Count > 0;
+            return true;
         }
 
         public bool TryPickUp(int itemId)

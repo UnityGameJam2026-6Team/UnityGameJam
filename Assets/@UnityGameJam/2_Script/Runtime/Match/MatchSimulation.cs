@@ -23,6 +23,10 @@ namespace UnityGameJam.Match
         private readonly WorkerStatsSO _playerStats;
         private readonly MopStationService _mops;
         private readonly DischargeService _discharge;
+        private readonly IMinionBody _hellhound;
+        private readonly float _halfDispatchSeconds;
+        private EMinionActivity _hellhoundActivity = EMinionActivity.LobbyIdle;
+        private Vector3 _hellhoundPost;
         private readonly SlimeDigestion _digestion;
         private readonly ProposalQueue _proposals;
         private readonly Dictionary<EWorkerType, MinionBrain> _minions = new Dictionary<EWorkerType, MinionBrain>();
@@ -53,9 +57,10 @@ namespace UnityGameJam.Match
             get
             {
                 var statuses = _minions.Values.Select(minion => minion.Status).ToList();
-                if (_setup.MinionBodies.ContainsKey(EWorkerType.Hellhound))
+                if (_hellhound != null)
                 {
-                    EMinionActivity activity = _discharge.IsDispatching ? EMinionActivity.Dispatching : EMinionActivity.LobbyIdle;
+                    EMinionActivity activity = _hellhoundActivity == EMinionActivity.LobbyIdle && _discharge.IsDispatching
+                        ? EMinionActivity.Dispatching : _hellhoundActivity;
                     statuses.Add(new MinionStatus(EWorkerType.Hellhound, activity, null, null, false));
                 }
                 return statuses;
@@ -102,6 +107,9 @@ namespace UnityGameJam.Match
             _playerStats = stats[EWorkerType.Player];
             _mops = new MopStationService(setup.Layout, rules);
             _discharge = new DischargeService(_registry, stats[EWorkerType.Hellhound]);
+            setup.MinionBodies.TryGetValue(EWorkerType.Hellhound, out _hellhound);
+            _hellhound?.SetMoveSpeed(stats[EWorkerType.Hellhound].MoveSpeed);
+            _halfDispatchSeconds = stats[EWorkerType.Hellhound].DispatchSeconds * 0.5f;
             _digestion = new SlimeDigestion(_registry, stats[EWorkerType.Slime]);
             _proposals = new ProposalQueue(rules.ProposalSeconds, rules.NoticeSeconds, rules.ApiTimeoutSeconds,
                 dialogue ?? new DefaultProposalDialogueProvider());
@@ -135,6 +143,7 @@ namespace UnityGameJam.Match
             RemainingTime -= step;
             TickPlayerMop(step);
             _discharge.Tick(step);
+            TickHellhound();
             _digestion.Tick(step);
             foreach (MinionBrain minion in _minions.Values) { minion.Tick(step); }
             _proposals.Tick(ElapsedTime);
@@ -174,12 +183,16 @@ namespace UnityGameJam.Match
 
         public bool DispatchHellhound()
         {
-            if (!CanAct || !_setup.MinionBodies.TryGetValue(EWorkerType.Hellhound, out IMinionBody body)
-                || body == null || !IsWithinReach(body.Position, body.Floor)) { return false; }
+            if (!CanAct || _hellhound == null || !IsWithinReach(_hellhound.Position, _hellhound.Floor)) { return false; }
 
-            switch (_discharge.TryDispatch())
+            switch (_hellhoundActivity == EMinionActivity.LobbyIdle ? _discharge.TryDispatch() : EDischargeResult.Busy)
             {
                 case EDischargeResult.Started:
+                    _hellhoundPost = _setup.Layout.StartPositions.TryGetValue(EWorkerType.Hellhound, out Vector3 post)
+                        ? post : _hellhound.Position;
+                    Bounds exit = _setup.Layout.DischargeArea;
+                    _hellhoundActivity = EMinionActivity.Dispatching;
+                    _hellhound.MoveTo(EFloor.Floor1, new Vector3(exit.center.x, exit.min.y, exit.center.z));
                     return true;
                 case EDischargeResult.Busy:
                     _proposals.AddNotice(EWorkerType.Hellhound, "지금은 폐기물을 배출하고 있어.", ElapsedTime);
@@ -189,6 +202,20 @@ namespace UnityGameJam.Match
                     break;
             }
             return false;
+        }
+
+        private void TickHellhound()
+        {
+            if (_hellhoundActivity == EMinionActivity.Dispatching && _discharge.RemainingTime <= _halfDispatchSeconds)
+            {
+                _hellhoundActivity = EMinionActivity.ReturningToLobby;
+                _hellhound.MoveTo(EFloor.Floor1, _hellhoundPost);
+            }
+            if (_hellhoundActivity == EMinionActivity.ReturningToLobby && !_discharge.IsDispatching && _hellhound.HasArrived)
+            {
+                _hellhound.Stop();
+                _hellhoundActivity = EMinionActivity.LobbyIdle;
+            }
         }
 
         public bool TryPickUp(int itemId)
@@ -300,6 +327,7 @@ namespace UnityGameJam.Match
             CancelWork();
             _proposals.Close();
             foreach (MinionBrain minion in _minions.Values) { minion.StopForEnd(); }
+            _hellhound?.Stop();
             var bodies = _setup.MinionBodies.ToDictionary(entry => entry.Key, entry => (IWorkerBody)entry.Value);
             bodies[EWorkerType.Player] = Player;
             Result = MatchResolver.Resolve(_registry, _cleanliness, bodies, ZoneThreshold, FacilityThreshold);

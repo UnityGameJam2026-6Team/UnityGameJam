@@ -15,6 +15,7 @@ namespace UnityGameJam.View
         private const float StairReachDistance = 0.4f;
         private const float ArrivalTolerance = 0.1f;
         private const float SampleRadius = 1f;
+        private const float RunDistance = 0.6f;
 
         private enum EPhase { Idle, WalkingToStair, InTransit, WalkingToDestination }
 
@@ -22,6 +23,11 @@ namespace UnityGameJam.View
 
         private readonly Queue<EFloor> _floorsToPass = new Queue<EFloor>();
         private NavMeshAgent _agent;
+        private CharacterAnimatorDriver _animatorDriver;
+        private CarryAnimationState _carry;
+        private float _baseSpeed;
+        private float _ruleSpeed;
+        private bool _pausedForHandling;
         private StairDirectory _stairs;
         private IReadOnlyList<FloorArea> _floors = new List<FloorArea>();
         private float _stairSeconds;
@@ -38,11 +44,24 @@ namespace UnityGameJam.View
         public EFloor Floor => _floor;
         public float CurrentSpeed => _agent != null && _agent.isOnNavMesh ? _agent.velocity.magnitude : 0f;
         public bool IsInStairTransit => _phase == EPhase.InTransit;
+        public EContaminationType? CarriedType => _carry.CarriedType;
+        public bool IsHandling => _animatorDriver != null && _animatorDriver.IsHandling;
+        public bool IsRunning
+        {
+            get
+            {
+                if (_phase != EPhase.WalkingToDestination && _phase != EPhase.WalkingToStair) { return false; }
+                if (_worker == EWorkerType.Hellhound) { return true; }
+                return _worker != EWorkerType.Slime && !_carry.CarriedType.HasValue && !_carry.IsHoldingMop
+                    && _agent.isOnNavMesh && !_agent.pathPending && _agent.remainingDistance > RunDistance;
+            }
+        }
 
         public bool HasArrived
         {
             get
             {
+                if (IsHandling) { return false; }
                 if (_phase == EPhase.Idle) { return true; }
                 if (_phase != EPhase.WalkingToDestination) { return false; }
                 return !_agent.pathPending && _agent.remainingDistance <= _agent.stoppingDistance + ArrivalTolerance;
@@ -52,6 +71,9 @@ namespace UnityGameJam.View
         private void Awake()
         {
             _agent = GetComponent<NavMeshAgent>();
+            _animatorDriver = GetComponent<CharacterAnimatorDriver>();
+            _carry = new CarryAnimationState(_worker, BeginHandling);
+            _ruleSpeed = _agent.speed;
         }
 
         public void Initialize(StairDirectory stairs, IReadOnlyList<FloorArea> floors, float stairSeconds)
@@ -88,11 +110,40 @@ namespace UnityGameJam.View
 
         public void SetMoveSpeed(float speed)
         {
-            _agent.speed = speed;
+            if (_baseSpeed <= 0f) { _baseSpeed = speed; }
+            _ruleSpeed = speed;
+            UpdateStrideSpeed();
+        }
+
+        internal void ObserveItem(ItemSnapshot item) => _carry.Observe(item);
+        internal void ObserveMop(bool holding) => _carry.ObserveMop(holding);
+
+        private void BeginHandling(bool pickingUp, bool heavy)
+        {
+            if (_animatorDriver == null || _animatorDriver.BeginHandling(pickingUp, heavy) <= 0f) { return; }
+            _pausedForHandling = true;
+            if (_agent.isOnNavMesh)
+            {
+                _agent.isStopped = true;
+                _agent.velocity = Vector3.zero;
+            }
+        }
+
+        private void UpdateStrideSpeed()
+        {
+            float baseSpeed = _baseSpeed > 0f ? _baseSpeed : _ruleSpeed;
+            _agent.speed = _carry.GetMoveSpeed(_animatorDriver, baseSpeed, _ruleSpeed, IsRunning);
         }
 
         private void Update()
         {
+            if (IsHandling) { return; }
+            if (_pausedForHandling)
+            {
+                _pausedForHandling = false;
+                if (_agent.isOnNavMesh && _phase != EPhase.InTransit) { _agent.isStopped = false; }
+            }
+            UpdateStrideSpeed();
             switch (_phase)
             {
                 case EPhase.WalkingToStair:
@@ -126,7 +177,7 @@ namespace UnityGameJam.View
                 ClearRoute();
                 return;
             }
-            _agent.isStopped = false;
+            _agent.isStopped = IsHandling;
             _agent.SetDestination(stair);
             _phase = EPhase.WalkingToStair;
         }
@@ -157,7 +208,6 @@ namespace UnityGameJam.View
                 _transitTimer = _stairSeconds; // 중간 층 계단에서 이어서 오른다(내려간다)
                 return;
             }
-            _agent.isStopped = false;
             GoToDestination();
         }
 
@@ -169,7 +219,7 @@ namespace UnityGameJam.View
                 ClearRoute();
                 return;
             }
-            _agent.isStopped = false;
+            _agent.isStopped = IsHandling;
             _agent.SetDestination(hit.position);
             _phase = EPhase.WalkingToDestination;
         }
@@ -178,8 +228,11 @@ namespace UnityGameJam.View
         {
             _floorsToPass.Clear();
             _isRouteChanged = false;
-            if (_agent.isOnNavMesh) { _agent.ResetPath(); }
-            _agent.isStopped = false;
+            if (_agent.isOnNavMesh)
+            {
+                _agent.ResetPath();
+                _agent.isStopped = IsHandling;
+            }
             _phase = EPhase.Idle;
         }
 
