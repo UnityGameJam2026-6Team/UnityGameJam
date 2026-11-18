@@ -25,13 +25,13 @@
 - [x] B1 화이트박스 시설(Spec `FacilityLayout.md`)
 - [x] B2 플레이어 (Spec `Player.md`)
 - [x] B3 졸개 몸 (Spec `MinionAgent.md`) — 졸개 층간 이동 도착은 플레이 확인 필요
-- [x] B4 ContaminationView (Spec `ContaminationView.md`) — 가짜 판 오염 표시·운반·걸레 확인. 실제 판 슬롯 ID 전달은 M1 연결 항목.
+- [x] B4 ContaminationView (Spec `ContaminationView.md`) — 가짜 판과 실제 판에서 오염 표시 및 슬롯별 외형 확인.
 - [ ] B5 HUD (Spec `Hud.md`)
 - [ ] B6 대화와 제안 UI (Spec `AssignmentUi.md`)
 - [ ] B7 마감 연출과 결과 (Spec `ResultUi.md`)
 
 ## 통합 (A+B)
-- [ ] M1 오염이 보이는 맵 (A1~A4, B1~B4)
+- [x] M1 오염이 보이는 맵 (A1~A4, B1~B4) — Facility 실제 판에서 슬롯별 외형, 제자리 정리, 운반 감속·내려놓기, 헬하운드 배출, 걸레 대여·청소·반납과 청결도 반영 확인.
 - [ ] M2 졸개 배정 플레이 (A5·A6, B5·B6)
 - [ ] M3 3분 한 판 완주 (A7, B7)
 - [ ] 플레이테스트와 밸런스

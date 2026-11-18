@@ -18,7 +18,7 @@ namespace UnityGameJam.Cleaning
 
         public bool IsCounted => State is EItemState.OnFloor or EItemState.InDischargeArea;
         public bool IsWaste => Type is EContaminationType.HeavyDebris or EContaminationType.Trash;
-        public ItemSnapshot Snapshot => new ItemSnapshot(Id, Type, State, Position, Carrier);
+        public ItemSnapshot Snapshot => new ItemSnapshot(Id, Type, State, Position, Carrier, HomeSlotId);
 
         public ContaminationItem(int id, EContaminationType type, int weight, EZoneId zone, Vector3 position,
             int? homeSlotId = null)

@@ -46,7 +46,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1d3fcbb7eff753c438d0d2d58f817a57, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.View.MatchBootstrap
-  _factory: {fileID: 11400000, guid: ebdfb128b4d3ee647ba33db52368dabe, type: 2}
+  _factory: {fileID: 11400000, guid: b3b377591e7f82849a3ab419a5408631, type: 2}
   _viewSettings: {fileID: 11400000, guid: 4fa4de6e83935ad46870ce51993abb41, type: 2}
   _seed: 0
   _floors: []

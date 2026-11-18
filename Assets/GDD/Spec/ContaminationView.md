@@ -45,7 +45,7 @@
 - `MatchBootstrap`은 층의 `HomeSlotAuthoring`에서 슬롯 ID와 종류를 수집한다. 가짜 판은 구역별 생성 순서로 슬롯 하나씩을 배정한다. 슬롯이 부족한 개체는 ID가 null이며 제자리 정리에 성공하지 않는다.
 - `SYS_Bootstrap`의 `ContaminationView`는 LateUpdate에서 Items와 걸레 소지를 읽는다. 보이는 ID만 생성하고 숨겼던 인스턴스는 다시 사용한다. 걸레의 상대 위치는 ViewSettings의 MopOffset으로 조정한다.
 - Unity 메뉴 `Tools > UnityGameJam > B4 > 오염 프리팹 생성 및 연결`에서 기본 프리팹과 매핑을 준비한다. 바닥 얼룩은 ArtSlot의 텍스처 전용 모드를 사용한다.
-- M1 연결 요청(김보경): `ContaminationItem.Snapshot` 생성 시 마지막 인자로 `HomeSlotId`를 넘기고 초기 Items 및 ItemChanged에서 같은 ID가 유지되는지 확인한다. 누락 시 실제 판의 작은 물건은 기본 모양으로 보인다. 계약 시그니처 변경은 필요 없다.
+- 실제 판은 `SYS_Bootstrap`에 연결된 `MatchFactory`에서 생성한다. `ContaminationItem.Snapshot`이 기존 계약의 `HomeSlotId`를 전달하므로 초기 목록과 운반 이벤트 모두 같은 슬롯의 외형을 사용한다. 회귀 테스트는 `MatchSimulationTest.작은_물건의_제자리_슬롯이_초기_목록과_운반_이벤트에_유지된다`다.
 
 ## 미정·보류
 - (없음)

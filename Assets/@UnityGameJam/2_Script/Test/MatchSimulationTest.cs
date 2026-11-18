@@ -194,6 +194,22 @@ namespace UnityGameJam.Test
             Assert.That(orc.LastDestinationFloor, Is.EqualTo(EFloor.Floor2));
         }
 
+        [Test]
+        public void 작은_물건의_제자리_슬롯이_초기_목록과_운반_이벤트에_유지된다()
+        {
+            var clutter = new ContaminationItem(100, EContaminationType.ClutterItem, 2, EZoneId.Floor1Lobby, Vector3.zero, 17);
+            MatchSimulation match = CreateMatch(new WorkerBody(), clutter);
+            match.StartMatch();
+            Assert.That(match.Items.Single(item => item.ItemId == clutter.Id).HomeSlotId, Is.EqualTo(17));
+            var changes = new List<ItemSnapshot>();
+            match.ItemChanged += changes.Add;
+
+            Assert.That(match.TryPickUp(clutter.Id), Is.True);
+            ItemSnapshot carried = changes.Single(item => item.ItemId == clutter.Id && item.State == EItemState.Carried);
+            Assert.That(carried.HomeSlotId, Is.EqualTo(17));
+            Assert.That(match.Items.Single(item => item.ItemId == clutter.Id).HomeSlotId, Is.EqualTo(17));
+        }
+
         private static MatchSimulation CreateMatch(WorkerBody player, ContaminationItem extra = null, WorkerBody slime = null, EWorkerType minionType = EWorkerType.Slime)
         {
             var layout = new FacilityLayout { DischargeArea = new Bounds(Vector3.right * 80f, Vector3.one) };
