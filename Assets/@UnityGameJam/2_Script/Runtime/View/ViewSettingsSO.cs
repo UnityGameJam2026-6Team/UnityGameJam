@@ -54,6 +54,10 @@ namespace UnityGameJam.View
         [SerializeField] private Vector3 _mopOffset = new Vector3(0.45f, 0f, 0f);
 
         [Header("이동·애니메이션 조정")]
+        [Tooltip("플레이어와 모든 졸개의 이동 속도 배율에 곱합니다. 1은 기본 배율입니다.")]
+        [SerializeField] private float _globalMoveRate = 1f;
+        [Tooltip("플레이어와 모든 졸개의 애니메이션 재생 배율에 곱합니다. 1은 기본 배율입니다.")]
+        [SerializeField] private float _globalAnimationRate = 1f;
         [SerializeField] private UnitMotionTuning _playerMotion;
         [SerializeField] private UnitMotionTuning _goblinMotion;
         [SerializeField] private UnitMotionTuning _orcMotion;
@@ -61,7 +65,7 @@ namespace UnityGameJam.View
         [SerializeField] private UnitMotionTuning _slimeMotion;
         [SerializeField] private UnitMotionTuning _hellhoundMotion;
 
-        public UnitMotionTuning GetMotionTuning(EWorkerType worker) => worker switch
+        public UnitMotionTuning GetMotionTuning(EWorkerType worker) => (worker switch
         {
             EWorkerType.Player => _playerMotion,
             EWorkerType.Goblin => _goblinMotion,
@@ -70,7 +74,7 @@ namespace UnityGameJam.View
             EWorkerType.Slime => _slimeMotion,
             EWorkerType.Hellhound => _hellhoundMotion,
             _ => default
-        };
+        }).WithGlobalRates(_globalMoveRate, _globalAnimationRate);
 
         public GameObject MopPrefab => _mopPrefab;
         public float CarryOffset => _carryOffset;

@@ -27,15 +27,26 @@ namespace UnityGameJam.View
         [SerializeField] private float _eatAnimationRate;
         [SerializeField] private float _dispatchAnimationRate;
 
-        public float IdleAnimationRate => NormalizeRate(_idleAnimationRate);
-        public float WalkAnimationRate => NormalizeRate(_walkAnimationRate);
-        public float RunAnimationRate => NormalizeRate(_runAnimationRate);
-        public float CarryAnimationRate => NormalizeRate(_carryAnimationRate);
-        public float HeavyCarryAnimationRate => NormalizeRate(_heavyCarryAnimationRate);
-        public float MopWalkAnimationRate => NormalizeRate(_mopWalkAnimationRate);
-        public float MopAnimationRate => NormalizeRate(_mopAnimationRate);
-        public float EatAnimationRate => NormalizeRate(_eatAnimationRate);
-        public float DispatchAnimationRate => NormalizeRate(_dispatchAnimationRate);
+        [NonSerialized] private float _globalMoveRate;
+        [NonSerialized] private float _globalAnimationRate;
+
+        public float IdleAnimationRate => GetAnimationRate(_idleAnimationRate);
+        public float WalkAnimationRate => GetAnimationRate(_walkAnimationRate);
+        public float RunAnimationRate => GetAnimationRate(_runAnimationRate);
+        public float CarryAnimationRate => GetAnimationRate(_carryAnimationRate);
+        public float HeavyCarryAnimationRate => GetAnimationRate(_heavyCarryAnimationRate);
+        public float MopWalkAnimationRate => GetAnimationRate(_mopWalkAnimationRate);
+        public float MopAnimationRate => GetAnimationRate(_mopAnimationRate);
+        public float EatAnimationRate => GetAnimationRate(_eatAnimationRate);
+        public float DispatchAnimationRate => GetAnimationRate(_dispatchAnimationRate);
+
+        internal UnitMotionTuning WithGlobalRates(float moveRate, float animationRate)
+        {
+            var tuning = this;
+            tuning._globalMoveRate = moveRate;
+            tuning._globalAnimationRate = animationRate;
+            return tuning;
+        }
 
         public float ResolveMoveSpeed(float walkSpeed, float measuredSpeed, float baseSpeed, float ruleSpeed,
             bool running, EContaminationType? carried, bool holdingMop)
@@ -50,7 +61,7 @@ namespace UnityGameJam.View
             };
             float speed = carried == EContaminationType.HeavyDebris && ruleMultiplier < 1f
                 ? walkSpeed * NormalizeRate(_walkRate) : measuredSpeed;
-            return speed * ruleMultiplier * NormalizeRate(rate);
+            return speed * ruleMultiplier * NormalizeRate(rate) * NormalizeRate(_globalMoveRate);
         }
 
         public UnitHandlingTiming ResolveHandling(CharacterAnimationSet clips, bool pickingUp, bool heavy)
@@ -61,10 +72,12 @@ namespace UnityGameJam.View
             float measuredContact = heavy ? clips.PickUpHeavyContact : clips.PickUpContact;
             float end = Mathf.Min(clip.length, PositiveOr(measuredEnd, clip.length));
             float contact = PositiveOr(measuredContact, end * 0.5f);
-            return new UnitHandlingTiming(end, contact, NormalizeRate(pickingUp ? _pickupRate : _dropRate), pickingUp);
+            return new UnitHandlingTiming(end, contact, GetAnimationRate(pickingUp ? _pickupRate : _dropRate), pickingUp);
         }
 
         public static float NormalizeRate(float value) => Mathf.Clamp(PositiveOr(value, 1f), 0.05f, 10f);
+
+        private float GetAnimationRate(float rate) => NormalizeRate(rate) * NormalizeRate(_globalAnimationRate);
 
         private static float PositiveOr(float value, float fallback) => float.IsFinite(value) && value > 0f ? value : fallback;
     }

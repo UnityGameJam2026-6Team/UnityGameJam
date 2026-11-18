@@ -166,6 +166,8 @@ namespace UnityGameJam.Editor
         private void AddMotion(VisualElement parent, SerializedObject settings)
         {
             var section = AddSection(parent, "이동·애니메이션", true);
+            AddRate(section, settings.FindProperty("_globalMoveRate"), "전체 이동 속도 (배)");
+            AddRate(section, settings.FindProperty("_globalAnimationRate"), "전체 애니메이션 배속 (배)");
             AddFloat(section, settings.FindProperty("_playerTurnSpeed"), "플레이어 회전 (도/초)", min: 1f);
             AddFloat(section, settings.FindProperty("_stairApproachRadius"), "계단 접근 거리 (m)", min: 0.1f);
             AddFloat(section, settings.FindProperty("_stairTransitSeconds"), "계단 이동 시간 (초)");
@@ -248,10 +250,7 @@ namespace UnityGameJam.Editor
 
             void Add(VisualElement container, string label, string property, string tooltip)
             {
-                var field = new FloatField(label);
-                field.labelElement.style.minWidth = 100;
-                AddNumber(container, group.FindPropertyRelative(property), field, p => p.floatValue,
-                    (p, value) => p.floatValue = value, UnitMotionTuning.NormalizeRate, tooltip);
+                AddRate(container, group.FindPropertyRelative(property), label, tooltip).labelElement.style.minWidth = 100;
             }
         }
 
@@ -362,6 +361,14 @@ namespace UnityGameJam.Editor
         {
             AddNumber(parent, property, new FloatField(title), p => p.floatValue,
                 (p, value) => p.floatValue = value, value => float.IsNaN(value) ? min : Mathf.Clamp(value, min, max));
+        }
+
+        private FloatField AddRate(VisualElement parent, SerializedProperty property, string title, string tooltip = null)
+        {
+            var field = new FloatField(title);
+            AddNumber(parent, property, field, p => p.floatValue, (p, value) => p.floatValue = value,
+                UnitMotionTuning.NormalizeRate, tooltip);
+            return field;
         }
 
         private IntegerField AddInt(VisualElement parent, SerializedProperty property, string title, int min, string tooltip = null)

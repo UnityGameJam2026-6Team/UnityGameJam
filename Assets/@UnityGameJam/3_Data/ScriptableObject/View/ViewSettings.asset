@@ -40,6 +40,8 @@ MonoBehaviour:
   _mopPrefab: {fileID: 5323776537816255515, guid: 6f6a254e7c2ee3b4ea3e98036f96e6df, type: 3}
   _carryOffset: 0.2
   _mopOffset: {x: 0.45, y: 0, z: 0}
+  _globalMoveRate: 1
+  _globalAnimationRate: 1
   _playerMotion:
     _walkRate: 1
     _runRate: 1
