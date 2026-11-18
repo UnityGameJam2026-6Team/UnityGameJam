@@ -5,7 +5,7 @@ using UnityGameJam.Contract;
 namespace UnityGameJam.View
 {
     /// <summary>
-    /// B 레인 연출 값(규칙에 영향을 주지 않는 값). 에셋은 3_Data/ScriptableObject/View/에 둔다.
+    /// B 레인 월드·표현 및 이동 조정 값. 에셋은 3_Data/ScriptableObject/View/에 둔다.
     /// 값은 GDD에 없어 임시값이다(U207). 플레이테스트에서 조정한다.
     /// </summary>
     [CreateAssetMenu(menuName = "UnityGameJam/View Settings", fileName = "ViewSettings")]
@@ -44,6 +44,17 @@ namespace UnityGameJam.View
         [SerializeField] private GameObject _mopPrefab;
         [SerializeField] private float _carryOffset = 0.2f;
         [SerializeField] private Vector3 _mopOffset = new Vector3(0.45f, 0f, 0f);
+
+        [Header("이동·애니메이션 조정")]
+        [SerializeField] private UnitMotionTuning _playerMotion;
+        [SerializeField] private UnitMotionTuning _goblinMotion;
+
+        public UnitMotionTuning GetMotionTuning(EWorkerType worker) => worker switch
+        {
+            EWorkerType.Player => _playerMotion,
+            EWorkerType.Goblin => _goblinMotion,
+            _ => default
+        };
 
         public GameObject MopPrefab => _mopPrefab;
         public float CarryOffset => _carryOffset;

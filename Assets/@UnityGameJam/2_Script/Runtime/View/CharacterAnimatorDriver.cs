@@ -32,21 +32,20 @@ namespace UnityGameJam.View
         private EContaminationType? _carried;
         private float _speed;
         private float _eatStarted;
+        private UnitMotionTuning _tuning;
         private AnimationClip _handling;
         private bool _handlingHeavy;
         private float _handlingStart;
-        private float _handlingLength;
-        private float _contactTime;
+        private UnitHandlingTiming _handlingTiming;
 
         public EPose CurrentPose { get; private set; }
         public AnimationClip CurrentClip { get; private set; }
         public float ClipTime { get; private set; }
         public bool IsPickingUp { get; private set; }
-        public bool IsHandling => _handling != null && Time.time - _handlingStart < _handlingLength;
-        public float HandlingProgress => _handlingLength > 0f ? Mathf.Clamp01((Time.time - _handlingStart) / _handlingLength) : 1f;
-        public bool GripHasItem => IsHandling && HandlingTime >= _contactTime;
-
-        private float HandlingTime => _handlingLength * (IsPickingUp ? HandlingProgress : 1f - HandlingProgress);
+        public bool IsHandling => _handling != null && Time.time - _handlingStart < _handlingTiming.Duration;
+        public float HandlingProgress => _handlingTiming.Duration > 0f
+            ? Mathf.Clamp01((Time.time - _handlingStart) / _handlingTiming.Duration) : 1f;
+        public bool GripHasItem => IsHandling && _handlingTiming.GripHasItem(Time.time - _handlingStart);
 
         private void OnEnable()
         {
@@ -87,6 +86,8 @@ namespace UnityGameJam.View
             _supportArm = null;
         }
 
+        public void SetMotionTuning(UnitMotionTuning tuning) => _tuning = tuning;
+
         public void SetPose(EPose pose, float speed = 0f, bool running = false,
             EContaminationType? carried = null, bool holdingMop = false)
         {
@@ -114,6 +115,13 @@ namespace UnityGameJam.View
             return measured > 0f ? measured : ruleSpeed;
         }
 
+        public float GetAdjustedMoveSpeed(float baseSpeed, float ruleSpeed, bool running = false,
+            EContaminationType? carried = null, bool holdingMop = false)
+        {
+            return _tuning.ResolveMoveSpeed(GetLocomotionSpeed(baseSpeed),
+                GetLocomotionSpeed(baseSpeed, running, carried, holdingMop), baseSpeed, ruleSpeed, running, carried, holdingMop);
+        }
+
         public float BeginHandling(bool pickingUp, bool heavy = false)
         {
             if (!_graph.IsValid()) { return 0f; }
@@ -123,12 +131,9 @@ namespace UnityGameJam.View
             _handlingHeavy = heavy;
             _handling = clip;
             _handlingStart = Time.time;
-            float measuredEnd = heavy ? _set.PickUpHeavyEnd : _set.PickUpEnd;
-            _handlingLength = measuredEnd > 0f ? Mathf.Min(measuredEnd, clip.length) : clip.length;
-            float contact = heavy ? _set.PickUpHeavyContact : _set.PickUpContact;
-            _contactTime = contact > 0f ? Mathf.Min(contact, _handlingLength) : _handlingLength * 0.5f;
+            _handlingTiming = _tuning.ResolveHandling(_set, pickingUp, heavy);
             _loop = null;
-            return _handlingLength;
+            return _handlingTiming.Duration;
         }
 
         /// <summary>물건은 지정된 한 손, 무거운 잔해는 두 손의 중점, 걸레(type=null)는 오른손을 따른다.</summary>
@@ -162,12 +167,12 @@ namespace UnityGameJam.View
             if (!_graph.IsValid() || !_animator.gameObject.activeInHierarchy) { return; }
             if (IsHandling)
             {
-                float time = HandlingTime;
+                float time = _handlingTiming.ClipTime(Time.time - _handlingStart);
                 Sample(_handling, time);
                 if (_handlingHeavy && _supportArm != null)
                 {
                     // 오크가 물건을 들어 올리는 동안 오른팔을 두 손 운반 자세로 가져온다.
-                    _supportArm.Apply(Mathf.SmoothStep(0f, 1f, time / Mathf.Max(0.01f, _contactTime)));
+                    _supportArm.Apply(Mathf.SmoothStep(0f, 1f, time / Mathf.Max(0.01f, _handlingTiming.Contact)));
                 }
                 return;
             }

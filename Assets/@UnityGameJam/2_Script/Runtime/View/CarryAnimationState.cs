@@ -45,13 +45,9 @@ namespace UnityGameJam.View
 
         public float GetMoveSpeed(CharacterAnimatorDriver animator, float baseSpeed, float ruleSpeed, bool running)
         {
-            if (animator == null || baseSpeed <= 0f || ruleSpeed <= 0f) { return ruleSpeed; }
-            float multiplier = ruleSpeed / baseSpeed;
-            if (CarriedType == EContaminationType.HeavyDebris && multiplier < 1f)
-            {
-                return animator.GetLocomotionSpeed(baseSpeed) * multiplier;
-            }
-            return animator.GetLocomotionSpeed(baseSpeed, running, CarriedType, IsHoldingMop) * multiplier;
+            return animator != null
+                ? animator.GetAdjustedMoveSpeed(baseSpeed, ruleSpeed, running, CarriedType, IsHoldingMop)
+                : ruleSpeed;
         }
     }
 }
