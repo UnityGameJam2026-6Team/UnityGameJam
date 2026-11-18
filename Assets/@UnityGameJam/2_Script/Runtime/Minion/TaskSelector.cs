@@ -16,14 +16,15 @@ namespace UnityGameJam.Minion
             _capability = capability ?? throw new ArgumentNullException(nameof(capability));
         }
 
-        public ContaminationItem FindTask(EWorkerType worker, EZoneId zone, Vector3 position, bool isHoldingMop)
+        public ContaminationItem FindTask(EWorkerType worker, EZoneId zone, Vector3 position, bool isHoldingMop, float observationRadius = float.PositiveInfinity)
         {
             ContaminationItem best = null;
             (int Priority, float DistanceSquared, int ItemId) bestRank = default;
 
             foreach (ContaminationItem item in _registry.Items)
             {
-                if (!IsCandidate(item, worker, zone, isHoldingMop)) { continue; }
+                if (!IsCandidate(item, worker, zone, isHoldingMop)
+                    || !MinionMemory.IsVisible(item.Position, position, observationRadius)) { continue; }
 
                 var rank = (GetPriority(item.Type), (item.Position - position).sqrMagnitude, item.Id);
                 if (best == null || rank.CompareTo(bestRank) < 0)
@@ -35,7 +36,7 @@ namespace UnityGameJam.Minion
             return best;
         }
 
-        private bool IsCandidate(ContaminationItem item, EWorkerType worker, EZoneId zone, bool isHoldingMop)
+        public bool IsCandidate(ContaminationItem item, EWorkerType worker, EZoneId zone, bool isHoldingMop)
         {
             if (item.Zone != zone || (item.ClaimedBy.HasValue && item.ClaimedBy != worker)) { return false; }
             if (isHoldingMop && item.Type != EContaminationType.FloorStain) { return false; }

@@ -20,3 +20,4 @@ MonoBehaviour:
   _apiTimeoutSeconds: 2
   _interactionDistance: 1.5
   _mopsPerToilet: 2
+  _observationRadius: 5

@@ -13,6 +13,7 @@ namespace UnityGameJam.Data
         [SerializeField, Min(0f)] private float _apiTimeoutSeconds;
         [SerializeField, Min(0f)] private float _interactionDistance;
         [SerializeField, Min(1)] private int _mopsPerToilet;
+        [SerializeField, Min(0f)] private float _observationRadius;
 
         public float MatchSeconds => _matchSeconds;
         public float ZoneThreshold => _zoneThreshold;
@@ -22,5 +23,6 @@ namespace UnityGameJam.Data
         public float ApiTimeoutSeconds => _apiTimeoutSeconds;
         public float InteractionDistance => _interactionDistance;
         public int MopsPerToilet => _mopsPerToilet;
+        public float ObservationRadius => _observationRadius;
     }
 }
