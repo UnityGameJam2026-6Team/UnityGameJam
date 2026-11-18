@@ -1,0 +1,105 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BossEye_R
+  m_Shader: {fileID: 4800000, guid: b7bb0f01a3899f54a8384dfeb257591b, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords:
+  - _AUTOASPECT_ON
+  - _AUTOBLINK_ON
+  - _PAIR_ON
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _PupilTex:
+        m_Texture: {fileID: 2800000, guid: 667df9de06e165c4bb8d6b03e99ccc69, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _ScleraMask:
+        m_Texture: {fileID: 2800000, guid: 6cebb33abdffdb84ab20ff43dd0ba0a4, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _ScleraTex:
+        m_Texture: {fileID: 2800000, guid: 2c3571f8e3076544882945c2c127bd01, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _Aspect: 2.5
+    - _AutoAspect: 1
+    - _AutoBlink: 1
+    - _BlackCut: 0.03
+    - _Blink: 0
+    - _BlinkClose: 0.07
+    - _BlinkHold: 0.05
+    - _BlinkInterval: 3.4
+    - _BlinkOpen: 0.13
+    - _BlinkRandom: 0.7
+    - _BlinkSeed: 0.37
+    - _BobAmount: 0
+    - _BobSpeed: 1.8
+    - _CornerCurl: 0.14
+    - _CornerFlicker: 0
+    - _CornerReach: 0.7
+    - _CornerSpeed: 4
+    - _CornerStart: 0.66
+    - _CornerSway: 0.11
+    - _CornerTear: 0.6
+    - _CornerThin: 1.1
+    - _CornerWobble: 0.025
+    - _DepthPush: 0.01
+    - _DoubleBlink: 0.25
+    - _EyeFire: 0
+    - _EyeOffsetX: 0
+    - _EyeOffsetY: -0.04636366
+    - _EyeSize: 1.2
+    - _EyeSpacing: 1.38
+    - _EyeTilt: 10
+    - _FireAngle: 36
+    - _FireBack: 0.2
+    - _FireBend: 0.3
+    - _FireGlowAmt: 0.55
+    - _FireLength: 0.95
+    - _FireRag: 1.4
+    - _FireSpeed: 3.4
+    - _FireStreak: 13
+    - _FireWidth: 0.15
+    - _FireWiggle: 0.4
+    - _FlipArt: 0
+    - _Intensity: 1.25
+    - _OffsetFactor: -1
+    - _OffsetUnits: -2
+    - _Pair: 0
+    - _PulseAmount: 0.1
+    - _PulseSpeed: 1.6
+    - _PupilSize: 0.33828136
+    - _StencilComp: 3
+    - _StencilRef: 77
+    - _TimeOffset: 0
+    - _TimeScale: 1
+    m_Colors:
+    - _CornerA: {r: 0.16193181, g: 0.4736458, b: 0, a: 0}
+    - _CornerB: {r: 0.9005682, g: 0.63645834, b: 0, a: 0}
+    - _FireColor: {r: 1, g: 0.8, b: 0.08, a: 1}
+    - _FireCore: {r: 1, g: 0.98, b: 0.8, a: 1}
+    - _FireGlow: {r: 1, g: 0.4, b: 0.04, a: 1}
+    - _Look: {r: 0, g: 0, b: 0, a: 0}
+    - _PupilPos: {r: 0.5017046, g: 0.5492188, b: 0, a: 0}
+    - _Tint: {r: 1, g: 1, b: 1, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

@@ -1,0 +1,9 @@
+firepanel
+
+1. Unity 프로젝트에서 firepanel.unitypackage를 임포트합니다.
+2. Project 창의 Assets/firepanel/firepanel.prefab을 Hierarchy의 Canvas 아래로 드래그합니다.
+3. Play를 누르면 양쪽 왕관에서 불꽃이 움직입니다.
+
+프리팹은 부모 사각형 안에 판과 불꽃이 모두 보이도록 크기를 맞춥니다. 패널을 작게 배치할 때는 Canvas 아래에 원하는 크기의 빈 UI 오브젝트를 만들고 그 아래에 프리팹을 넣으세요.
+
+안쪽 판 색은 #5A4B5F입니다. firepanel 머티리얼에서 불꽃을 조절할 수 있습니다. 기본값은 Flame Height 2.4, Flame Width 1.45, Flicker Speed 2입니다. 애니메이션은 게임 시간을 따르며 기본 반복 주기는 2.5초입니다.
