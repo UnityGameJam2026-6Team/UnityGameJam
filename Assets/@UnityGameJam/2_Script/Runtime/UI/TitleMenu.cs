@@ -1,4 +1,6 @@
+using System;
 using System.Collections;
+using System.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -11,9 +13,32 @@ namespace UnityGameJam.UI
         [SerializeField] private CanvasGroup _menuInput;
         [SerializeField] private CanvasGroup _fade;
         [SerializeField] private GameObject _loadingLabel;
+        [SerializeField] private GameObject _leaderboardOverlay;
+        [SerializeField] private LeaderboardView _leaderboard;
         [SerializeField, Min(0.01f)] private float _fadeSeconds = 0.45f;
 
         private bool _isLoading;
+
+        public void OpenLeaderboard()
+        {
+            if (_isLoading) { return; }
+            try
+            {
+                _leaderboard.Show(LocalLeaderboard.ForThisPc().Read());
+            }
+            catch (Exception exception) when (exception is IOException || exception is InvalidDataException || exception is UnauthorizedAccessException ||
+                exception is ArgumentException)
+            {
+                _leaderboard.ShowMessage("순위표를 읽지 못했습니다.");
+                Debug.LogWarning($"[순위표] 기록 조회 실패 · {exception.Message}", this);
+            }
+            _leaderboardOverlay.SetActive(true);
+        }
+
+        public void CloseLeaderboard()
+        {
+            _leaderboardOverlay.SetActive(false);
+        }
 
         public void StartGame()
         {
