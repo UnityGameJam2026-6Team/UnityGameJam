@@ -20,17 +20,15 @@ namespace UnityGameJam.Player
         private Quaternion _conversationRotation;
         private Vector3 _conversationFocusOffset;
         private float _conversationDistance;
-        private Mesh _framingMesh;
-        private readonly List<Vector3> _modelVertices = new();
+        private Vector3 _blendFromFocus;
+        private Vector3 _blendFromOffset;
+        private Quaternion _blendFromRotation;
+        private float _blendElapsed;
+        private bool _isBlending;
         private readonly List<Vector3> _framingPoints = new();
         private readonly RaycastHit[] _obstructions = new RaycastHit[12];
 
         private void Awake() => _camera = GetComponent<Camera>();
-
-        private void OnDestroy()
-        {
-            if (_framingMesh != null) { Destroy(_framingMesh); }
-        }
 
         public void SetTarget(Transform target)
         {
@@ -39,16 +37,15 @@ namespace UnityGameJam.Player
             GetDesiredPose(out Vector3 position, out Quaternion rotation);
             transform.SetPositionAndRotation(position, rotation);
             _velocity = Vector3.zero;
+            _isBlending = false;
         }
 
         public void SetConversationPartner(Transform partner)
         {
+            if (_conversationPartner == partner) { return; }
+            if (_target != null && _settings != null) { StartBlend(); }
             _conversationPartner = partner;
             if (_target == null || partner == null || _settings == null) { return; }
-            Vector3 line = Vector3.ProjectOnPlane(partner.position - _target.position, Vector3.up);
-            Vector3 side = Vector3.Cross(Vector3.up, line);
-            if (Vector3.Dot(side, Vector3.forward) < 0f) { side = -side; }
-            float yaw = side.sqrMagnitude > 0.0001f ? Vector3.SignedAngle(Vector3.forward, side, Vector3.up) : 0f;
             _framingPoints.Clear();
             AddFramingPoints(_target);
             AddFramingPoints(partner);
@@ -57,7 +54,7 @@ namespace UnityGameJam.Player
             Vector3 focus = ConversationMidpoint();
             focus.y = bounds.center.y;
             _conversationFocusOffset = focus - ConversationMidpoint();
-            SetConversationFraming(focus, yaw);
+            SetConversationFraming(focus);
         }
 
         public void SnapToTarget() => SetTarget(_target);
@@ -66,9 +63,40 @@ namespace UnityGameJam.Player
         {
             if (_target == null || _settings == null) { return; }
             GetDesiredPose(out Vector3 position, out Quaternion rotation);
+            if (_isBlending)
+            {
+                BlendPose(position, rotation);
+                return;
+            }
             float smoothTime = Mathf.Max(0.01f, _settings.CameraSmoothTime);
             transform.position = Vector3.SmoothDamp(transform.position, position, ref _velocity, smoothTime);
             transform.rotation = Quaternion.Slerp(transform.rotation, rotation, 1f - Mathf.Exp(-2f * Time.deltaTime / smoothTime));
+        }
+
+        private void StartBlend()
+        {
+            _blendFromFocus = ViewFocus;
+            _blendFromRotation = transform.rotation;
+            _blendFromOffset = Quaternion.Inverse(_blendFromRotation) * (transform.position - _blendFromFocus);
+            _blendElapsed = 0f;
+            _velocity = Vector3.zero;
+            _isBlending = true;
+        }
+
+        private void BlendPose(Vector3 position, Quaternion rotation)
+        {
+            _blendElapsed += Time.deltaTime;
+            float fraction = Mathf.Clamp01(_blendElapsed / _settings.ConversationCameraBlendSeconds);
+            float eased = Mathf.SmoothStep(0f, 1f, fraction);
+
+            // 초점과 카메라의 상대 위치를 함께 보간해 줌 중에도 대화 상대가 화면 안에 머문다.
+            Vector3 focus = ViewFocus;
+            Vector3 blendedFocus = Vector3.Lerp(_blendFromFocus, focus, eased);
+            Vector3 endOffset = Quaternion.Inverse(rotation) * (position - focus);
+            Vector3 offset = Vector3.Lerp(_blendFromOffset, endOffset, eased);
+            Quaternion blendedRotation = Quaternion.Slerp(_blendFromRotation, rotation, eased);
+            transform.SetPositionAndRotation(blendedFocus + blendedRotation * offset, blendedRotation);
+            _isBlending = fraction < 1f;
         }
 
         private void GetDesiredPose(out Vector3 position, out Quaternion rotation)
@@ -82,8 +110,10 @@ namespace UnityGameJam.Player
             }
 
             rotation = _conversationRotation;
-            position = ConversationPosition(ConversationMidpoint() + _conversationFocusOffset, rotation, _conversationDistance);
+            position = ConversationPosition(ViewFocus, rotation, _conversationDistance);
         }
+
+        private Vector3 ViewFocus => _conversationPartner == null ? _target.position : ConversationMidpoint() + _conversationFocusOffset;
 
         private Vector3 ConversationMidpoint() => (_target.position + _conversationPartner.position) * 0.5f;
 
@@ -92,21 +122,20 @@ namespace UnityGameJam.Player
         private Vector3 ConversationPosition(Vector3 focus, Quaternion rotation, float distance) =>
             focus + rotation * new Vector3(0f, distance * VerticalSlope * 0.12f, -distance);
 
-        private void SetConversationFraming(Vector3 focus, float yaw)
+        private void SetConversationFraming(Vector3 focus)
         {
             float pitch = _settings.ConversationCameraPitch;
-            Frame(focus, pitch, yaw);
+            Frame(focus, pitch);
             if (HasClearView(focus)) { return; }
-            Frame(focus, pitch, yaw + 180f);
+            // 벽 근처에서도 좌우 방향을 유지하고 더 위에서 대화 장면을 잡는다.
+            Frame(focus, pitch + 14f);
             if (HasClearView(focus)) { return; }
-            // 벽이 양쪽에 가까우면 조금 더 위에서 장면을 잡는다.
-            Frame(focus, pitch + 14f, yaw);
-            if (!HasClearView(focus)) { Frame(focus, pitch + 14f, yaw + 180f); }
+            Frame(focus, 80f);
         }
 
-        private void Frame(Vector3 focus, float pitch, float yaw)
+        private void Frame(Vector3 focus, float pitch)
         {
-            _conversationRotation = Quaternion.Euler(pitch, yaw, 0f);
+            _conversationRotation = Quaternion.Euler(pitch, 0f, 0f);
             Quaternion inverseRotation = Quaternion.Inverse(_conversationRotation);
             float vertical = VerticalSlope * _settings.ConversationFrameHeight;
             // 양옆 대사와 지시 패널 사이의 중앙 영역에 두 유닛을 담는다.
@@ -142,21 +171,7 @@ namespace UnityGameJam.Player
             {
                 foreach (Renderer renderer in slot.Model.GetComponentsInChildren<Renderer>())
                 {
-                    if (!renderer.enabled) { continue; }
-                    if (renderer is SkinnedMeshRenderer skin && skin.sharedMesh != null)
-                    {
-                        // 애니메이션 전체의 컬링 상자 대신 화면에 보이는 자세를 기준으로 잰다.
-                        if (_framingMesh == null) { _framingMesh = new Mesh { name = "ConversationFraming" }; }
-                        skin.BakeMesh(_framingMesh);
-                        _framingMesh.GetVertices(_modelVertices);
-                        Matrix4x4 localToWorld = skin.localToWorldMatrix;
-                        int step = Mathf.Max(1, _modelVertices.Count / 2048);
-                        for (int i = 0; i < _modelVertices.Count; i += step)
-                        {
-                            _framingPoints.Add(localToWorld.MultiplyPoint3x4(_modelVertices[i]));
-                        }
-                    }
-                    else { AddBoundsCorners(renderer.bounds); }
+                    if (renderer.enabled) { AddBoundsCorners(renderer.bounds); }
                 }
             }
             if (_framingPoints.Count == initialCount)

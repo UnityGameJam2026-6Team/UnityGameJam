@@ -15,11 +15,12 @@ MonoBehaviour:
   _completionCountdownSeconds: 2
   _interactRadius: 1.5
   _playerTurnSpeed: 720
-  _cameraHeight: 18
-  _cameraBackDistance: 12
+  _cameraHeight: 12
+  _cameraBackDistance: 8
   _cameraPitch: 56
   _cameraSmoothTime: 0.15
-  _conversationCameraPitch: 24
+  _conversationCameraBlendSeconds: 0.55
+  _conversationCameraPitch: 40
   _conversationFrameHeight: 0.67
   _stairTransitSeconds: 2
   _stairApproachRadius: 0.85

@@ -26,14 +26,16 @@ namespace UnityGameJam.View
 
         [Header("카메라")]
         [Tooltip("플레이어 위 높이(m)")]
-        [SerializeField] private float _cameraHeight = 18f;
+        [SerializeField] private float _cameraHeight = 12f;
         [Tooltip("플레이어 뒤쪽(-Z) 거리(m)")]
-        [SerializeField] private float _cameraBackDistance = 12f;
+        [SerializeField] private float _cameraBackDistance = 8f;
         [Tooltip("내려다보는 각도(도)")]
         [SerializeField] private float _cameraPitch = 56f;
         [Tooltip("추적 부드러움(초). 작을수록 빠르게 따라간다")]
         [SerializeField] private float _cameraSmoothTime = 0.15f;
-        [SerializeField, Range(10f, 55f)] private float _conversationCameraPitch = 24f;
+        [Tooltip("대화 진입과 평상시 추적 복귀에 걸리는 시간(초)")]
+        [SerializeField, Min(0.01f)] private float _conversationCameraBlendSeconds = 0.55f;
+        [SerializeField, Range(10f, 55f)] private float _conversationCameraPitch = 40f;
         [SerializeField, Range(0.35f, 0.75f)] private float _conversationFrameHeight = 0.67f;
 
         [Header("계단")]
@@ -112,6 +114,7 @@ namespace UnityGameJam.View
         public float CameraBackDistance => _cameraBackDistance;
         public float CameraPitch => _cameraPitch;
         public float CameraSmoothTime => _cameraSmoothTime;
+        public float ConversationCameraBlendSeconds => Mathf.Max(0.01f, _conversationCameraBlendSeconds);
         public float ConversationCameraPitch => _conversationCameraPitch;
         public float ConversationFrameHeight => _conversationFrameHeight;
         public float StairTransitSeconds => _stairTransitSeconds;
