@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e4fbadf055b31d94595c2e08340584b6, type: 3}
+  m_Name: WorkerStats_Orc
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.Data.WorkerStatsSO
+  _worker: 2
+  _moveSpeed: 3.2
+  _heavyCarryMultiplier: 1
+  _clutterCarryMultiplier: 1
+  _mopSeconds: 3.5
+  _digestSeconds: 0
+  _dispatchSeconds: 0
+  _canCarryClutter: 1
+  _canCarryTrash: 1
+  _canCarryHeavyDebris: 1
+  _canMop: 1
+  _canDigestWaste: 0

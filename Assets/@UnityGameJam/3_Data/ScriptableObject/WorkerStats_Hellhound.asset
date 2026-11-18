@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e4fbadf055b31d94595c2e08340584b6, type: 3}
+  m_Name: WorkerStats_Hellhound
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.Data.WorkerStatsSO
+  _worker: 5
+  _moveSpeed: 4.5
+  _heavyCarryMultiplier: 1
+  _clutterCarryMultiplier: 1
+  _mopSeconds: 0
+  _digestSeconds: 0
+  _dispatchSeconds: 5
+  _canCarryClutter: 0
+  _canCarryTrash: 0
+  _canCarryHeavyDebris: 0
+  _canMop: 0
+  _canDigestWaste: 0

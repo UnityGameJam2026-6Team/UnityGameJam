@@ -13,7 +13,7 @@
 
 ## A 레인 (규칙·시뮬레이션) · 김보경 · Codex · `docs/team/lane-a.md`
 - [x] A1 청결도·오염 모델 (Spec `Cleaning.md`)
-- [ ] A2 데이터와 생성 (Spec `ContaminationSpawn.md`)
+- [x] A2 데이터와 생성 (Spec `ContaminationSpawn.md`)
 - [ ] A3 작업 선택과 능력 (Spec `TaskSelection.md`)
 - [ ] A4 도구·배출·소화 (Spec `ToolAndDischarge.md`)
 - [ ] A5 졸개 두뇌와 기억 (Spec `MinionBrain.md`)
