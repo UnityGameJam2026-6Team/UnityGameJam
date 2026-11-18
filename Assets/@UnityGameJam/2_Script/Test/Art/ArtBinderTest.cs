@@ -117,6 +117,38 @@ namespace UnityGameJam.Test.Art
         }
 
         [Test]
+        public void 높이를_맞출_때_원본_비율과_회전을_보존하고_슬롯_보정을_적용한다()
+        {
+            var sourceScale = new Vector3(1f, 3f, 4f);
+            Quaternion sourceRotation = Quaternion.Euler(90f, 0f, 0f);
+            using (var source = new PrefabUtility.EditPrefabContentsScope(ModelPath))
+            {
+                source.prefabContentsRoot.transform.localScale = sourceScale;
+                source.prefabContentsRoot.transform.localRotation = sourceRotation;
+            }
+
+            var slotEuler = new Vector3(0f, 90f, 0f);
+            var slotOffset = new Vector3(0.25f, 0.5f, 0.75f);
+            using (var target = new PrefabUtility.EditPrefabContentsScope(PrefabPath))
+            {
+                var slot = new SerializedObject(target.prefabContentsRoot.GetComponentInChildren<ArtSlot>());
+                slot.FindProperty("_fitMode").enumValueIndex = (int)EArtFitMode.MatchPlaceholderHeight;
+                slot.FindProperty("_modelEuler").vector3Value = slotEuler;
+                slot.FindProperty("_modelOffset").vector3Value = slotOffset;
+                slot.FindProperty("_modelScale").floatValue = 1.5f;
+                slot.ApplyModifiedPropertiesWithoutUndo();
+            }
+
+            Assert.IsTrue(ArtBinder.Apply(InspectSingle()));
+
+            Transform applied = LoadSlot().Model.transform;
+            // 원본 큐브의 Z축이 위를 향해 높이가 4m다. 2m에 맞춘 뒤 슬롯 배율 1.5를 곱한다.
+            Assert.That(Vector3.Distance(sourceScale * 0.75f, applied.localScale), Is.LessThan(0.001f));
+            Assert.That(Quaternion.Angle(Quaternion.Euler(slotEuler) * sourceRotation, applied.localRotation), Is.LessThan(0.1f));
+            Assert.That(Vector3.Distance(slotOffset, applied.localPosition), Is.LessThan(0.001f));
+        }
+
+        [Test]
         public void 다른_프리팹을_중첩한_조립_프리팹은_아트_대상이_아니다()
         {
             var assembly = new GameObject("FL_TestAssembly");

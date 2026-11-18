@@ -229,7 +229,7 @@ namespace UnityGameJam.Editor.Art
             var model = (GameObject)PrefabUtility.InstantiatePrefab(source, slot.transform);
             model.name = ArtSlot.ModelObjectName;
             SetLayerRecursively(model, slot.gameObject.layer);
-            FitModel(slot, model);
+            FitModel(slot, model, source.transform);
 
             AnimatorOverrideController overrideController = ArtAnimationBinder.BuildOverride(item.ArtKey, Path.GetDirectoryName(item.SourcePath).Replace('\\', '/'));
             if (overrideController != null) { ArtAnimationBinder.AssignToModel(model, overrideController); }
@@ -303,12 +303,12 @@ namespace UnityGameJam.Editor.Art
             return isRemoved;
         }
 
-        private static void FitModel(ArtSlot slot, GameObject model)
+        private static void FitModel(ArtSlot slot, GameObject model, Transform source)
         {
             Transform modelTransform = model.transform;
             modelTransform.localPosition = slot.ModelOffset;
-            modelTransform.localRotation = Quaternion.Euler(slot.ModelEuler);
-            modelTransform.localScale = Vector3.one;
+            modelTransform.localRotation = Quaternion.Euler(slot.ModelEuler) * source.localRotation;
+            modelTransform.localScale = source.localScale;
 
             float factor = 1f;
             if (slot.FitMode != EArtFitMode.None && slot.Placeholder != null)
@@ -329,7 +329,7 @@ namespace UnityGameJam.Editor.Art
                     factor = MinRatio(target.size, current.size);
                 }
             }
-            modelTransform.localScale = Vector3.one * (factor * slot.ModelScale);
+            modelTransform.localScale = source.localScale * (factor * slot.ModelScale);
         }
 
         private static float MinRatio(Vector3 target, Vector3 current)

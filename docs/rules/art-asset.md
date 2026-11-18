@@ -2,17 +2,17 @@
 
 > 3D 모델, 텍스처, 애니메이션을 받거나 프리팹에 적용하기 전에 읽는다. 소유: B 레인(심지섭).
 > 아티스트용으로 풀어 쓴 안내서는 `docs/art-naming-guide.md`다. 이 문서를 고치면 안내서도 함께 맞춘다.
-> 핵심: **파일 이름 = ArtKey = 프리팹 이름**.이름만 맞추면 `Tools > UnityGameJam > Art > 전체 적용` 한 번으로 프리팹에 들어간다.
+> 모델 파일 이름은 **원본 ArtKey**다. 프리팹 이름을 기본 키로 쓰며, 다른 키의 모델을 받는 프리팹은 `Visual`의 `ArtSlot.ArtKeyOverride`로 원본을 지정한다. 4절 표에 게임 프리팹과 원본의 대응을 기록한다.
 
 ## 1. 이름 규칙
 | 종류 | 형식 | 예 |
 |---|---|---|
-| 모델 | `<ArtKey>.fbx` | `CH_Goblin.fbx`, `IT_Trash_02.fbx` |
+| 모델 | `<ArtKey>.fbx` | `CH_Skeleton.fbx`, `IT_Trash_CrushedDrinkCan.fbx` |
 | 에셋 스토어 모델 | 모델 프리팹을 복사해 `<ArtKey>.prefab`으로 이름을 바꾼다 | `PR_Desk.prefab` |
-| 애니메이션 | `<ArtKey>@<Clip>.fbx` (Unity 표준 규칙) | `CH_Goblin@Idle.fbx` |
-| 텍스처 | `<ArtKey>[_<재질>]_<맵>.png` (`.tga`, `.jpg`도 됨) | `CH_Goblin_BaseMap.png`, `PR_Desk_Top_Normal.png` |
+| 애니메이션 | `<ArtKey>@<Clip>.fbx` (Unity 표준 규칙) | `CH_Skeleton@Idle.fbx` |
+| 텍스처 | `<ArtKey>[_<재질>]_<맵>.png` (`.tga`, `.jpg`도 됨) | `CH_Skeleton_BaseMap.png`, `PR_Desk_Top_Normal.png` |
 | 머티리얼 | `M_<ArtKey>[_<재질>].mat` (**도구가 만든다**, 직접 만들지 않음) | `M_CH_Goblin.mat` |
-| 애니메이션 오버라이드 | `AOC_<ArtKey>.overrideController` (**도구가 만든다**) | `AOC_CH_Goblin.overrideController` |
+| 애니메이션 오버라이드 | `AOC_<ArtKey>.overrideController` (**도구가 만든다**) | `AOC_CH_Skeleton.overrideController` |
 
 - **ArtKey** 형식: `<접두사>_<이름>[_<변형>]`. 접두사는 `CH_`(캐릭터), `IT_`(아이템), `PR_`(소품), `ENV_`(환경) 중 하나다. 영어 파스칼 케이스로 쓰고, 변형은 `01`이나 단어로 쓴다.
   - 정규식: `^(CH|IT|PR|ENV)_[A-Z][A-Za-z0-9]*(_[A-Za-z0-9]+)*$`
@@ -32,17 +32,17 @@
 5_Art/Model/
 ├─ Character/
 │  ├─ AC_Character.controller      캐릭터 공용 베이스 애니메이터 (도구가 만든다)
-│  └─ CH_Goblin/                   ArtKey마다 폴더 하나
-│     ├─ CH_Goblin.fbx
-│     ├─ CH_Goblin@Idle.fbx
-│     ├─ CH_Goblin_BaseMap.png
-│     ├─ M_CH_Goblin.mat           (도구가 만든다)
-│     └─ AOC_CH_Goblin.overrideController (도구가 만든다)
+│  └─ CH_Skeleton/                 ArtKey마다 폴더 하나
+│     ├─ CH_Skeleton.fbx
+│     ├─ CH_Skeleton@Idle.fbx
+│     ├─ CH_Skeleton_BaseMap.png
+│     ├─ M_CH_Skeleton.mat         (도구가 만든다)
+│     └─ AOC_CH_Skeleton.overrideController (도구가 만든다)
 ├─ Item/
 ├─ Prop/
 └─ Environment/
 ```
-- 분류 폴더는 접두사와 맞춘다: `CH_` → `Character/`, `IT_` → `Item/`, `PR_` → `Prop/`, `ENV_` → `Environment/`. 다른 분류 폴더에 두면 검사에서 경고로 표시한다.
+- 새로 전달하는 파일의 분류 폴더는 접두사와 맞춘다. `CH_`는 `Character/`, `IT_`는 `Item/`, `PR_`는 `Prop/`, `ENV_`는 `Environment/`를 사용한다. 기존에 `Prop/`에 들어온 A·F·G·H·L·T·W 번호 폴더는 원본 납품 묶음이며, 각 FBX의 분류는 파일 접두사를 따른다.
 
 ## 3. 내보내기 규격 (아티스트 전달용)
 - 단위는 미터, 스케일 1, 정면은 +Z, 위쪽은 Y(Blender의 Z-up은 FBX 내보내기에서 변환)
@@ -65,28 +65,48 @@
 
 | 분류 | ArtKey | GDD 이름 / 용도 | 비고 |
 |---|---|---|---|
-| Character | `CH_Player` | 플레이어 | |
-| Character | `CH_Goblin` | 고블린 | `CH_MinionBase` Variant |
-| Character | `CH_Orc` | 오크 | `CH_MinionBase` Variant |
+| Character | `CH_Player` | 플레이어 | 원본 `CH_RamHornMaidPrincess` |
+| Character | `CH_Goblin` | 고블린 | `CH_MinionBase` Variant, 원본 `CH_GoblinSparkplug` |
+| Character | `CH_Orc` | 오크 | `CH_MinionBase` Variant, 원본 `CH_GoblinTrailblazer` |
 | Character | `CH_Skeleton` | 스켈레톤 | `CH_MinionBase` Variant |
 | Character | `CH_Slime` | 슬라임 | `CH_MinionBase` Variant |
 | Character | `CH_Hellhound` | 헬하운드 | `CH_MinionBase` Variant |
-| Character | `CH_DemonKing` | 마왕 (마감 연출) | |
-| Item | `IT_HeavyDebris_01`~ | 무거운 잔해 | 변형 번호를 늘려 다양화 |
-| Item | `IT_Trash_01`~ | 일반 쓰레기 | |
-| Item | `IT_Clutter_<물건>` | 어질러진 작은 물건 | `PR_HomeSlot_<물건>`과 짝 (U202) |
+| Character | `CH_DemonKing` | 마왕 (마감 연출) | 원본 `CH_CrimsonHoodedMage` |
+| Item | `IT_HeavyDebris_01` | 무거운 잔해 | 대표 원본 H01 `IT_HeavyDebris_BrokenPlankBundle` |
+| Item | `IT_Trash_01` | 일반 쓰레기 | 대표 원본 G01 `IT_Trash_CrumpledPaperCup` |
+| Item | `IT_Clutter_<물건>` | 어질러진 작은 물건 | U202의 `Book`, `Cup`, `Document`, `Chair`는 같은 이름의 `PR_HomeSlot_<물건>`과 짝 |
 | Item | `IT_FloorStain_01`~ | 바닥 얼룩 | 텍스처만 받음 |
 | Item | `IT_Mop` | 물걸레 | |
 | Prop | `PR_MopRack` | 화장실 걸레걸이 (2개 보관) | |
-| Prop | `PR_DischargeBin` | 1층 현관 배출 구역 표시 | |
+| Prop | `PR_DischargeBin` | 1층 현관 배출 구역 표시 | 대표 원본 T01 `PR_WasteDropOffPlatform` |
 | Prop | `PR_HomeSlot_<물건>` | 작은 물건 제자리 | U202 |
-| Prop | `PR_<가구>` | 방 가구 (책상, 의자, 선반 등) | B1에서 목록 확정 |
+| Prop | `PR_Desk`, `PR_ExecutiveDesk` | 일반 책상, 간부실 책상 | 일반 책상 원본은 `Prop/PR_Desk.fbx`, F26 간부실 책상 원본은 `F26_Executive_Desk/PR_ExecutiveDesk.fbx` |
+| Prop | `PR_<가구>` | 방 가구 (선반, 탁자, 소파 등) | F 계열 납품 모델 |
 | Environment | `ENV_FloorTile` | 바닥 2x2m (피벗: 한 모서리) | |
 | Environment | `ENV_Wall_Straight`, `ENV_Wall_Corner`, `ENV_Wall_Curve` | 벽 2m(피벗: 한쪽 끝), 모서리 기둥, 곡선 벽(반지름 4m 1/4 원호, 피벗: 원호 중심) | 창고, 간부실 |
-| Environment | `ENV_Door` | 방 문 | |
+| Environment | `ENV_Door` | 방 출입구의 통행용 문틀 | 원본 A05 `ENV_ArchedDoorFrame` |
+| Environment | `ENV_WoodenDoorLeaf` | 나무 문짝 | A06 독립 프리팹 |
 | Environment | `ENV_Stairs` | 계단 | |
 | Environment | `ENV_Entrance` | 1층 현관 | |
-| Environment | `ENV_Toilet` | 화장실 | |
+| Environment | `ENV_Toilet` | 화장실 방 바닥 표식 | |
+| Environment | `ENV_ToiletFixture` | 변기 | W02 변기 모델 |
+
+**납품 모델의 변형 키**
+
+아래 이름에 표의 접두사를 붙이면 원본 FBX의 ArtKey가 된다. 게임의 잔해·쓰레기 대표 프리팹에는 위 표의 H01·G01을 연결한다.
+
+| 원본 번호 | 접두사 | 번호 순서의 이름 |
+|---|---|---|
+| A01~A07 | `ENV_` | `FloorTile`, `Wall_Straight`, `Wall_Corner`, `Wall_Curve`, `ArchedDoorFrame`, `WoodenDoorLeaf`, `Entrance` |
+| A08~A14 | `ENV_` | `DoorThreshold`, `Stairs`, `StairLanding`, `StraightSafetyRailing`, `MasonryPillar`, `WallSconce`, `BlankRoomSign` |
+| F01~F08 | `PR_` | `ReceptionCounter`, `LobbyBench`, `PlainWasteBin`, `StonePlanter`, `Shelf`, `IntactWoodenChest`, `LoadingPallet`, `Table` |
+| F10~F18 | `PR_` | `WallNoticeBoard`, `LowPlatform`, `StackOfFoldedChairs`, `Sofa`, `LowCoffeeTable`, `KitchenetteSink`, `WallShelf`, `Microwave`, `MiniFridge` |
+| F19~F28 | `PR_` | `BuiltInCabinet`, `WorkshopBench`, `WorkshopPegboard`, `RoundWorkStool`, `CastleHeraldicBanner`, `DeskLamp`, `WallClock`, `ExecutiveDesk`, `ExecutiveHighBackChair`, `OfficeRug` |
+| G01~G06 | `IT_Trash_` | `CrumpledPaperCup`, `CrushedDrinkCan`, `CrumpledPaperBall`, `TornFoodWrapper`, `TiedTrashBag`, `CollapsedCardboardBox` |
+| H01~H04 | `IT_HeavyDebris_` | `BrokenPlankBundle`, `BrokenMasonryPile`, `BrokenWoodenChest`, `BrokenFurnitureDebris` |
+| L01~L06 | `IT_Clutter_` | `Book`, `Cup`, `Document`, `SmallToolCase`, `RemoteControl`, `SmallStorageBox`. 의자 `IT_Clutter_Chair`는 F09다. |
+| T01~T04 | `PR_` | `WasteDropOffPlatform`, `MopRack`, `OrganizingTray`, `HoundWaitingMat`. T05 걸레는 `IT_Mop`이다. |
+| W01~W06 | `ENV_` | `PedestalSink`, `ToiletFixture`, `WallMirror`, `BathroomStall`, `WallDispenser`, `FloorDrain`. W07 양동이는 `IT_CleaningBucket`이다. |
 
 ## 5. 적용 방법
 1. 이름 규칙에 맞춰 파일을 `5_Art/Model/<분류>/<ArtKey>/`에 넣는다. 처음 임포트할 때 임포트 설정이 자동으로 맞춰진다(6절).

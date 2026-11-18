@@ -4,8 +4,7 @@
 > 규칙 원본은 `docs/rules/art-asset.md`다. 둘이 다르면 원본을 따르고 이 문서를 고친다.
 
 ## 1. 핵심 한 줄
-**파일 이름 = ArtKey = 게임 프리팹 이름.**
-`CH_Goblin.fbx`를 넣으면 게임의 `CH_Goblin` 프리팹에 자동으로 들어간다. 이름이 한 글자라도 다르면 들어가지 않는다.
+모델 파일에는 **원본 ArtKey**를 쓴다. 보통 `CH_Slime.fbx`처럼 게임 프리팹 이름과 같다. 다른 이름의 원본을 쓰는 역할은 받는 쪽에서 `Visual`의 `ArtSlot.ArtKeyOverride`로 연결한다. 해당 원본을 교체할 때에는 아래 5절의 원본 이름을 유지한다.
 
 ## 2. ArtKey 만드는 법
 ```
@@ -33,10 +32,10 @@ IT _ HeavyDebris _ 01
 ## 3. 파일 종류별 이름
 | 종류 | 형식 | 예 |
 |---|---|---|
-| 모델 | `<ArtKey>.fbx` | `CH_Goblin.fbx` |
-| 애니메이션 (클립 하나에 파일 하나) | `<ArtKey>@<클립>.fbx` | `CH_Goblin@Walk.fbx` |
-| 색 텍스처 | `<ArtKey>_BaseMap.png` | `CH_Goblin_BaseMap.png` |
-| 노멀맵 | `<ArtKey>_Normal.png` | `CH_Goblin_Normal.png` |
+| 모델 | `<ArtKey>.fbx` | `CH_Skeleton.fbx` |
+| 애니메이션 (클립 하나에 파일 하나) | `<ArtKey>@<클립>.fbx` | `CH_Skeleton@Walk.fbx` |
+| 색 텍스처 | `<ArtKey>_BaseMap.png` | `CH_Skeleton_BaseMap.png` |
+| 노멀맵 | `<ArtKey>_Normal.png` | `CH_Skeleton_Normal.png` |
 | 마스크 (R = 금속성, A = 매끈함) | `<ArtKey>_Mask.png` | `CH_Goblin_Mask.png` |
 | 발광 | `<ArtKey>_Emission.png` | `CH_Goblin_Emission.png` |
 | 머티리얼이 여러 개일 때의 텍스처 | `<ArtKey>_<재질>_<맵>.png` (`<재질>` = FBX 안의 머티리얼 이름) | `PR_Desk_Top_BaseMap.png`, `PR_Desk_Leg_BaseMap.png` |
@@ -61,22 +60,37 @@ IT _ HeavyDebris _ 01
 ## 4. 좋은 예와 나쁜 예
 | O | X | 이유 |
 |---|---|---|
-| `CH_Goblin.fbx` | `goblin.fbx` | 접두사가 없고 소문자로 시작한다 |
-| `CH_Goblin.fbx` | `CH_Goblin_final.fbx` | 버전 표시를 붙였다 |
+| `CH_Skeleton.fbx` | `skeleton.fbx` | 접두사가 없고 소문자로 시작한다 |
+| `CH_Skeleton.fbx` | `CH_Skeleton_final.fbx` | 버전 표시를 붙였다 |
 | `IT_HeavyDebris_01.fbx` | `IT_Heavy Debris 1.fbx` | 공백이 있다 |
 | `ENV_Wall_Curve.fbx` | `ENV-Wall-Curve.fbx` | 하이픈을 썼다 |
-| `CH_Orc@Walk.fbx` | `CH_Orc_Walk.fbx` | 애니메이션은 `@`로 구분해야 한다 |
-| `CH_Orc@Walk.fbx` | `CH_Orc@walking.fbx` | 클립 목록에 없는 이름이다 |
+| `CH_Skeleton@Walk.fbx` | `CH_Skeleton_Walk.fbx` | 애니메이션은 `@`로 구분해야 한다 |
+| `CH_Skeleton@Walk.fbx` | `CH_Skeleton@walking.fbx` | 클립 목록에 없는 이름이다 |
 | `CH_Slime_BaseMap.png` | `CH_Slime_Diffuse.png` | 맵 이름은 BaseMap, Normal, Mask, Emission 중 하나다 |
 
 ## 5. 지금 필요한 ArtKey (요약)
-전체 목록과 설명은 `docs/rules/art-asset.md` 4절에 있다.
+납품 번호 A01~W07과 원본 파일명의 전체 대응은 [3D 아트 에셋 규칙 4절](rules/art-asset.md#4-artkey-목록)에 있다.
 - **캐릭터**: `CH_Player`, `CH_Goblin`, `CH_Orc`, `CH_Skeleton`, `CH_Slime`, `CH_Hellhound`, `CH_DemonKing`
 - **아이템**: `IT_HeavyDebris_01`~, `IT_Trash_01`~, `IT_Clutter_<물건>`, `IT_FloorStain_01`~(텍스처만), `IT_Mop`
 - **소품**: `PR_MopRack`, `PR_DischargeBin`, `PR_HomeSlot_<물건>`, `PR_<가구>`
-- **환경**: `ENV_FloorTile`, `ENV_Wall_Straight`, `ENV_Wall_Corner`, `ENV_Wall_Curve`, `ENV_Door`, `ENV_Stairs`, `ENV_Entrance`, `ENV_Toilet`
-- `IT_Clutter_<물건>`과 `PR_HomeSlot_<물건>`은 같은 물건 이름으로 짝을 짓는다. 예: `IT_Clutter_Book`(책)은 `PR_HomeSlot_Book`(책꽂이)에 돌려놓는다.
+- **환경**: `ENV_FloorTile`, `ENV_Wall_Straight`, `ENV_Wall_Corner`, `ENV_Wall_Curve`, `ENV_Door`, `ENV_Stairs`, `ENV_Entrance`, `ENV_Toilet`(화장실 방 바닥 표식), `ENV_ToiletFixture`(W02 변기)
+- 현재 제자리 정리에 쓰는 물건은 `Book`, `Cup`, `Document`, `Chair`다. 예를 들어 `IT_Clutter_Book`(책)은 `PR_HomeSlot_Book`(책꽂이)에 돌려놓는다.
 - 목록에 없는 새 ArtKey가 필요하면 먼저 목록에 추가한다. 그래야 게임 프리팹도 같은 이름으로 만들어진다.
+
+**역할별로 교체할 원본 FBX**
+
+| 게임 프리팹 | 전달할 원본 |
+|---|---|
+| 플레이어 `CH_Player` | `CH_RamHornMaidPrincess.fbx` |
+| 마왕 `CH_DemonKing` | `CH_CrimsonHoodedMage.fbx` |
+| 고블린 `CH_Goblin` | `CH_GoblinSparkplug.fbx` |
+| 오크 `CH_Orc` | `CH_GoblinTrailblazer.fbx` |
+| 무거운 잔해 `IT_HeavyDebris_01` | H01 `IT_HeavyDebris_BrokenPlankBundle.fbx` |
+| 일반 쓰레기 `IT_Trash_01` | G01 `IT_Trash_CrumpledPaperCup.fbx` |
+| 현관 배출 구역 `PR_DischargeBin` | T01 `PR_WasteDropOffPlatform.fbx` |
+| 방 출입구의 통행용 문틀 `ENV_Door` | A05 `ENV_ArchedDoorFrame.fbx` |
+
+A06 나무 문짝은 `ENV_WoodenDoorLeaf.fbx`와 같은 이름의 독립 프리팹으로 전달한다. 일반 책상 원본은 `PR_Desk.fbx`, F26 간부실 책상 원본은 `PR_ExecutiveDesk.fbx`로 구분한다.
 
 ## 6. 내보내기 체크리스트
 - [ ] 단위는 미터, 스케일은 1
@@ -98,12 +112,12 @@ IT _ HeavyDebris _ 01
 ## 7. 넘기는 방법
 1. ArtKey마다 폴더를 하나 만들고, 그 안에 모델, 애니메이션, 텍스처를 함께 담는다.
    ```
-   CH_Goblin/
-   ├─ CH_Goblin.fbx
-   ├─ CH_Goblin@Idle.fbx
-   ├─ CH_Goblin@Walk.fbx
-   ├─ CH_Goblin_BaseMap.png
-   └─ CH_Goblin_Normal.png
+   CH_Skeleton/
+   ├─ CH_Skeleton.fbx
+   ├─ CH_Skeleton@Idle.fbx
+   ├─ CH_Skeleton@Walk.fbx
+   ├─ CH_Skeleton_BaseMap.png
+   └─ CH_Skeleton_Normal.png
    ```
 2. 저장소에 직접 올리면 PR 본문의 "적용 명세" 표에 파일 이름과 들어갈 프리팹(ArtKey)을 적는다. 파일만 전달할 때도 같은 내용을 메시지로 남긴다.
 3. 받는 쪽(심지섭)은 폴더를 `5_Art/Model/<분류>/`에 넣고 `Tools > UnityGameJam > Art > 검사` → `전체 적용`을 누른다.
