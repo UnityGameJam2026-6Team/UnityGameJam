@@ -37,7 +37,7 @@ New Input System, Project-wide `InputSystem_Actions` (B 소유)
 # UI
 HUD 5영역의 배치는 상위 계획의 와이어프레임을 따른다. B6과 B7에서 새로 만드는 화면은 다음과 같다.
 
-**배정 패널 `UI_AssignmentPanel`** (졸개와 대화할 때. 그 졸개만 멈추고, 타이머는 계속 흐른다)
+**우측 하단 배정 패널 `UI_AssignmentPanel`** (졸개와 대화할 때. 그 졸개만 멈추고, 타이머는 계속 흐른다)
 ```
 ┌ 오크에게 맡길 곳 ───────────────┐
 │ 현재: 창고 (작업 중)              │
