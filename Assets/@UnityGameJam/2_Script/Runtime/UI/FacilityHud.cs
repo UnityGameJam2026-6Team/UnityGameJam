@@ -18,6 +18,9 @@ namespace UnityGameJam.UI
         [SerializeField] private GameObject _choices;
         [SerializeField] private Button[] _rooms;
         [SerializeField] private Button _cancel;
+        [SerializeField] private MinionStatusPanel _minionPanel;
+        [SerializeField] private GameObject _workGauge;
+        [SerializeField] private RectTransform _workFill;
         private MatchBootstrap _bootstrap;
         private EWorkerType? _talking;
         private int _lastSecond = -1;
@@ -50,6 +53,9 @@ namespace UnityGameJam.UI
             _zoneProgress.gameObject.SetActive(zone.HasValue);
             if (zone.HasValue) { ShowProgress(_zoneProgress, "지역 진척도", session.GetZoneCleanliness(zone.Value), session.ZoneThreshold); }
             ShowProgress(_facilityProgress, "전체 진행도", session.FacilityCleanliness, session.FacilityThreshold);
+            _minionPanel.Show(session.Minions);
+            _workGauge.SetActive(session.IsPlayerWorking);
+            _workFill.anchorMax = new Vector2(Mathf.Clamp01(session.PlayerWorkProgress / 100f), 1f);
 
             EWorkerType? talking = null;
             if (session.MatchState == EMatchState.Running)
