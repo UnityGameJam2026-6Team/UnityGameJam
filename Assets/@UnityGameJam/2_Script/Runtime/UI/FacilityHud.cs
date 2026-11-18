@@ -48,12 +48,7 @@ namespace UnityGameJam.UI
         {
             IMatchSession session = _bootstrap != null ? _bootstrap.Session : null;
             if (session == null) { return; }
-            int seconds = Mathf.Max(0, Mathf.CeilToInt(session.RemainingTime));
-            if (seconds != _lastSecond)
-            {
-                _lastSecond = seconds;
-                _time.text = $"{seconds / 3600:00}:{seconds / 60 % 60:00}:{seconds % 60:00}";
-            }
+            ShowTime(session.RemainingTime);
             EZoneId? zone = session.PlayerZone;
             _zone.text = zone.HasValue ? ZoneDisplayName.GetFullName(zone.Value) : ZoneDisplayName.GetFloorLabel(_bootstrap.Player.Floor);
             _zoneProgress.gameObject.SetActive(zone.HasValue);
@@ -101,21 +96,57 @@ namespace UnityGameJam.UI
 
         private void OpenAssignmentPanel()
         {
+            SuspendPlayerInput();
+            _choices.SetActive(true);
+            _rooms[0].Select();
+        }
+
+        private void SuspendPlayerInput()
+        {
             InputActionMap playerMap = InputSystem.actions.FindActionMap("Player", true);
             foreach (InputAction action in playerMap.actions)
             {
                 if (action.enabled) { _suspendedActions.Add(action); }
             }
             playerMap.Disable();
-            _choices.SetActive(true);
-            _rooms[0].Select();
         }
 
         private void CloseAssignmentPanel()
         {
             _choices.SetActive(false);
+            RestorePlayerInput();
+        }
+
+        private void RestorePlayerInput()
+        {
             foreach (InputAction action in _suspendedActions) { action.Enable(); }
             _suspendedActions.Clear();
+        }
+
+        internal void EndMatch()
+        {
+            ShowTime(0f);
+            // 대화 중 마감되면 기존 잠금을 다음 판까지 유지한다.
+            if (!_talking.HasValue) { SuspendPlayerInput(); }
+            _talking = null;
+            _choices.SetActive(false);
+            _minionPanel.gameObject.SetActive(false);
+            _proposalStack.gameObject.SetActive(false);
+            _workGauge.SetActive(false);
+            enabled = false;
+        }
+
+        private void OnDestroy()
+        {
+            RestorePlayerInput();
+        }
+
+        private void ShowTime(float remaining)
+        {
+            int seconds = Mathf.Max(0, Mathf.CeilToInt(remaining));
+            if (seconds == _lastSecond) { return; }
+            _lastSecond = seconds;
+            _time.text = $"{seconds / 3600:00}:{seconds / 60 % 60:00}:{seconds % 60:00}";
         }
 
         private static void ShowProgress(TMP_Text label, string title, float value, float threshold)
