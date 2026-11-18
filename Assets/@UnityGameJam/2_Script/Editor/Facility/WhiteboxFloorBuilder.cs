@@ -22,6 +22,7 @@ namespace UnityGameJam.Editor.Facility
         private const string PrefabRoot = "Assets/@UnityGameJam/4_Prefab/";
         private const string FloorDir = PrefabRoot + "Floor/";
         private const string NavMeshDir = FloorDir + "NavMesh/";
+        private const string SignFontPath = "Assets/@UnityGameJam/5_Art/Font/구미첨단산업체/Gumi Industry.ttf";
         private const float Grid = 2f;
         private const float HalfWidth = 18f;
         private const float HalfDepth = 14f;
@@ -613,7 +614,7 @@ namespace UnityGameJam.Editor.Facility
             sign.localPosition = new Vector3(0f, 1.7f, 1.2f);
             sign.localRotation = Quaternion.Euler(42f, 0f, 0f);
             if (!sign.TryGetComponent(out TextMesh text)) { text = sign.gameObject.AddComponent<TextMesh>(); }
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.font = AssetDatabase.LoadAssetAtPath<Font>(SignFontPath);
             text.GetComponent<MeshRenderer>().sharedMaterial = text.font.material;
             text.text = $"{target}F";
             text.anchor = TextAnchor.MiddleCenter;

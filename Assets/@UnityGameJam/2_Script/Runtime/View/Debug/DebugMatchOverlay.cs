@@ -13,6 +13,7 @@ namespace UnityGameJam.View
     {
         [SerializeField] private MatchBootstrap _bootstrap;
         [SerializeField] private bool _isVisible = true;
+        [SerializeField] private Font _font;
 
         private static readonly EWorkerType[] _assignableMinions = { EWorkerType.Goblin, EWorkerType.Orc, EWorkerType.Skeleton, EWorkerType.Slime };
         private static readonly EZoneId[] _zones = (EZoneId[])System.Enum.GetValues(typeof(EZoneId));
@@ -20,6 +21,7 @@ namespace UnityGameJam.View
         private readonly StringBuilder _builder = new StringBuilder();
         private readonly System.Collections.Generic.Dictionary<EWorkerType, int> _nextZone = new System.Collections.Generic.Dictionary<EWorkerType, int>();
         private GUIStyle _style;
+        private GUIStyle _buttonStyle;
         private PlayerInteractor _interactor;
         private PlayerController _controller;
 
@@ -27,7 +29,11 @@ namespace UnityGameJam.View
         {
             IMatchSession session = _bootstrap != null ? _bootstrap.Session : null;
             if (!_isVisible || session == null) { return; }
-            if (_style == null) { _style = new GUIStyle(GUI.skin.box) { alignment = TextAnchor.UpperLeft, fontSize = 16 }; }
+            if (_style == null)
+            {
+                _style = new GUIStyle(GUI.skin.box) { alignment = TextAnchor.UpperLeft, fontSize = 16, font = _font };
+                _buttonStyle = new GUIStyle(GUI.skin.button) { font = _font };
+            }
 
             _builder.Clear();
             _builder.AppendLine($"[디버그] {session.MatchState}  남은 시간 {session.RemainingTime:0.0}s");
@@ -58,7 +64,7 @@ namespace UnityGameJam.View
                 if (System.Array.IndexOf(_assignableMinions, status.Minion) >= 0)
                 {
                     _nextZone.TryGetValue(status.Minion, out int next);
-                    if (GUI.Button(new Rect(10f, y, 420f, 26f), label + $"  → {ZoneDisplayName.GetFullName(_zones[next])}"))
+                    if (GUI.Button(new Rect(10f, y, 420f, 26f), label + $"  → {ZoneDisplayName.GetFullName(_zones[next])}", _buttonStyle))
                     {
                         session.AssignRoom(status.Minion, _zones[next]);
                         _nextZone[status.Minion] = (next + 1) % _zones.Length;

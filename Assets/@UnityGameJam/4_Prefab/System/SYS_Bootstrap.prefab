@@ -73,6 +73,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.View.DebugMatchOverlay
   _bootstrap: {fileID: 690500462245009955}
   _isVisible: 0
+  _font: {fileID: 12800000, guid: 1d5146590ff8ffc47baaa359cb5da23b, type: 3}
 --- !u!114 &6142641643554424251
 MonoBehaviour:
   m_ObjectHideFlags: 0
