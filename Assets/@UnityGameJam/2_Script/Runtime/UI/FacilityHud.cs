@@ -146,7 +146,7 @@ namespace UnityGameJam.UI
             int seconds = Mathf.Max(0, Mathf.CeilToInt(remaining));
             if (seconds == _lastSecond) { return; }
             _lastSecond = seconds;
-            _time.text = $"{seconds / 3600:00}:{seconds / 60 % 60:00}:{seconds % 60:00}";
+            _time.text = $"{seconds / 60:00}:{seconds % 60:00}";
         }
 
         private static void ShowProgress(TMP_Text label, string title, float value, float threshold)
