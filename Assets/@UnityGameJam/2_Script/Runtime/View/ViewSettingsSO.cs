@@ -11,6 +11,11 @@ namespace UnityGameJam.View
     [CreateAssetMenu(menuName = "UnityGameJam/View Settings", fileName = "ViewSettings")]
     public sealed class ViewSettingsSO : ScriptableObject
     {
+        [Header("완료 연출")]
+        [Tooltip("전체 청소 완료 후 남은 카운트다운을 넘기는 실제 시간(초)")]
+        [SerializeField, Min(0.1f)] private float _completionCountdownSeconds = 2f;
+        public float CompletionCountdownSeconds => Mathf.Max(0.1f, _completionCountdownSeconds);
+
         [Header("디버그 판")]
         [Tooltip("GameRule을 사용하지 않는 판에서 대상을 고르는 반경(m)")]
         [SerializeField, Min(0.01f)] private float _interactRadius = 1.5f;

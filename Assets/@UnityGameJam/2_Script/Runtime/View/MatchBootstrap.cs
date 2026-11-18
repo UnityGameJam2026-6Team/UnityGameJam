@@ -32,6 +32,13 @@ namespace UnityGameJam.View
         private readonly List<MinionAgent> _minions = new List<MinionAgent>();
         private RoomVisibility _roomVisibility;
         private float _initialMatchTime;
+        private float _fastForwardRate;
+        private bool _isCompletionChecked;
+        private PlayerController _playerController;
+        private PlayerInteractor _playerInteractor;
+
+        public float? CompletionSeconds { get; private set; }
+        public bool IsFastForwarding => CompletionSeconds.HasValue && Session.MatchState == EMatchState.Running;
 
         private readonly Dictionary<int, string> _homeSlotKinds = new Dictionary<int, string>();
         public IReadOnlyDictionary<int, string> HomeSlotKinds => _homeSlotKinds;
@@ -98,8 +105,10 @@ namespace UnityGameJam.View
             SpawnMinions(setup, stairs);
             Session = _factory.Create(setup);
 
-            Player.GetComponent<PlayerController>().Initialize(Session, stairs, _viewSettings, _camera);
+            _playerController = Player.GetComponent<PlayerController>();
+            _playerController.Initialize(Session, stairs, _viewSettings, _camera);
             var interactor = Player.GetComponent<PlayerInteractor>();
+            _playerInteractor = interactor;
             interactor.Initialize(Session, Layout, _factory.InteractionDistance ?? _viewSettings.InteractRadius);
             foreach (MinionAgent minion in _minions)
             {
@@ -108,6 +117,7 @@ namespace UnityGameJam.View
             }
             if (_camera != null) { _camera.SetTarget(Player.transform); }
 
+            Session.ItemChanged += OnItemChanged;
             Session.StartMatch();
             _initialMatchTime = Session.RemainingTime;
             MatchStarted?.Invoke(this);
@@ -115,11 +125,35 @@ namespace UnityGameJam.View
 
         private void Update()
         {
-            Session?.Tick(Time.deltaTime);
+            if (Session == null) { return; }
+            if (IsFastForwarding)
+            {
+                Session.Tick(Time.unscaledDeltaTime * _fastForwardRate);
+                return;
+            }
+            Session.Tick(Time.deltaTime);
+            if (_isCompletionChecked || Session.MatchState != EMatchState.Running) { return; }
+            _isCompletionChecked = true;
+            if (!CompletionRules.IsFullyClean(Session)) { return; }
+
+            CompletionSeconds = Mathf.Max(0f, MatchDuration - Session.RemainingTime);
+            _fastForwardRate = Mathf.Max(1f, Session.RemainingTime / _viewSettings.CompletionCountdownSeconds);
+            foreach (MinionStatus minion in Session.Minions)
+            {
+                if (minion.Activity == EMinionActivity.Talking) { Session.CancelTalk(minion.Minion); }
+            }
+            _playerController.enabled = false;
+            _playerInteractor.enabled = false;
+        }
+
+        private void OnItemChanged(ItemSnapshot item)
+        {
+            _isCompletionChecked = false;
         }
 
         private void OnDestroy()
         {
+            if (Session != null) { Session.ItemChanged -= OnItemChanged; }
             (Session as IDisposable)?.Dispose();
         }
 

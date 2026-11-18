@@ -96,6 +96,7 @@ namespace UnityGameJam.UI
             // 실제 판은 마왕 도착과 결과 확정을 같은 틱에 알린다.
             if (_pendingResult == null || Time.unscaledTime < _revealAt) { return; }
             foreach (GameObject panel in _gameplayPanels) { panel.SetActive(false); }
+            _resultPanel.RecordMatch(_pendingResult, _bootstrap);
             _resultPanel.Show(_pendingResult, _session.FacilityThreshold, _session.ZoneThreshold);
             _hasShownResult = true;
             _pendingResult = null;
