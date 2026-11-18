@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityGameJam.Contract;
+using UnityGameJam.View;
 
 namespace UnityGameJam.UI
 {
@@ -226,8 +227,12 @@ namespace UnityGameJam.UI
             {
                 MessageEntry message = messages[i];
                 if (message.MessageId != messageId || !message.IsInputTarget || message.Kind != EMessageKind.Proposal || message.RemainingTime <= 0f) { continue; }
-                if (approve) { _session.ApproveOldestProposal(); }
-                else { _session.HoldOldestProposal(); }
+                bool accepted = approve ? _session.ApproveOldestProposal() : _session.HoldOldestProposal();
+                if (accepted)
+                {
+                    GameAudioPresenter.MarkHandled(messageId);
+                    GameSfxPlayer.Play(approve ? ESfxCue.Confirm : ESfxCue.Cancel);
+                }
                 return;
             }
         }

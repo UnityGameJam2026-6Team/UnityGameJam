@@ -1379,6 +1379,7 @@ GameObject:
   - component: {fileID: 5119104192719770295}
   - component: {fileID: 7585912203149330517}
   - component: {fileID: 7254589985575362287}
+  - component: {fileID: 6627939984883093908}
   m_Layer: 0
   m_Name: ApproveButton
   m_TagString: Untagged
@@ -1488,6 +1489,19 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &6627939984883093908
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4862327544597227658}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eadc7801299e736448a122b882399706, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.UI.UiSfxFeedback
+  _clickCue: 0
 --- !u!1 &5033068256027842027
 GameObject:
   m_ObjectHideFlags: 0
@@ -2394,6 +2408,7 @@ GameObject:
   - component: {fileID: 2405562346518900738}
   - component: {fileID: 7506849707946612131}
   - component: {fileID: 7135850756328463990}
+  - component: {fileID: 1955294668901447047}
   m_Layer: 0
   m_Name: HoldButton
   m_TagString: Untagged
@@ -2503,3 +2518,16 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &1955294668901447047
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8668685597277971527}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eadc7801299e736448a122b882399706, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.UI.UiSfxFeedback
+  _clickCue: 0

@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using UnityGameJam.View;
 
 namespace UnityGameJam.UI
 {
@@ -108,6 +109,7 @@ namespace UnityGameJam.UI
             string nickname = _input.text.Trim();
             if (nickname.Length == 0)
             {
+                GameSfxPlayer.Play(ESfxCue.Unavailable);
                 Focus();
                 return;
             }
@@ -121,6 +123,7 @@ namespace UnityGameJam.UI
         private void Cancel()
         {
             if (!IsOpen) { return; }
+            GameSfxPlayer.Play(ESfxCue.Cancel);
 
             // 포커스를 해제할 때 TMP가 미확정 한글 조합을 입력값에 넣지 않도록 먼저 비운다.
             _imeInput.imeCompositionMode = IMECompositionMode.Auto;

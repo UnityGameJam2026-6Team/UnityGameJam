@@ -160,6 +160,7 @@ namespace UnityGameJam.UI
         {
             SuspendPlayerInput();
             _choices.SetActive(true);
+            GameSfxPlayer.Play(ESfxCue.PanelOpen);
             int focus = Array.FindIndex(Zones, zone => zone == assigned ||
                 (!assigned.HasValue && ZoneDisplayName.GetFloor(zone) == _bootstrap.Player.Floor && ZoneDisplayName.IsLobby(zone)));
             _rooms[Mathf.Clamp(focus, 0, _rooms.Length - 1)].Select();
@@ -236,12 +237,20 @@ namespace UnityGameJam.UI
 
         private void Assign(EZoneId zone)
         {
-            if (_talking.HasValue) { _bootstrap.Session.AssignRoom(_talking.Value, zone); }
+            if (_talking.HasValue && _bootstrap.Session.AssignRoom(_talking.Value, zone))
+            {
+                GameAudioPresenter.MarkWorkerHandled(_talking.Value);
+                GameSfxPlayer.Play(ESfxCue.Confirm);
+            }
         }
 
         private void Cancel()
         {
-            if (_talking.HasValue) { _bootstrap.Session.CancelTalk(_talking.Value); }
+            if (_talking.HasValue)
+            {
+                _bootstrap.Session.CancelTalk(_talking.Value);
+                GameSfxPlayer.Play(ESfxCue.Cancel);
+            }
         }
     }
 }

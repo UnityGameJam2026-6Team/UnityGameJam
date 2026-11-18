@@ -55,6 +55,12 @@ namespace UnityGameJam.View
                 && (_roomVisibility == null || !_roomVisibility.IsCovered(minion.Floor, minion.Position));
         }
 
+        internal bool CanHearAt(Vector3 position, EFloor floor)
+        {
+            return Player != null && Player.Floor == floor
+                && (_roomVisibility == null || !_roomVisibility.IsCovered(floor, position));
+        }
+
         public void FocusConversation(EWorkerType? worker)
         {
             if (_camera == null) { return; }

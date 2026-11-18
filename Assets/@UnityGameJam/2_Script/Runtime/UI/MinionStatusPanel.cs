@@ -3,6 +3,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityGameJam.Contract;
+using UnityGameJam.View;
 
 namespace UnityGameJam.UI
 {
@@ -69,7 +70,9 @@ namespace UnityGameJam.UI
 
         private void OnToggle(InputAction.CallbackContext context)
         {
-            SetExpanded(!_body.gameObject.activeSelf);
+            bool isExpanded = !_body.gameObject.activeSelf;
+            SetExpanded(isExpanded);
+            GameSfxPlayer.Play(isExpanded ? ESfxCue.PanelOpen : ESfxCue.PanelClose);
         }
 
         internal void SetExpanded(bool isExpanded)

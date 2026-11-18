@@ -1142,6 +1142,7 @@ GameObject:
   - component: {fileID: 5497729952337353758}
   - component: {fileID: 1944150138336365495}
   - component: {fileID: 228456538049773397}
+  - component: {fileID: 2184654234363547410}
   m_Layer: 0
   m_Name: RestartButton
   m_TagString: Untagged
@@ -1251,6 +1252,19 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &2184654234363547410
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4011201939133792701}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eadc7801299e736448a122b882399706, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.UI.UiSfxFeedback
+  _clickCue: 0
 --- !u!1 &5348040446315924925
 GameObject:
   m_ObjectHideFlags: 0
@@ -2797,7 +2811,13 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 5403108845699337206, guid: 693196e33ce2978409b220b82d852c6f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4025692402169353310}
+    - targetCorrespondingSourceObject: {fileID: 6996970926012393193, guid: 693196e33ce2978409b220b82d852c6f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3716649536899013168}
   m_SourcePrefab: {fileID: 100100000, guid: 693196e33ce2978409b220b82d852c6f, type: 3}
 --- !u!114 &3108105427574153591 stripped
 MonoBehaviour:
@@ -2815,3 +2835,39 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 3454059827435642766, guid: 693196e33ce2978409b220b82d852c6f, type: 3}
   m_PrefabInstance: {fileID: 1635879080829772642}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &6649702860314896532 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5403108845699337206, guid: 693196e33ce2978409b220b82d852c6f, type: 3}
+  m_PrefabInstance: {fileID: 1635879080829772642}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &4025692402169353310
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6649702860314896532}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eadc7801299e736448a122b882399706, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.UI.UiSfxFeedback
+  _clickCue: 0
+--- !u!1 &8622691959689807243 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6996970926012393193, guid: 693196e33ce2978409b220b82d852c6f, type: 3}
+  m_PrefabInstance: {fileID: 1635879080829772642}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &3716649536899013168
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8622691959689807243}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eadc7801299e736448a122b882399706, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.UI.UiSfxFeedback
+  _clickCue: 0

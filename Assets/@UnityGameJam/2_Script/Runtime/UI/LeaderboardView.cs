@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityGameJam.View;
 
 namespace UnityGameJam.UI
 {
@@ -80,6 +81,7 @@ namespace UnityGameJam.UI
             int next = Mathf.Clamp(_page + direction, 0, LastPage);
             if (next == _page) { return; }
             _page = next;
+            GameSfxPlayer.Play(ESfxCue.Navigate);
             RenderPage();
         }
 

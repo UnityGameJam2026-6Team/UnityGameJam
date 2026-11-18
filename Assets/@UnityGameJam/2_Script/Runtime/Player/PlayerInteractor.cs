@@ -114,34 +114,50 @@ namespace UnityGameJam.Player
 
         private void Execute(InteractionChoice choice)
         {
+            bool accepted = false;
             switch (choice.Kind)
             {
-                case EInteractionKind.PlaceAtHome: _session.TryPlaceAtHome(); break;
+                case EInteractionKind.PlaceAtHome:
+                    accepted = _session.TryPlaceAtHome();
+                    break;
                 case EInteractionKind.ReturnMop:
-                    if (_session.TryReturnMop())
+                    accepted = _session.TryReturnMop();
+                    if (accepted)
                     {
                         _borrowedMopFloor = null;
                         _playerController.RefreshMop();
                     }
                     break;
                 case EInteractionKind.BorrowMop:
-                    if (_session.TryBorrowMop(choice.Floor))
+                    accepted = _session.TryBorrowMop(choice.Floor);
+                    if (accepted)
                     {
                         _borrowedMopFloor = choice.Floor;
                         _playerController.RefreshMop();
                     }
                     break;
-                case EInteractionKind.DispatchHellhound: _session.DispatchHellhound(); break;
+                case EInteractionKind.DispatchHellhound:
+                    accepted = _session.DispatchHellhound();
+                    GameAudioPresenter.QuietHoundNotice();
+                    break;
                 case EInteractionKind.TalkToMinion:
-                    if (_session.BeginTalk(choice.Minion) && _minions.TryGetValue(choice.Minion, out Transform partner))
+                    accepted = _session.BeginTalk(choice.Minion);
+                    if (accepted && _minions.TryGetValue(choice.Minion, out Transform partner))
                     {
                         _playerController.FaceForTalk(choice.Minion, partner);
                     }
                     break;
-                case EInteractionKind.StartMop: _session.TryStartMop(choice.ItemId); break;
-                case EInteractionKind.PickUp: _session.TryPickUp(choice.ItemId); break;
-                case EInteractionKind.Drop: _session.TryDrop(); break;
+                case EInteractionKind.StartMop:
+                    accepted = _session.TryStartMop(choice.ItemId);
+                    break;
+                case EInteractionKind.PickUp:
+                    accepted = _session.TryPickUp(choice.ItemId);
+                    break;
+                case EInteractionKind.Drop:
+                    accepted = _session.TryDrop();
+                    break;
             }
+            if (!accepted && choice.Kind != EInteractionKind.None) { GameSfxPlayer.Play(ESfxCue.Unavailable); }
         }
 
         private void SetMarker(InteractionChoice choice)

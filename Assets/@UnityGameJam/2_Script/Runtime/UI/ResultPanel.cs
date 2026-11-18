@@ -40,6 +40,7 @@ namespace UnityGameJam.UI
             }
             gameObject.SetActive(true);
             _restartButton.Select();
+            GameSfxPlayer.ShowResult(result.IsSuccess);
         }
 
         internal void RecordMatch(MatchResult result, MatchBootstrap bootstrap)
@@ -127,6 +128,7 @@ namespace UnityGameJam.UI
         {
             if (_isReloading) { return; }
             _isReloading = true;
+            GameSfxPlayer.Restart();
             _restartButton.interactable = false;
             SceneManager.LoadSceneAsync(gameObject.scene.buildIndex, LoadSceneMode.Single);
         }

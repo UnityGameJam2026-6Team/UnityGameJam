@@ -223,6 +223,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7179942840435064341}
   - component: {fileID: 1905311868433817591}
+  - component: {fileID: 7620118091243314907}
   m_Layer: 5
   m_Name: TitleLogo
   m_TagString: Untagged
@@ -282,17 +283,66 @@ MonoBehaviour:
   shadowAlpha: 0.4
   onSlam:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 7620118091243314907}
+        m_TargetAssemblyTypeName: UnityGameJam.View.SfxEventReceiver, UnityGameJam.Runtime
+        m_MethodName: TitleStamp
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   onLine2:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 7620118091243314907}
+        m_TargetAssemblyTypeName: UnityGameJam.View.SfxEventReceiver, UnityGameJam.Runtime
+        m_MethodName: TitleTextPop
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   onCrownLand:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 7620118091243314907}
+        m_TargetAssemblyTypeName: UnityGameJam.View.SfxEventReceiver, UnityGameJam.Runtime
+        m_MethodName: TitleCrownLand
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   onIntroFinished:
     m_PersistentCalls:
       m_Calls: []
   manualAdvance: 0
+--- !u!114 &7620118091243314907
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4726112138301654512}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1243de5be19fbdc4db02ac47c7b08011, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.View.SfxEventReceiver
+  _audioPrefab: {fileID: 1998525421926005436, guid: daa7a45fd9b45c440a9ddda8d14eeca4, type: 3}
 --- !u!1 &4932865821035266390
 GameObject:
   m_ObjectHideFlags: 0

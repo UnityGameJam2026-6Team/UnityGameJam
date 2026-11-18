@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6872324690908707780}
   - component: {fileID: 6484285216598254896}
+  - component: {fileID: 8783343756278634570}
   m_Layer: 5
   m_Name: ClipboardList
   m_TagString: Untagged
@@ -99,16 +100,53 @@ MonoBehaviour:
   clipMaxAngle: 28
   onOpenStarted:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 8783343756278634570}
+        m_TargetAssemblyTypeName: UnityGameJam.View.SfxEventReceiver, UnityGameJam.Runtime
+        m_MethodName: PanelOpen
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   onOpened:
     m_PersistentCalls:
       m_Calls: []
   onCloseStarted:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 8783343756278634570}
+        m_TargetAssemblyTypeName: UnityGameJam.View.SfxEventReceiver, UnityGameJam.Runtime
+        m_MethodName: PanelClose
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   onClosed:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &8783343756278634570
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 184287943860049597}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1243de5be19fbdc4db02ac47c7b08011, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.View.SfxEventReceiver
+  _audioPrefab: {fileID: 1998525421926005436, guid: daa7a45fd9b45c440a9ddda8d14eeca4, type: 3}
 --- !u!1 &816785431547685882
 GameObject:
   m_ObjectHideFlags: 0

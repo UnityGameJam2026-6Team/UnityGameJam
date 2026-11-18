@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.IO;
 using UnityEngine;
+using UnityGameJam.View;
 using UnityEngine.SceneManagement;
 
 namespace UnityGameJam.UI
@@ -34,10 +35,12 @@ namespace UnityGameJam.UI
                 Debug.LogWarning($"[순위표] 기록 조회 실패 · {exception.Message}", this);
             }
             _leaderboardOverlay.SetActive(true);
+            GameSfxPlayer.Play(ESfxCue.PanelOpen);
         }
 
         public void CloseLeaderboard()
         {
+            if (_leaderboardOverlay.activeSelf) { GameSfxPlayer.Play(ESfxCue.PanelClose); }
             _leaderboardOverlay.SetActive(false);
         }
 
@@ -51,11 +54,13 @@ namespace UnityGameJam.UI
             }
 
             _nameInput.Open(BeginLoading);
+            GameSfxPlayer.Play(ESfxCue.PanelOpen);
         }
 
         private void BeginLoading()
         {
             _isLoading = true;
+            GameSfxPlayer.Play(ESfxCue.Confirm);
             _menuInput.interactable = false;
             _fade.blocksRaycasts = true;
             StartCoroutine(LoadGame());
@@ -64,6 +69,7 @@ namespace UnityGameJam.UI
         public void QuitGame()
         {
             if (_isLoading || _nameInput.IsOpen) { return; }
+            GameSfxPlayer.Play(ESfxCue.Confirm);
 #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;
 #else

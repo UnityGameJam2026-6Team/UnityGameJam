@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 4347527145434185941}
   - component: {fileID: 6416633538770319557}
   - component: {fileID: 8980717612313129983}
+  - component: {fileID: 7280825452133625331}
   m_Layer: 5
   m_Name: QuitButton
   m_TagString: Untagged
@@ -154,6 +155,18 @@ MonoBehaviour:
   m_FlexibleWidth: -1
   m_FlexibleHeight: -1
   m_LayoutPriority: 1
+--- !u!114 &7280825452133625331
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 137961836353093288}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eadc7801299e736448a122b882399706, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.UI.UiSfxFeedback
 --- !u!1 &265815615522694835
 GameObject:
   m_ObjectHideFlags: 0
@@ -167,6 +180,7 @@ GameObject:
   - component: {fileID: 7097790526598656326}
   - component: {fileID: 1316271448918195395}
   - component: {fileID: 5618052320097951144}
+  - component: {fileID: 7181413697027678832}
   m_Layer: 5
   m_Name: LeaderboardButton
   m_TagString: Untagged
@@ -308,6 +322,18 @@ MonoBehaviour:
   m_FlexibleWidth: -1
   m_FlexibleHeight: -1
   m_LayoutPriority: 1
+--- !u!114 &7181413697027678832
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 265815615522694835}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eadc7801299e736448a122b882399706, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.UI.UiSfxFeedback
 --- !u!1 &311200724650561800
 GameObject:
   m_ObjectHideFlags: 0
@@ -395,6 +421,7 @@ GameObject:
   - component: {fileID: 6697760858514966554}
   - component: {fileID: 5477855358900785542}
   - component: {fileID: 5415105141692320777}
+  - component: {fileID: 8598911469939640779}
   m_Layer: 5
   m_Name: CloseButton
   m_TagString: Untagged
@@ -516,6 +543,18 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+--- !u!114 &8598911469939640779
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1061351279334033591}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eadc7801299e736448a122b882399706, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.UI.UiSfxFeedback
 --- !u!1 &1135006814471583823
 GameObject:
   m_ObjectHideFlags: 0
@@ -1365,6 +1404,7 @@ GameObject:
   - component: {fileID: 2751373101124067908}
   - component: {fileID: 1242534327865170992}
   - component: {fileID: 136662153161807227}
+  - component: {fileID: 6123683538412706006}
   m_Layer: 5
   m_Name: StartButton
   m_TagString: Untagged
@@ -1506,6 +1546,18 @@ MonoBehaviour:
   m_FlexibleWidth: -1
   m_FlexibleHeight: -1
   m_LayoutPriority: 1
+--- !u!114 &6123683538412706006
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8315975019581342409}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eadc7801299e736448a122b882399706, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.UI.UiSfxFeedback
 --- !u!1 &8405049284447204985
 GameObject:
   m_ObjectHideFlags: 0
@@ -2361,8 +2413,48 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 5403108845699337206, guid: 693196e33ce2978409b220b82d852c6f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8468925841372406220}
+    - targetCorrespondingSourceObject: {fileID: 6996970926012393193, guid: 693196e33ce2978409b220b82d852c6f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 332048889853209185}
   m_SourcePrefab: {fileID: 100100000, guid: 693196e33ce2978409b220b82d852c6f, type: 3}
+--- !u!1 &2179776363344708697 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6996970926012393193, guid: 693196e33ce2978409b220b82d852c6f, type: 3}
+  m_PrefabInstance: {fileID: 9176687812089488048}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &332048889853209185
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2179776363344708697}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eadc7801299e736448a122b882399706, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.UI.UiSfxFeedback
+--- !u!1 &3864535086568188230 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5403108845699337206, guid: 693196e33ce2978409b220b82d852c6f, type: 3}
+  m_PrefabInstance: {fileID: 9176687812089488048}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8468925841372406220
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3864535086568188230}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eadc7801299e736448a122b882399706, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.UI.UiSfxFeedback
 --- !u!114 &4813185549653024933 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4436602193803248149, guid: 693196e33ce2978409b220b82d852c6f, type: 3}
