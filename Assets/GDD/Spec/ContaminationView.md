@@ -2,8 +2,8 @@
 
 - 상태: **확정** (사용자 요청으로 작성과 구현을 함께 진행)
 - 담당: B 레인 · 심지섭
-- 근거: GDD §3.1(오염 4유형: 무거운 잔해, 일반 쓰레기, 어질러진 작은 물건, 바닥 얼룩), §7.1(물걸레), §7.2(운반·배출 구역·헬하운드 배출), §5.1-3·§4(슬라임은 먹어서 처리) / 계약 `ItemSnapshot`(이번에 `HomeSlotId` 추가), `MinionStatus.IsHoldingMop`, `IMatchReadModel.IsPlayerHoldingMop` / Undecided U3(개체마다 제자리), U202(작은 물건 4종)
-- 범위: 이번에 하는 것은 오염 개체와 물걸레의 화면 표시(상태별 보이기·숨기기, 운반자 따라가기, 종류별 프리팹), `IT_` 프리팹, 계약 `ItemSnapshot.HomeSlotId`, B2의 디버그 개체 표시 제거다. 하지 않는 것은 처리 연출 이펙트, 사운드, HUD(B5)다.
+- 근거: GDD §3.1(오염 4유형: 무거운 잔해, 일반 쓰레기, 어질러진 작은 물건, 바닥 얼룩), §7.1(물걸레), §7.2(운반·배출 구역·헬하운드 배출), §5.1-3·§4(슬라임은 먹어서 처리) / 계약 `ItemSnapshot`(`HomeSlotId` 포함), `MinionStatus.IsHoldingMop`, `IMatchReadModel.IsPlayerHoldingMop` / Undecided U3(개체마다 제자리), U202(작은 물건 4종)
+- 범위: 이번에 하는 것은 오염 개체와 물걸레의 화면 표시(상태별 보이기·숨기기, 운반자 따라가기, 종류별 프리팹), `IT_` 프리팹, 기존 계약 `ItemSnapshot.HomeSlotId` 연결, B2의 디버그 개체 표시 제거다. 하지 않는 것은 처리 연출 이펙트, 사운드, HUD(B5)다.
 - 네임스페이스: `UnityGameJam.View`
 
 ## 목적
@@ -24,7 +24,7 @@
 4. 프리팹은 유형별 목록에서 `ItemId % 개수`로 고른다(같은 판에서 같은 개체는 항상 같은 모양).
 5. 어질러진 작은 물건은 `HomeSlotId`의 슬롯 종류(Book 등)에 맞는 프리팹을 쓴다. 슬롯이 없거나 종류를 모르면 작은 물건 목록의 첫 번째를 쓴다.
 6. 걸레를 든 캐릭터(플레이어, 졸개) 옆에 걸레(`IT_Mop`)를 보인다. 놓으면 숨긴다.
-7. 계약: `ItemSnapshot.HomeSlotId`(int?)를 추가한다. 작은 물건만 값이 있고 다른 유형은 null이다. 기존 생성자 호출은 그대로 컴파일된다(선택 인자).
+7. 계약: 기존 `ItemSnapshot.HomeSlotId`(int?)를 읽는다. 작은 물건만 값이 있고 다른 유형은 null이다. 기존 생성자 호출은 그대로 컴파일된다(선택 인자).
 
 ## 예외 처리
 - 프리팹 목록이 비어 있으면 그 유형은 표시하지 않고 경고를 한 번 남긴다.
@@ -32,7 +32,7 @@
 ## 설계
 | 파일 | 역할 |
 |---|---|
-| `Runtime/Contract/IMatchReadModel.cs` (계약 변경) | `ItemSnapshot.HomeSlotId` (규칙 7) |
+| `Runtime/Contract/IMatchReadModel.cs` (기존 계약) | `ItemSnapshot.HomeSlotId` (규칙 7) |
 | `Runtime/View/ContaminationViewRules.cs` | 순수. 보이는 상태(규칙 2), 프리팹 고르기(규칙 4), 작은 물건 종류(규칙 5), 운반 위치 (테스트 대상) |
 | `Runtime/View/ContaminationView.cs` | 매 프레임 `Items`를 화면에 반영(규칙 1~6). SYS_Bootstrap에 붙인다 |
 | `Runtime/View/ViewSettingsSO.cs` (수정) | 유형별 프리팹 목록, 작은 물건 종류별 프리팹, 걸레 프리팹, 운반 높이 |
@@ -40,6 +40,12 @@
 | `Runtime/View/Debug/FakeMatchSession.cs` (수정) | 작은 물건에 같은 구역 슬롯을 차례로 짝지어 `HomeSlotId`를 준다. 제자리 정리는 자기 슬롯 근처에서만 된다 |
 | `Runtime/View/Debug/DebugItemView.cs` | **삭제** (이번 표시로 대체) |
 | 프리팹 `IT_HeavyDebris_01`, `IT_Trash_01`, `IT_Clutter_{Book,Cup,Document,Chair}`, `IT_FloorStain_01`(텍스처 전용), `IT_Mop` | 표준 구조, 콜라이더 없음(선택은 규칙 데이터로 한다) |
+
+## 연결 및 확인
+- `MatchBootstrap`은 층의 `HomeSlotAuthoring`에서 슬롯 ID와 종류를 수집한다. 가짜 판은 구역별 생성 순서로 슬롯 하나씩을 배정한다. 슬롯이 부족한 개체는 ID가 null이며 제자리 정리에 성공하지 않는다.
+- `SYS_Bootstrap`의 `ContaminationView`는 LateUpdate에서 Items와 걸레 소지를 읽는다. 보이는 ID만 생성하고 숨겼던 인스턴스는 다시 사용한다. 걸레의 상대 위치는 ViewSettings의 MopOffset으로 조정한다.
+- Unity 메뉴 `Tools > UnityGameJam > B4 > 오염 프리팹 생성 및 연결`에서 기본 프리팹과 매핑을 준비한다. 바닥 얼룩은 ArtSlot의 텍스처 전용 모드를 사용한다.
+- M1 연결 요청(김보경): `ContaminationItem.Snapshot` 생성 시 마지막 인자로 `HomeSlotId`를 넘기고 초기 Items 및 ItemChanged에서 같은 ID가 유지되는지 확인한다. 누락 시 실제 판의 작은 물건은 기본 모양으로 보인다. 계약 시그니처 변경은 필요 없다.
 
 ## 미정·보류
 - (없음)

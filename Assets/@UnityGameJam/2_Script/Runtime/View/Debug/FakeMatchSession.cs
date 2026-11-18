@@ -47,10 +47,11 @@ namespace UnityGameJam.View
             public Vector3 Position;
             public EZoneId Zone;
             public EWorkerType? Carrier;
+            public int? HomeSlotId;
 
             public ItemSnapshot ToSnapshot()
             {
-                return new ItemSnapshot(Id, Type, State, Position, Carrier);
+                return new ItemSnapshot(Id, Type, State, Position, Carrier, HomeSlotId);
             }
         }
 
@@ -217,7 +218,7 @@ namespace UnityGameJam.View
         {
             FakeItem item = _carriedItemId.HasValue ? Find(_carriedItemId.Value) : null;
             if (!CanAct() || item == null || item.Type != EContaminationType.ClutterItem) { return false; }
-            bool isNearSlot = _layout.HomeSlots.Any(s => DistanceXZ(s.Position, _player.Position) <= HomeSlotReach);
+            bool isNearSlot = _layout.HomeSlots.Any(s => s.SlotId == item.HomeSlotId && DistanceXZ(s.Position, _player.Position) <= HomeSlotReach);
             if (!isNearSlot) { return false; }
 
             item.Carrier = null;
@@ -262,9 +263,13 @@ namespace UnityGameJam.View
             int id = 0;
             foreach (IGrouping<(EZoneId, EContaminationType), SpawnPoint> group in _layout.SpawnPoints.GroupBy(s => (s.Zone, s.Type)))
             {
+                Queue<HomeSlot> slots = group.Key.Item2 == EContaminationType.ClutterItem
+                    ? new Queue<HomeSlot>(_layout.HomeSlots.Where(s => s.Zone == group.Key.Item1))
+                    : null;
                 foreach (SpawnPoint spawn in group.Take(_settings.ItemsPerTypePerZone))
                 {
-                    _items.Add(new FakeItem { Id = id++, Type = spawn.Type, State = EItemState.OnFloor, Position = spawn.Position, Zone = spawn.Zone });
+                    _items.Add(new FakeItem { Id = id++, Type = spawn.Type, State = EItemState.OnFloor, Position = spawn.Position, Zone = spawn.Zone,
+                        HomeSlotId = slots != null && slots.Count > 0 ? slots.Dequeue().SlotId : (int?)null });
                 }
             }
         }

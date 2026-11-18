@@ -38,6 +38,7 @@ namespace UnityGameJam.Test.View
             layout.SpawnPoints.Add(new SpawnPoint { Zone = EZoneId.Lounge, Type = EContaminationType.ClutterItem, Position = new Vector3(17f, 0f, 5f) });
             layout.HomeSlots.Add(new HomeSlot { SlotId = 0, Zone = EZoneId.Lounge, Position = new Vector3(18f, 0f, 8f) });
 
+            layout.HomeSlots.Insert(0, new HomeSlot { SlotId = 8, Zone = EZoneId.Floor1Lobby, Position = new Vector3(5f, 0f, 5f) });
             _body = new FakeBody { Position = new Vector3(5f, 0f, 5f) };
             var setup = new MatchSetup { Layout = layout, Seed = 1, PlayerBody = _body };
             _session = new FakeMatchSession(setup, _settings);
@@ -142,6 +143,18 @@ namespace UnityGameJam.Test.View
 
             Assert.AreEqual(EMatchState.Resolved, _session.MatchState);
             Assert.IsNotNull(_session.Result);
+        }
+
+        [Test]
+        public void 작은_물건은_같은_구역의_제자리_슬롯과_짝을_짓는다()
+        {
+            ItemSnapshot item = ItemOf(EContaminationType.ClutterItem);
+            Assert.AreEqual(0, item.HomeSlotId);
+            Assert.IsNull(ItemOf(EContaminationType.Trash).HomeSlotId);
+            Assert.IsTrue(_session.TryPickUp(item.ItemId));
+            Assert.IsFalse(_session.TryPlaceAtHome());
+            Assert.AreEqual(item.ItemId, _session.PlayerCarriedItemId);
+            Assert.AreEqual(item.HomeSlotId, ItemOf(item.Type).HomeSlotId);
         }
 
         private ItemSnapshot ItemOf(EContaminationType type)

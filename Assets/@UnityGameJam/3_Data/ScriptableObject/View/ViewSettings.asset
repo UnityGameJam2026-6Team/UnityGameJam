@@ -18,3 +18,21 @@ MonoBehaviour:
   _cameraPitch: 56
   _cameraSmoothTime: 0.15
   _stairTransitSeconds: 2
+  _heavyDebrisPrefabs:
+  - {fileID: 4186143294500295247, guid: 4f7d33610a324f944a7bd54d50ec2969, type: 3}
+  _trashPrefabs:
+  - {fileID: 3790823413081667067, guid: 4f85b656812d698449a9d6215c12ee22, type: 3}
+  _stainPrefabs:
+  - {fileID: 3301421668940524767, guid: 1bd10e37da854b24d88e3eca495a732b, type: 3}
+  _clutterPrefabs:
+  - Kind: Book
+    Prefab: {fileID: 1483961119605942879, guid: 96e56d7ef0c138540b884de43b1cb208, type: 3}
+  - Kind: Cup
+    Prefab: {fileID: 6440385183527718159, guid: fc1efbb5a12d58447a74a28553291a75, type: 3}
+  - Kind: Document
+    Prefab: {fileID: 8557427074586362937, guid: 951ce43241532e14288801602e8daaf3, type: 3}
+  - Kind: Chair
+    Prefab: {fileID: 294382884368113503, guid: 107e5f4e7b42f6241aedd07695d24e63, type: 3}
+  _mopPrefab: {fileID: 5323776537816255515, guid: 6f6a254e7c2ee3b4ea3e98036f96e6df, type: 3}
+  _carryOffset: 0.2
+  _mopOffset: {x: 0.45, y: 0, z: 0}

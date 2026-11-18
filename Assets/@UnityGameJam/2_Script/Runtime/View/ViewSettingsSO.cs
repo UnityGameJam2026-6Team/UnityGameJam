@@ -1,4 +1,6 @@
+using System;
 using UnityEngine;
+using UnityGameJam.Contract;
 
 namespace UnityGameJam.View
 {
@@ -26,6 +28,47 @@ namespace UnityGameJam.View
         [Header("계단 (B3)")]
         [Tooltip("계단으로 층을 옮길 때 걸리는 시간(초). 임시값")]
         [SerializeField] private float _stairTransitSeconds = 2f;
+
+        [Serializable]
+        private struct ClutterEntry
+        {
+            public string Kind;
+            public GameObject Prefab;
+        }
+
+        [Header("오염 표시")]
+        [SerializeField] private GameObject[] _heavyDebrisPrefabs = Array.Empty<GameObject>();
+        [SerializeField] private GameObject[] _trashPrefabs = Array.Empty<GameObject>();
+        [SerializeField] private GameObject[] _stainPrefabs = Array.Empty<GameObject>();
+        [SerializeField] private ClutterEntry[] _clutterPrefabs = Array.Empty<ClutterEntry>();
+        [SerializeField] private GameObject _mopPrefab;
+        [SerializeField] private float _carryOffset = 0.2f;
+        [SerializeField] private Vector3 _mopOffset = new Vector3(0.45f, 0f, 0f);
+
+        public GameObject MopPrefab => _mopPrefab;
+        public float CarryOffset => _carryOffset;
+        public Vector3 MopOffset => _mopOffset;
+
+        public GameObject ResolvePrefab(ItemSnapshot item, string kind)
+        {
+            if (item.Type == EContaminationType.ClutterItem)
+            {
+                foreach (ClutterEntry entry in _clutterPrefabs)
+                {
+                    if (entry.Kind == kind && kind != null) { return entry.Prefab; }
+                }
+                return _clutterPrefabs.Length > 0 ? _clutterPrefabs[0].Prefab : null;
+            }
+            GameObject[] prefabs = item.Type switch
+            {
+                EContaminationType.HeavyDebris => _heavyDebrisPrefabs,
+                EContaminationType.Trash => _trashPrefabs,
+                EContaminationType.FloorStain => _stainPrefabs,
+                _ => Array.Empty<GameObject>()
+            };
+            int index = ContaminationViewRules.ChoosePrefabIndex(item.ItemId, prefabs.Length);
+            return index < 0 ? null : prefabs[index];
+        }
 
         public float InteractRadius => _interactRadius;
         public float CameraHeight => _cameraHeight;

@@ -10,8 +10,8 @@ GameObject:
   m_Component:
   - component: {fileID: 115705904595631096}
   - component: {fileID: 690500462245009955}
-  - component: {fileID: 5194371869596296944}
   - component: {fileID: 7354415159039882556}
+  - component: {fileID: 6142641643554424251}
   m_Layer: 0
   m_Name: SYS_Bootstrap
   m_TagString: Untagged
@@ -58,21 +58,6 @@ MonoBehaviour:
   - {fileID: 6522907435623012895, guid: 649d940fbea18984394db2e9492f402b, type: 3}
   - {fileID: 8022452784697503894, guid: c5bd16cd27920a746b3f8056a2799bc2, type: 3}
   - {fileID: 318912596208051970, guid: 4cd905ea7310c344895e2f6231e11180, type: 3}
---- !u!114 &5194371869596296944
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5952858674502005673}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d02c372a4fead1941a0ac2355973fc6b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.View.DebugItemView
-  _bootstrap: {fileID: 690500462245009955}
-  _baseMaterial: {fileID: 2100000, guid: d2b2e2fa9de17cb40955be7e8bee50d7, type: 2}
-  _carryHeight: 2.1
 --- !u!114 &7354415159039882556
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -87,3 +72,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.View.DebugMatchOverlay
   _bootstrap: {fileID: 690500462245009955}
   _isVisible: 1
+--- !u!114 &6142641643554424251
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5952858674502005673}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 072c38fc5fae8e8448ec0eb34fce20c9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.View.ContaminationView

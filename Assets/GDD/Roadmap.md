@@ -25,7 +25,7 @@
 - [x] B1 화이트박스 시설(Spec `FacilityLayout.md`)
 - [x] B2 플레이어 (Spec `Player.md`)
 - [x] B3 졸개 몸 (Spec `MinionAgent.md`) — 졸개 층간 이동 도착은 플레이 확인 필요
-- [ ] B4 ContaminationView
+- [x] B4 ContaminationView (Spec `ContaminationView.md`) — 가짜 판 오염 표시·운반·걸레 확인. 실제 판 슬롯 ID 전달은 M1 연결 항목.
 - [ ] B5 HUD (Spec `Hud.md`)
 - [ ] B6 대화와 제안 UI (Spec `AssignmentUi.md`)
 - [ ] B7 마감 연출과 결과 (Spec `ResultUi.md`)

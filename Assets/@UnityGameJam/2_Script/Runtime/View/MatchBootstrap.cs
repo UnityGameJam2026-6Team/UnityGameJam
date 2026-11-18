@@ -30,6 +30,9 @@ namespace UnityGameJam.View
 
         private readonly List<MinionAgent> _minions = new List<MinionAgent>();
 
+        private readonly Dictionary<int, string> _homeSlotKinds = new Dictionary<int, string>();
+        public IReadOnlyDictionary<int, string> HomeSlotKinds => _homeSlotKinds;
+        public ViewSettingsSO ViewSettings => _viewSettings;
         public IMatchSession Session { get; private set; }
         public FacilityLayout Layout { get; private set; }
         public PlayerBody Player { get; private set; }
@@ -48,6 +51,15 @@ namespace UnityGameJam.View
             {
                 Debug.LogError("[Bootstrap] 플레이어 시작점이 없습니다.", this);
                 return;
+            }
+
+            foreach (FloorAuthoring floor in _floors)
+            {
+                if (floor == null) { continue; }
+                foreach (HomeSlotAuthoring slot in floor.GetComponentsInChildren<HomeSlotAuthoring>(true))
+                {
+                    _homeSlotKinds[slot.SlotId] = slot.ItemKind;
+                }
             }
 
             StairDirectory stairs = StairDirectory.FromFloors(_floors);
