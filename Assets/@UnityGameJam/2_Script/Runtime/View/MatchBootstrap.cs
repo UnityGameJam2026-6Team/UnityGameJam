@@ -67,6 +67,7 @@ namespace UnityGameJam.View
 
             StairDirectory stairs = StairDirectory.FromFloors(_floors);
             Player = Instantiate(_playerPrefab, start, Quaternion.identity);
+            ApplyMotionTuning(Player, EWorkerType.Player);
             Player.Initialize(Layout.Floors);
             if (_roomCoverPrefab != null)
             {
@@ -115,9 +116,18 @@ namespace UnityGameJam.View
                     continue;
                 }
                 MinionAgent minion = Instantiate(prefab, position, Quaternion.identity);
+                ApplyMotionTuning(minion, minion.Worker);
                 minion.Initialize(stairs, Layout.Floors, _viewSettings.StairTransitSeconds);
                 setup.MinionBodies[minion.Worker] = minion;
                 _minions.Add(minion);
+            }
+        }
+
+        private void ApplyMotionTuning(Component unit, EWorkerType worker)
+        {
+            if (unit.TryGetComponent(out CharacterAnimatorDriver animator))
+            {
+                animator.SetMotionTuning(_viewSettings.GetMotionTuning(worker));
             }
         }
     }

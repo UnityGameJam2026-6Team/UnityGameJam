@@ -107,6 +107,7 @@ namespace UnityGameJam.Editor.Art
         {
             if (item.PrefabPath == null || item.SourcePath == null) { return false; }
 
+            EmbeddedCharacterAnimationBinder.EnsureImport(item);
             GameObject root = PrefabUtility.LoadPrefabContents(item.PrefabPath);
             try
             {
@@ -140,6 +141,7 @@ namespace UnityGameJam.Editor.Art
                 if (slot == null) { return false; }
 
                 bool isChanged = RemoveModels(slot);
+                isChanged |= EmbeddedCharacterAnimationBinder.Remove(slot);
                 var serialized = new SerializedObject(slot);
                 if (serialized.FindProperty("_model").objectReferenceValue != null)
                 {
@@ -230,6 +232,7 @@ namespace UnityGameJam.Editor.Art
             model.name = ArtSlot.ModelObjectName;
             SetLayerRecursively(model, slot.gameObject.layer);
             FitModel(slot, model, source.transform);
+            EmbeddedCharacterAnimationBinder.Bind(slot, model, item);
 
             AnimatorOverrideController overrideController = ArtAnimationBinder.BuildOverride(item.ArtKey, Path.GetDirectoryName(item.SourcePath).Replace('\\', '/'));
             if (overrideController != null) { ArtAnimationBinder.AssignToModel(model, overrideController); }
@@ -257,6 +260,7 @@ namespace UnityGameJam.Editor.Art
         /// <summary>적용됨 항목: 머티리얼과 애니메이션만 갱신하고, Animator 연결이 바뀔 때만 프리팹을 저장한다.</summary>
         private static bool Refresh(ArtBindingItem item)
         {
+            EmbeddedCharacterAnimationBinder.EnsureImport(item);
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(item.PrefabPath);
             ArtSlot slot = prefab != null ? prefab.GetComponentInChildren<ArtSlot>(true) : null;
             if (slot == null) { return false; }
@@ -269,16 +273,17 @@ namespace UnityGameJam.Editor.Art
 
             ArtMaterialBuilder.BuildForModel(item.SourcePath, item.ArtKey);
             AnimatorOverrideController overrideController = ArtAnimationBinder.BuildOverride(item.ArtKey, Path.GetDirectoryName(item.SourcePath).Replace('\\', '/'));
-            if (overrideController == null || slot.Model == null) { return false; }
-
-            var animator = slot.Model.GetComponent<Animator>();
-            if (animator != null && animator.runtimeAnimatorController == overrideController) { return false; }
+            if (slot.Model == null) { return false; }
+            bool embedded = EmbeddedCharacterAnimationBinder.Supports(item) || slot.AnimationSet != null;
+            if (!embedded && overrideController == null) { return false; }
 
             GameObject root = PrefabUtility.LoadPrefabContents(item.PrefabPath);
             try
             {
                 ArtSlot editable = root.GetComponentInChildren<ArtSlot>(true);
-                if (editable.Model == null || !ArtAnimationBinder.AssignToModel(editable.Model, overrideController)) { return false; }
+                bool changed = EmbeddedCharacterAnimationBinder.Bind(editable, editable.Model, item);
+                if (overrideController != null) { changed |= ArtAnimationBinder.AssignToModel(editable.Model, overrideController); }
+                if (!changed) { return false; }
                 PrefabUtility.SaveAsPrefabAsset(root, item.PrefabPath);
                 Debug.Log($"[Art] 애니메이션 갱신: {item.ArtKey}");
                 return true;

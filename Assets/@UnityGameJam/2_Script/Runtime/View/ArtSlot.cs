@@ -47,6 +47,7 @@ namespace UnityGameJam.View
         public Vector3 ModelOffset => _modelOffset;
         public Vector3 ModelEuler => _modelEuler;
         public float ModelScale => _modelScale;
+        public CharacterAnimationSet AnimationSet => GetComponent<CharacterAnimationSet>();
 
         /// <summary>게임 스크립트는 Visual 아래를 경로로 찾지 말고 이 접근자로 애니메이터를 얻는다.</summary>
         public Animator Animator

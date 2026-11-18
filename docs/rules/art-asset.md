@@ -25,7 +25,7 @@
   | `_Mask` | R = Metallic, A = Smoothness (URP Lit의 Metallic 맵) | sRGB 끔 |
   | `_Emission` | 발광 | sRGB |
 - 모델에 머티리얼이 1개면 텍스처는 `<ArtKey>_<맵>`으로 짓는다. 머티리얼이 여러 개면 FBX 안의 머티리얼 이름을 `<재질>` 자리에 넣는다(`PR_Desk_Top_BaseMap`, `PR_Desk_Leg_BaseMap`).
-- **애니메이션 클립 이름**은 다음 목록에서만 고른다: `Idle`, `Walk`, `Carry`, `CarryHeavy`, `Mop`, `Eat`, `Talk`, `Dispatch`. 목록 밖의 이름은 검사에서 경고로 표시하고 연결하지 않는다.
+- **별도 `@<Clip>` 파일**의 클립 이름은 `Idle`, `Walk`, `Carry`, `CarryHeavy`, `Mop`, `Eat`, `Talk`, `Dispatch` 중에서 고른다. 게임 캐릭터 7종의 FBX 내장 클립은 납품된 이름을 그대로 유지한다.
 
 ## 2. 폴더
 ```
@@ -48,7 +48,7 @@
 - 단위는 미터, 스케일 1, 정면은 +Z, 위쪽은 Y(Blender의 Z-up은 FBX 내보내기에서 변환)
 - 피벗: 캐릭터, 아이템, 소품은 **바닥 중앙**. 벽, 바닥, 문 같은 환경 조각은 **1m 격자에 맞춘 모서리**
 - 오브젝트 하나에 메시 하나를 권장하고, 머티리얼은 2개 이하
-- 캐릭터 리그는 Generic으로 하고, 애니메이션은 클립마다 별도 fbx(`<ArtKey>@<Clip>.fbx`)로 내보낸다
+- 캐릭터 리그는 Generic으로 한다. 게임 캐릭터 7종은 모델 FBX에 행동 클립을 포함한다. 개별 오버라이드 클립은 `<ArtKey>@<Clip>.fbx`로 내보낸다.
 - 얼룩(`IT_FloorStain_*`)은 메시 없이 텍스처만 받는다: `IT_FloorStain_01_BaseMap.png`(알파 포함). 도구가 바닥 쿼드에 붙인다.
 - PSD 같은 작업 원본은 저장소에 넣지 않는다(Git LFS 미사용).
 
@@ -123,6 +123,7 @@
    - 텍스처가 있으면 `M_<ArtKey>`를 만들고 모델 머티리얼을 그것으로 바꾼다
    - 프리팹의 `Visual/Model`을 새 모델로 교체하고 `Placeholder`를 끈다
    - `<ArtKey>@<Clip>.fbx`가 있으면 `AOC_<ArtKey>`를 만들어 Animator에 연결한다
+   - 게임 캐릭터 7종은 해당 모델의 내장 클립을 `Visual/CharacterAnimationSet`에 연결한다. 프리팹 크기로 발의 보행 속도와 집기 클립의 손 접촉·들어 올리기 시각을 측정해 함께 저장한다. 모델이나 클립을 교체했다면 같은 메뉴로 갱신한다.
 4. 크기나 축이 맞지 않으면 프리팹의 `Visual`에 있는 **ArtSlot**에서 보정하고 다시 적용한다.
    - `Fit Mode`: None(모델 크기 그대로), MatchPlaceholderHeight(Placeholder 높이에 맞춤), MatchPlaceholderBounds(Placeholder 상자 안에 맞춤)
    - `Model Offset`, `Model Euler`, `Model Scale`: 위치, 회전, 배율 보정
@@ -135,6 +136,7 @@
 `5_Art/Model/` 아래 파일을 **처음** 임포트할 때만 적용한다. 그 뒤에 Inspector에서 바꾼 값은 유지된다.
 - 모델: Scale Factor 1, Convert Units 켬, 콜라이더 생성 끔, Read/Write 끔
 - `CH_` 모델과 `@` 애니메이션 파일: Rig Generic, 애니메이션 임포트 켬
+- 내장 클립을 쓰는 7개 캐릭터 모델은 아트 적용 시에도 Generic과 애니메이션 임포트를 확인한다.
 - 그 밖의 모델: Rig 없음, 애니메이션 임포트 끔
 - 텍스처: `_Normal`은 Normal map 타입, `_Mask`는 sRGB 끔
 

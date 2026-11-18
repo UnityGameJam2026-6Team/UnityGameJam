@@ -15,7 +15,7 @@
 | 입력 | 프리팹 | `4_Prefab/**`에서 `ArtSlot`을 가진 프리팹 |
 | 입력 | 모델 | `5_Art/Model/**`의 `<ArtKey>.fbx` / `<ArtKey>.prefab` |
 | 입력 | 텍스처, 애니메이션 | `<ArtKey>[_재질]_<맵>.*`, `<ArtKey>@<Clip>.fbx` |
-| 출력 | 프리팹 변경 | `Visual/Model` 교체, `Placeholder` 끄기 |
+| 출력 | 프리팹 변경 | `Visual/Model` 교체, `Placeholder` 끄기. 게임 캐릭터 7종은 내장 클립과 보행·집기 측정값을 `CharacterAnimationSet`에 저장 |
 | 출력 | 생성 에셋 | `M_<ArtKey>[_재질].mat`, `AOC_<ArtKey>.overrideController`, `AC_Character.controller` |
 | 출력 | 결과 | 항목마다 상태(적용됨, 적용 가능, 모델 없음, 주인 없음, 이름 오류, 중복, 베이스) |
 
@@ -31,9 +31,10 @@
 9. 모델이 없으면 "모델 없음"이다. 텍스처 전용 프리팹(`IsTextureOnly`)은 `<ArtKey>_BaseMap`을 모델 대신 쓴다.
 10. 프리팹이 없는 모델은 "주인 없음"이다.
 11. 이름 규칙을 어긴 모델이나 프리팹 키는 "이름 오류"다.
-12. 적용하면 `Visual/Model`이 생기고 `Placeholder`가 꺼진다. 루트의 컴포넌트는 바뀌지 않는다.
+12. 적용하면 `Visual/Model`이 생기고 `Placeholder`가 꺼진다. 루트의 콜라이더와 게임 규칙 컴포넌트는 유지한다.
     모델은 원본 루트 회전에 슬롯 회전 보정을 적용하고, 원본 축별 스케일에 맞춤 배율과 슬롯 배율을 곱한다. 위치는 슬롯의 `ModelOffset`을 쓴다.
-13. 되돌리면 `Visual/Model`이 사라지고 `Placeholder`가 켜진다.
+    게임 캐릭터 7종은 자기 FBX의 Generic 클립과 실제 크기에서 측정한 이동 속도·집기 구간을 Visual에 직렬화하고 루트의 `CharacterAnimatorDriver`를 연결한다. 독립 실행 플레이어도 프리팹 참조로 같은 클립을 재생한다.
+13. 되돌리면 `Visual/Model`과 내장 클립 연결이 사라지고 `Placeholder`가 켜진다.
 14. "적용됨" 항목에 다시 적용하면 프리팹을 저장하지 않는다(멱등).
 15. 씬 규칙: 프리팹 인스턴스가 아니면서 Transform 말고 다른 컴포넌트가 있는 오브젝트는 위반이다.
 
@@ -46,6 +47,7 @@
 | `Editor/Art/ArtBinder.cs` | 에셋 수집, 규칙 12~14 적용, 메뉴 |
 | `Editor/Art/ArtMaterialBuilder.cs` | `M_` 머티리얼 생성과 FBX 머티리얼 remap, 텍스처 전용 적용 |
 | `Editor/Art/ArtAnimationBinder.cs` | `AC_Character` 보장, `AOC_` 생성과 연결 |
+| `Editor/Art/EmbeddedCharacterAnimationBinder.cs`, `ClipStrideMeasurement.cs` | 캐릭터 FBX의 역할별 행동 클립을 확인하고 발·손 움직임을 샘플링해 `Runtime/View/CharacterAnimationSet.cs`에 저장 |
 | `Editor/Art/ArtModelPostprocessor.cs` | 처음 임포트할 때의 설정 |
 | `Editor/Art/ArtBindingWindow.cs` | 결과 창, 키 목록 내보내기, 씬 규칙 검사(규칙 15) |
 

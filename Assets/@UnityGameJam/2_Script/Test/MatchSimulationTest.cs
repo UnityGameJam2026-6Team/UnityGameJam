@@ -228,6 +228,28 @@ namespace UnityGameJam.Test
             Assert.That(match.Items.Single(item => item.ItemId == clutter.Id).HomeSlotId, Is.EqualTo(17));
         }
 
+        [Test]
+        public void 헬하운드는_배출품을_출발할_때_제거하고_왕복_후_대기한다()
+        {
+            Vector3 exit = Vector3.right * 2f;
+            var bin = new Bounds(exit + Vector3.up, new Vector3(1f, 2f, 1f));
+            var hound = new WorkerBody();
+            var waste = new ContaminationItem(100, EContaminationType.Trash, 1, EZoneId.Floor1Lobby, exit);
+            MatchSimulation match = CreateMatch(new WorkerBody(), waste, hound, EWorkerType.Hellhound, bin);
+            match.StartMatch();
+
+            Assert.That(match.DispatchHellhound(), Is.True);
+            Assert.That(hound.Position, Is.EqualTo(exit));
+            Assert.That(match.Items.Single(item => item.ItemId == 100).State, Is.EqualTo(EItemState.Dispatched));
+            Assert.That(match.Minions.Single().Activity, Is.EqualTo(EMinionActivity.Dispatching));
+            float halfTrip = Load<WorkerStatsSO>("WorkerStats_Hellhound").DispatchSeconds * 0.5f;
+            match.Tick(halfTrip);
+            Assert.That(hound.Position, Is.EqualTo(Vector3.zero));
+            Assert.That(match.Minions.Single().Activity, Is.EqualTo(EMinionActivity.ReturningToLobby));
+            match.Tick(halfTrip);
+            Assert.That(match.Minions.Single().Activity, Is.EqualTo(EMinionActivity.LobbyIdle));
+        }
+
         private static MatchSimulation CreateMatch(WorkerBody player, ContaminationItem extra = null, WorkerBody slime = null, EWorkerType minionType = EWorkerType.Slime, Bounds? dischargeArea = null)
         {
             var layout = new FacilityLayout { DischargeArea = dischargeArea ?? new Bounds(Vector3.right * 80f, Vector3.one) };

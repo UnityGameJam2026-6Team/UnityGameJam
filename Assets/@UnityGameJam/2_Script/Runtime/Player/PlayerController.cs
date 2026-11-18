@@ -6,7 +6,7 @@ using UnityGameJam.View;
 namespace UnityGameJam.Player
 {
     /// <summary>
-    /// 플레이어 이동(Spec Player 규칙 1~3)과 계단 이동(Spec MinionAgent 규칙 8). 속도는 규칙이 계산한 PlayerMoveSpeed를 쓴다.
+    /// 플레이어 이동(Spec Player 규칙 1~3)과 계단 이동(Spec MinionAgent 규칙 8). 클립의 보폭에 규칙의 운반 배율을 반영한다.
     /// 카메라가 북쪽(+Z)을 보고 있어서 입력을 월드 축 그대로 쓴다.
     /// </summary>
     [RequireComponent(typeof(CharacterController), typeof(PlayerBody))]
@@ -31,12 +31,18 @@ namespace UnityGameJam.Player
         private CharacterController _controller;
         private PlayerBody _body;
         private IMatchSession _session;
+        private CarryAnimationState _carry;
+        private InputAction _sprint;
+        private float _baseSpeed;
+        private EWorkerType _talkWorker;
+        private Transform _talkPartner;
         private StairDirectory _stairs;
         private ViewSettingsSO _settings;
         private float _transitTimer;
         private EFloor _transitTarget;
 
         public bool IsInStairTransit { get; private set; }
+        public bool IsHandling => _animatorDriver != null && _animatorDriver.IsHandling;
 
         public bool IsNearStair => _stairs != null && _settings != null && _stairs.TryGet(_body.Floor, out Vector3 entry)
             && PlayerInteractionSelector.DistanceXZ(entry, transform.position) <= _settings.InteractRadius;
@@ -45,11 +51,13 @@ namespace UnityGameJam.Player
         {
             _controller = GetComponent<CharacterController>();
             _body = GetComponent<PlayerBody>();
+            _sprint = _moveAction?.action?.actionMap?.FindAction("Sprint");
         }
 
         private void OnEnable()
         {
             if (_moveAction != null) { _moveAction.action.Enable(); }
+            _sprint?.Enable();
             if (_floorDownAction != null) { _floorDownAction.action.Enable(); }
             if (_floorUpAction != null) { _floorUpAction.action.Enable(); }
         }
@@ -57,6 +65,10 @@ namespace UnityGameJam.Player
         public void Initialize(IMatchSession session, StairDirectory stairs, ViewSettingsSO settings)
         {
             _session = session;
+            _baseSpeed = session.PlayerMoveSpeed;
+            _carry = new CarryAnimationState(EWorkerType.Player, BeginHandling);
+            _session.ItemChanged += _carry.Observe;
+            _session.MatchStateChanged += OnMatchStateChanged;
             _stairs = stairs;
             _settings = settings;
         }
@@ -64,6 +76,13 @@ namespace UnityGameJam.Player
         private void Update()
         {
             if (_session == null || _session.MatchState != EMatchState.Running || _moveAction == null) { return; }
+            RefreshMop();
+            if (IsHandling)
+            {
+                _controller.SimpleMove(Vector3.zero);
+                return;
+            }
+            if (UpdateTalk()) { return; }
 
             if (IsInStairTransit)
             {
@@ -86,14 +105,15 @@ namespace UnityGameJam.Player
 
             Vector3 direction = new Vector3(input.x, 0f, input.y);
             if (direction.sqrMagnitude > 1f) { direction.Normalize(); }
-            _controller.SimpleMove(direction * _session.PlayerMoveSpeed);
+            bool running = _sprint != null && _sprint.IsPressed() && !_carry.CarriedType.HasValue && !_carry.IsHoldingMop;
+            float speed = _carry.GetMoveSpeed(_animatorDriver, _baseSpeed, _session.PlayerMoveSpeed, running);
+            _controller.SimpleMove(direction * speed);
 
             if (hasInput)
             {
-                Quaternion target = Quaternion.LookRotation(direction, Vector3.up);
-                transform.rotation = Quaternion.RotateTowards(transform.rotation, target, _turnSpeed * Time.deltaTime);
+                Face(transform, direction);
             }
-            UpdatePose(new Vector3(_controller.velocity.x, 0f, _controller.velocity.z).magnitude);
+            UpdatePose(new Vector3(_controller.velocity.x, 0f, _controller.velocity.z).magnitude, running);
         }
 
         private bool TryStartStairTransit()
@@ -126,19 +146,64 @@ namespace UnityGameJam.Player
             IsInStairTransit = false;
         }
 
-        private void UpdatePose(float speed)
+        public void RefreshMop()
+        {
+            _carry.ObserveMop(_session.IsPlayerHoldingMop);
+        }
+
+        public void FaceForTalk(EWorkerType worker, Transform partner)
+        {
+            _talkWorker = worker;
+            _talkPartner = partner;
+        }
+
+        private bool UpdateTalk()
+        {
+            if (_talkPartner == null) { return false; }
+            foreach (MinionStatus status in _session.Minions)
+            {
+                if (status.Minion != _talkWorker || status.Activity != EMinionActivity.Talking) { continue; }
+                Vector3 direction = _talkPartner.position - transform.position;
+                Face(transform, direction);
+                Face(_talkPartner, -direction);
+                _controller.SimpleMove(Vector3.zero);
+                UpdatePose(0f);
+                return true;
+            }
+            _talkPartner = null;
+            return false;
+        }
+
+        private void Face(Transform actor, Vector3 direction)
+        {
+            direction.y = 0f;
+            if (direction.sqrMagnitude <= 0.000001f) { return; }
+            actor.rotation = Quaternion.RotateTowards(actor.rotation, Quaternion.LookRotation(direction), _turnSpeed * Time.deltaTime);
+        }
+
+        private void BeginHandling(bool pickingUp, bool heavy)
+        {
+            if (_session.MatchState == EMatchState.Running) { _animatorDriver?.BeginHandling(pickingUp, heavy); }
+        }
+
+        private void OnMatchStateChanged(EMatchState state)
+        {
+            if (state != EMatchState.Running) { _animatorDriver?.SetPose(EPose.Idle); }
+        }
+
+        private void UpdatePose(float speed, bool running = false)
         {
             if (_animatorDriver == null) { return; }
-            EContaminationType? carried = null;
-            if (_session.PlayerCarriedItemId.HasValue)
-            {
-                foreach (ItemSnapshot item in _session.Items)
-                {
-                    if (item.ItemId == _session.PlayerCarriedItemId.Value) { carried = item.Type; }
-                }
-            }
             EMinionActivity activity = _session.IsPlayerWorking ? EMinionActivity.Working : EMinionActivity.LobbyIdle;
-            _animatorDriver.SetPose(MinionPoseResolver.Resolve(speed, activity, carried, _session.IsPlayerHoldingMop, false));
+            EPose pose = MinionPoseResolver.Resolve(speed, activity, _carry.CarriedType, _carry.IsHoldingMop, false);
+            _animatorDriver.SetPose(pose, speed, running, _carry.CarriedType, _carry.IsHoldingMop);
+        }
+
+        private void OnDestroy()
+        {
+            if (_session == null) { return; }
+            _session.ItemChanged -= _carry.Observe;
+            _session.MatchStateChanged -= OnMatchStateChanged;
         }
     }
 }

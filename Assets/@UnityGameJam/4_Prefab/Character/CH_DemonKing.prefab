@@ -410,6 +410,7 @@ GameObject:
   m_Component:
   - component: {fileID: 39023684483177165}
   - component: {fileID: 8503582103318953861}
+  - component: {fileID: 5147919430703988548}
   m_Layer: 0
   m_Name: Visual
   m_TagString: Untagged
@@ -454,6 +455,39 @@ MonoBehaviour:
   _modelOffset: {x: 0, y: 0, z: 0}
   _modelEuler: {x: 0, y: 0, z: 0}
   _modelScale: 1.4941686
+--- !u!114 &5147919430703988548
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3686979054258056335}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5653f5e930ff59478ce778287d6931b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.View.CharacterAnimationSet
+  _idle: {fileID: -3100369314251171874, guid: ae56bc416591fc14cb31a0fcba77569e, type: 3}
+  _walk: {fileID: -1610863427237328480, guid: ae56bc416591fc14cb31a0fcba77569e, type: 3}
+  _run: {fileID: 0}
+  _pickUp: {fileID: 0}
+  _pickUpHeavy: {fileID: 0}
+  _carry: {fileID: 0}
+  _carryHeavy: {fileID: 0}
+  _leftHandCarry: 0
+  _pickUpContact: 0
+  _pickUpEnd: 0
+  _pickUpHeavyContact: 0
+  _pickUpHeavyEnd: 0
+  _mopWalk: {fileID: 0}
+  _mop: {fileID: 0}
+  _eat: {fileID: 0}
+  _dispatch: {fileID: 0}
+  _walkSpeed: 1.1173356
+  _runSpeed: 0
+  _carrySpeed: 0
+  _carryHeavySpeed: 0
+  _mopWalkSpeed: 0
 --- !u!1 &3790651929171819964
 GameObject:
   m_ObjectHideFlags: 0
@@ -553,6 +587,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4439796560124664331}
+  - component: {fileID: 5650675416327906197}
   m_Layer: 0
   m_Name: CH_DemonKing
   m_TagString: Untagged
@@ -576,6 +611,19 @@ Transform:
   - {fileID: 39023684483177165}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5650675416327906197
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5464598808552831160}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae22024f82f0ff24193b317926c7f5db, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.View.CharacterAnimatorDriver
+  _artSlot: {fileID: 8503582103318953861}
 --- !u!1 &5556588537249288324
 GameObject:
   m_ObjectHideFlags: 0

@@ -361,8 +361,49 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 6379178708371745832, guid: ac5f6bde031b2c74d9ddc12548fac8f0, type: 3}
       insertIndex: -1
       addedObject: {fileID: 647309409536259262}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3568551456559729882, guid: ac5f6bde031b2c74d9ddc12548fac8f0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5351278403180062205}
   m_SourcePrefab: {fileID: 100100000, guid: ac5f6bde031b2c74d9ddc12548fac8f0, type: 3}
+--- !u!1 &711820108449316545 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3568551456559729882, guid: ac5f6bde031b2c74d9ddc12548fac8f0, type: 3}
+  m_PrefabInstance: {fileID: 4064197649021792795}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &5351278403180062205
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 711820108449316545}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5653f5e930ff59478ce778287d6931b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.View.CharacterAnimationSet
+  _idle: {fileID: -3548273549459496330, guid: 434d7bc77378a134e9b105d0fa3f9842, type: 3}
+  _walk: {fileID: -1610863427237328480, guid: 434d7bc77378a134e9b105d0fa3f9842, type: 3}
+  _run: {fileID: -9121621101649706817, guid: 434d7bc77378a134e9b105d0fa3f9842, type: 3}
+  _pickUp: {fileID: -6757020630807413255, guid: 434d7bc77378a134e9b105d0fa3f9842, type: 3}
+  _pickUpHeavy: {fileID: -6757020630807413255, guid: 434d7bc77378a134e9b105d0fa3f9842, type: 3}
+  _carry: {fileID: 354216277352124052, guid: 434d7bc77378a134e9b105d0fa3f9842, type: 3}
+  _carryHeavy: {fileID: -577597912951214202, guid: 434d7bc77378a134e9b105d0fa3f9842, type: 3}
+  _leftHandCarry: 1
+  _pickUpContact: 3.414365
+  _pickUpEnd: 4.3430943
+  _pickUpHeavyContact: 3.414365
+  _pickUpHeavyEnd: 4.3430943
+  _mopWalk: {fileID: -5558302777307758154, guid: 434d7bc77378a134e9b105d0fa3f9842, type: 3}
+  _mop: {fileID: -8303932156236803649, guid: 434d7bc77378a134e9b105d0fa3f9842, type: 3}
+  _eat: {fileID: 0}
+  _dispatch: {fileID: 0}
+  _walkSpeed: 0.9251073
+  _runSpeed: 2.4762688
+  _carrySpeed: 0.8309032
+  _carryHeavySpeed: 0.27555645
+  _mopWalkSpeed: 0.84391123
 --- !u!4 &6981013755988565555 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6379178708371745832, guid: ac5f6bde031b2c74d9ddc12548fac8f0, type: 3}
