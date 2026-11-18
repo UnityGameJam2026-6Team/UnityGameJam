@@ -1,4 +1,8 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
+using UnityGameJam.View;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -19,7 +23,12 @@ namespace UnityGameJam.UI
         [SerializeField] private Button _restartButton;
         [SerializeField] private InputActionReference _restartAction;
 
+        [SerializeField] private TMP_Text _record;
+        [SerializeField] private TMP_Text _leaderboard;
         private bool _isReloading;
+        private bool _hasRecorded;
+        private readonly string _recordId = Guid.NewGuid().ToString("N");
+        private const int DisplayCount = 10;
 
         public void Show(MatchResult result, float facilityThreshold, float zoneThreshold)
         {
@@ -32,6 +41,48 @@ namespace UnityGameJam.UI
             }
             gameObject.SetActive(true);
             _restartButton.Select();
+        }
+
+        internal void RecordMatch(MatchResult result, MatchBootstrap bootstrap)
+        {
+            if (_hasRecorded) { return; }
+            _hasRecorded = true;
+            float seconds = bootstrap.CompletionSeconds ?? bootstrap.MatchDuration;
+            bool isComplete = result.FacilityCleanliness >= 100f;
+            var entry = new LocalLeaderboard.Entry
+            {
+                Id = _recordId, Progress = result.FacilityCleanliness, Seconds = seconds, IsComplete = isComplete
+            };
+            string time = FormatTime(seconds);
+            _record.text = isComplete ? $"청소 완료  {time}" : $"종료 진행도  {result.FacilityCleanliness:0.##}%";
+            try
+            {
+                string path = Path.Combine(Application.persistentDataPath, "leaderboard.json");
+                List<LocalLeaderboard.Entry> entries = new LocalLeaderboard(path).Add(entry);
+                int rank = entries.FindIndex(saved => saved.Id == _recordId) + 1;
+                _record.text += $"  ·  이번 기록 {rank}위";
+                var text = new StringBuilder("이 PC 순위표\n");
+                for (int i = 0; i < entries.Count && i < DisplayCount; i++)
+                {
+                    LocalLeaderboard.Entry saved = entries[i];
+                    string value = saved.IsComplete ? $"완료  {FormatTime(saved.Seconds)}" : $"{saved.Progress:0.##}%";
+                    string marker = saved.Id == _recordId ? "  ◀ 이번 기록" : "";
+                    text.AppendLine($"{i + 1}위    {value}{marker}");
+                }
+                _leaderboard.text = text.ToString();
+            }
+            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException ||
+                exception is ArgumentException)
+            {
+                _leaderboard.text = "기록을 저장하지 못했습니다.";
+                Debug.LogWarning($"[순위표] 기록 저장 실패 · {exception.Message}", this);
+            }
+        }
+
+        private static string FormatTime(float seconds)
+        {
+            int centiseconds = Mathf.Max(0, Mathf.RoundToInt(seconds * 100f));
+            return $"{centiseconds / 6000:00}:{centiseconds / 100 % 60:00}.{centiseconds % 100:00}";
         }
 
         private void OnEnable()

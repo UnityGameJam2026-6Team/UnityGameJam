@@ -37,10 +37,13 @@ namespace UnityGameJam.UI
         private readonly List<InputAction> _suspendedActions = new List<InputAction>();
         private static readonly EZoneId[] Zones = (EZoneId[])Enum.GetValues(typeof(EZoneId));
         private int _lastSecond = -1;
+        private DemonKing.UI.DemonKingCountdownHUD _countdown;
 
         private void Awake()
         {
             _bootstrap = FindFirstObjectByType<MatchBootstrap>();
+            _countdown = GetComponentInChildren<DemonKing.UI.DemonKingCountdownHUD>(true);
+            if (_countdown != null) { _countdown.PauseTimer(); }
             _assignmentPanel = (RectTransform)_choices.transform;
             _assignmentOrigin = _assignmentPanel.anchoredPosition;
             _workGaugeRect = (RectTransform)_workGauge.transform;
@@ -213,6 +216,7 @@ namespace UnityGameJam.UI
 
         private void ShowTime(float remaining)
         {
+            if (_countdown != null) { _countdown.PauseTimer(); _countdown.NotifyRemaining(remaining); }
             int seconds = Mathf.Max(0, Mathf.CeilToInt(remaining));
             if (seconds == _lastSecond) { return; }
             _lastSecond = seconds;

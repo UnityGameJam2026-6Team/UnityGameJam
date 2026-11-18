@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6ec51824deabfc8459858a14246f776a, type: 3}
   m_Name: ViewSettings
   m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.View.ViewSettingsSO
+  _completionCountdownSeconds: 2
   _interactRadius: 1.5
   _playerTurnSpeed: 720
   _cameraHeight: 18
