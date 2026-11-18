@@ -148,7 +148,6 @@ MonoBehaviour:
   _proposalStack: {fileID: 7962075809126113076}
   _workGauge: {fileID: 9167882698743578430}
   _workFill: {fileID: 2051149107805498812}
-  _countdown: {fileID: 4799853804593314961}
 --- !u!114 &3576964362297690069
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -294,17 +293,6 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 4469025103848394294, guid: a2345df38866a3d44945abc20e0bace4, type: 3}
   m_PrefabInstance: {fileID: 116847850832748501}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &4799853804593314961 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 4828880361015485252, guid: a2345df38866a3d44945abc20e0bace4, type: 3}
-  m_PrefabInstance: {fileID: 116847850832748501}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2363996917278222356}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d54bd2e042cf9a248ac7156b5a01b0eb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DemonKing.UI.DemonKingCountdownHUD
 --- !u!1001 &133729798200353278
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -315,15 +303,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1433020869832277558, guid: fd515bcd874792344b9e1c5e9bf59dce, type: 3}
       propertyPath: m_Pivot.x
-      value: 0
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 1433020869832277558, guid: fd515bcd874792344b9e1c5e9bf59dce, type: 3}
       propertyPath: m_Pivot.y
-      value: 1
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 1433020869832277558, guid: fd515bcd874792344b9e1c5e9bf59dce, type: 3}
       propertyPath: m_AnchorMax.x
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1433020869832277558, guid: fd515bcd874792344b9e1c5e9bf59dce, type: 3}
       propertyPath: m_AnchorMax.y
@@ -335,15 +323,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1433020869832277558, guid: fd515bcd874792344b9e1c5e9bf59dce, type: 3}
       propertyPath: m_AnchorMin.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1433020869832277558, guid: fd515bcd874792344b9e1c5e9bf59dce, type: 3}
       propertyPath: m_SizeDelta.x
-      value: 365
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1433020869832277558, guid: fd515bcd874792344b9e1c5e9bf59dce, type: 3}
       propertyPath: m_SizeDelta.y
-      value: 92
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1433020869832277558, guid: fd515bcd874792344b9e1c5e9bf59dce, type: 3}
       propertyPath: m_LocalPosition.x
@@ -375,11 +363,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1433020869832277558, guid: fd515bcd874792344b9e1c5e9bf59dce, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 28
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1433020869832277558, guid: fd515bcd874792344b9e1c5e9bf59dce, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -24
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1433020869832277558, guid: fd515bcd874792344b9e1c5e9bf59dce, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -396,6 +384,18 @@ PrefabInstance:
     - target: {fileID: 4125812995313839397, guid: fd515bcd874792344b9e1c5e9bf59dce, type: 3}
       propertyPath: m_Name
       value: UI_ZoneHud
+      objectReference: {fileID: 0}
+    - target: {fileID: 5486012043764649663, guid: fd515bcd874792344b9e1c5e9bf59dce, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5486012043764649663, guid: fd515bcd874792344b9e1c5e9bf59dce, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5486012043764649663, guid: fd515bcd874792344b9e1c5e9bf59dce, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
