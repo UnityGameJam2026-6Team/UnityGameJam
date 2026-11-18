@@ -8,6 +8,37 @@ namespace UnityGameJam.Test.View
 {
     public sealed class UnitMotionTuningTest
     {
+        [TestCase(null, false, true)]
+        [TestCase(EContaminationType.ClutterItem, false, true)]
+        [TestCase(EContaminationType.ClutterItem, true, false)]
+        [TestCase(EContaminationType.Trash, false, false)]
+        [TestCase(EContaminationType.HeavyDebris, false, false)]
+        [TestCase(null, true, false)]
+        public void 달리기는_빈손과_작은_물건을_든_상태에서_가능하다(EContaminationType? carried, bool holdingMop, bool canSprint)
+        {
+            Assert.That(UnitMotionTuning.CanSprint(carried, holdingMop), Is.EqualTo(canSprint));
+        }
+
+        [Test]
+        public void 작은_물건을_들고_달릴_때는_달리기_배율을_쓴다()
+        {
+            var asset = ScriptableObject.CreateInstance<ViewSettingsSO>();
+            try
+            {
+                var settings = new SerializedObject(asset);
+                SerializedProperty player = settings.FindProperty("_playerMotion");
+                player.FindPropertyRelative("_runRate").floatValue = 1.5f;
+                player.FindPropertyRelative("_carryRate").floatValue = 0.5f;
+                settings.ApplyModifiedPropertiesWithoutUndo();
+                UnitMotionTuning tuning = asset.GetMotionTuning(EWorkerType.Player);
+                Assert.That(tuning.ResolveMoveSpeed(2f, 4f, 4f, 4f, true,
+                    EContaminationType.ClutterItem, false), Is.EqualTo(6f));
+                Assert.That(tuning.ResolveMoveSpeed(2f, 2f, 4f, 4f, false,
+                    EContaminationType.ClutterItem, false), Is.EqualTo(1f));
+            }
+            finally { Object.DestroyImmediate(asset); }
+        }
+
         [Test]
         public void 누락된_설정은_원래_이동_속도를_사용한다()
         {

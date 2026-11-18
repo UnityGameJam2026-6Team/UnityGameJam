@@ -48,6 +48,9 @@ namespace UnityGameJam.View
             return tuning;
         }
 
+        internal static bool CanSprint(EContaminationType? carried, bool holdingMop) =>
+            !holdingMop && (carried is null or EContaminationType.ClutterItem);
+
         public float ResolveMoveSpeed(float walkSpeed, float measuredSpeed, float baseSpeed, float ruleSpeed,
             bool running, EContaminationType? carried, bool holdingMop)
         {
@@ -56,8 +59,9 @@ namespace UnityGameJam.View
             float rate = holdingMop ? _mopWalkRate : carried switch
             {
                 EContaminationType.HeavyDebris => _heavyCarryRate,
+                EContaminationType.ClutterItem or null when running => _runRate,
                 not null => _carryRate,
-                null => running ? _runRate : _walkRate
+                null => _walkRate
             };
             float speed = carried == EContaminationType.HeavyDebris && ruleMultiplier < 1f
                 ? walkSpeed * NormalizeRate(_walkRate) : measuredSpeed;

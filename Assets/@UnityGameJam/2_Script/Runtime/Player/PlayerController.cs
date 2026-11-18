@@ -97,7 +97,8 @@ namespace UnityGameJam.Player
 
             Vector3 direction = new Vector3(input.x, 0f, input.y);
             if (direction.sqrMagnitude > 1f) { direction.Normalize(); }
-            bool running = _sprint != null && _sprint.IsPressed() && !_carry.CarriedType.HasValue && !_carry.IsHoldingMop;
+            bool running = _sprint != null && _sprint.IsPressed() &&
+                UnitMotionTuning.CanSprint(_carry.CarriedType, _carry.IsHoldingMop);
             float speed = _carry.GetMoveSpeed(_animatorDriver, _baseSpeed, _session.PlayerMoveSpeed, running);
             _controller.SimpleMove(direction * speed);
 

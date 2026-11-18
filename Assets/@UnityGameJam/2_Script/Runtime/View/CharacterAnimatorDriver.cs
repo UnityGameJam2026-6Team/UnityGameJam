@@ -131,8 +131,9 @@ namespace UnityGameJam.View
             float measured;
             if (holdingMop) { measured = _set.MopWalkSpeed; }
             else if (carried == EContaminationType.HeavyDebris) { measured = _set.CarryHeavySpeed; }
+            else if (running && UnitMotionTuning.CanSprint(carried, holdingMop)) { measured = _set.RunSpeed; }
             else if (carried.HasValue) { measured = _set.CarrySpeed; }
-            else { measured = running ? _set.RunSpeed : _set.WalkSpeed; }
+            else { measured = _set.WalkSpeed; }
             return measured > 0f ? measured : ruleSpeed;
         }
 
@@ -241,7 +242,8 @@ namespace UnityGameJam.View
             {
                 _hips.position -= transform.TransformVector(_cycleTravel * (_loopTime / clip.length));
             }
-            if (!moving && !heavy && _carried.HasValue) { _holdingArm?.Apply(1f); }
+            // 달릴 때도 물건을 쥔 팔은 운반 자세를 유지한다.
+            if ((!moving || state == ECharacterAnimation.Run) && !heavy && _carried.HasValue) { _holdingArm?.Apply(1f); }
         }
 
         private (ECharacterAnimation State, float Rate) SelectLoop(bool moving, bool heavy)
@@ -251,8 +253,11 @@ namespace UnityGameJam.View
             if (heavy && HasState(ECharacterAnimation.CarryHeavy)) { return (ECharacterAnimation.CarryHeavy, _tuning.HeavyCarryAnimationRate); }
             if (!moving) { return (ECharacterAnimation.Idle, _tuning.IdleAnimationRate); }
             if (_holdingMop && HasState(ECharacterAnimation.MopWalk)) { return (ECharacterAnimation.MopWalk, _tuning.MopWalkAnimationRate); }
+            if (_sprint && UnitMotionTuning.CanSprint(_carried, _holdingMop) && HasState(ECharacterAnimation.Run))
+            {
+                return (ECharacterAnimation.Run, _tuning.RunAnimationRate);
+            }
             if ((_carried.HasValue || CurrentPose == EPose.Carry) && HasState(ECharacterAnimation.Carry)) { return (ECharacterAnimation.Carry, _tuning.CarryAnimationRate); }
-            if (_sprint && HasState(ECharacterAnimation.Run)) { return (ECharacterAnimation.Run, _tuning.RunAnimationRate); }
             return HasState(ECharacterAnimation.Walk) ? (ECharacterAnimation.Walk, _tuning.WalkAnimationRate)
                 : (ECharacterAnimation.Idle, _tuning.IdleAnimationRate);
         }
