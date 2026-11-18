@@ -83,7 +83,8 @@
 | Prop | `PR_Desk`, `PR_ExecutiveDesk` | 일반 책상, 간부실 책상 | 일반 책상 원본은 `Prop/PR_Desk.fbx`, F26 간부실 책상 원본은 `F26_Executive_Desk/PR_ExecutiveDesk.fbx` |
 | Prop | `PR_<가구>` | 방 가구 (선반, 탁자, 소파 등) | F 계열 납품 모델 |
 | Environment | `ENV_FloorTile` | 바닥 2x2m (피벗: 한 모서리) | 원본 `ENV_FloorTile_Tiled` (평면, 타일링 색상·노멀 맵) |
-| Environment | `ENV_Wall_Straight`, `ENV_Wall_Corner`, `ENV_Wall_Curve` | 벽 2m(피벗: 한쪽 끝), 모서리 기둥, 곡선 벽(반지름 4m 1/4 원호, 피벗: 원호 중심) | 창고, 간부실 |
+| Environment | `ENV_Wall_Straight` | 직선 벽 2m(피벗: 한쪽 끝) | 원본 `ENV_Wall_Straight_Baked` (아치·석조 장식의 색상·노멀 맵) |
+| Environment | `ENV_Wall_Corner`, `ENV_Wall_Curve` | 모서리 기둥, 곡선 벽(반지름 4m 1/4 원호, 피벗: 원호 중심) | 창고, 간부실 |
 | Environment | `ENV_Door` | 방 출입구의 통행용 문틀 | 원본 A05 `ENV_ArchedDoorFrame` |
 | Environment | `ENV_WoodenDoorLeaf` | 나무 문짝 | A06 독립 프리팹 |
 | Environment | `ENV_Stairs` | 계단 | |
