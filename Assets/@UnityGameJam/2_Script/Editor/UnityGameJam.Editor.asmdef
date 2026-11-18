@@ -2,7 +2,8 @@
     "name": "UnityGameJam.Editor",
     "rootNamespace": "UnityGameJam.Editor",
     "references": [
-        "UnityGameJam.Runtime"
+        "UnityGameJam.Runtime",
+        "Unity.AI.Navigation"
     ],
     "includePlatforms": [
         "Editor"

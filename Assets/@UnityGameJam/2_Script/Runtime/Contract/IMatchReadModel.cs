@@ -24,6 +24,18 @@ namespace UnityGameJam.Contract
         int? PlayerCarriedItemId { get; }
         bool IsPlayerHoldingMop { get; }
 
+        /// <summary>
+        /// 플레이어 몸이 매 프레임 적용할 이동 속도(m/s). 규칙이 계산한다.
+        /// 무거운 잔해를 들면 기본 속도의 절반이다(U20, 배율은 WorkerStatsSO).
+        /// </summary>
+        float PlayerMoveSpeed { get; }
+
+        /// <summary>플레이어가 시간이 걸리는 작업(물걸레질 등)을 하는 중인지.</summary>
+        bool IsPlayerWorking { get; }
+
+        /// <summary>플레이어 작업 진행도 0~100(%). 작업 중이 아니면 0(U21).</summary>
+        float PlayerWorkProgress { get; }
+
         IReadOnlyList<MinionStatus> Minions { get; }
         IReadOnlyList<MessageEntry> ActiveMessages { get; }
         IReadOnlyList<ItemSnapshot> Items { get; }

@@ -116,6 +116,17 @@ namespace UnityGameJam.Test.Art
             Assert.AreEqual(2f, LoadSlot().Model.transform.localScale.y, 0.01f);
         }
 
+        [Test]
+        public void 다른_프리팹을_중첩한_조립_프리팹은_아트_대상이_아니다()
+        {
+            var assembly = new GameObject("FL_TestAssembly");
+            PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath), assembly.transform);
+            PrefabUtility.SaveAsPrefabAsset(assembly, PrefabRoot + "/FL_TestAssembly.prefab");
+            Object.DestroyImmediate(assembly);
+
+            Assert.IsFalse(ArtBinder.Inspect(PrefabRoot, ModelRoot).Any(i => i.ArtKey == "FL_TestAssembly"));
+        }
+
         private static ArtBindingItem InspectSingle()
         {
             return ArtBinder.Inspect(PrefabRoot, ModelRoot).Single(i => i.ArtKey == ArtKey);

@@ -81,8 +81,8 @@
 | Prop | `PR_DischargeBin` | 1층 현관 배출 구역 표시 | |
 | Prop | `PR_HomeSlot_<물건>` | 작은 물건 제자리 | U202 |
 | Prop | `PR_<가구>` | 방 가구 (책상, 의자, 선반 등) | B1에서 목록 확정 |
-| Environment | `ENV_FloorTile` | 바닥 1x1m | |
-| Environment | `ENV_Wall_Straight`, `ENV_Wall_Corner`, `ENV_Wall_Curve` | 벽, 모서리, 곡선 벽(창고, 간부실) | |
+| Environment | `ENV_FloorTile` | 바닥 2x2m (피벗: 한 모서리) | |
+| Environment | `ENV_Wall_Straight`, `ENV_Wall_Corner`, `ENV_Wall_Curve` | 벽 2m(피벗: 한쪽 끝), 모서리 기둥, 곡선 벽(반지름 4m 1/4 원호, 피벗: 원호 중심) | 창고, 간부실 |
 | Environment | `ENV_Door` | 방 문 | |
 | Environment | `ENV_Stairs` | 계단 | |
 | Environment | `ENV_Entrance` | 1층 현관 | |

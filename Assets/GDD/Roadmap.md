@@ -22,7 +22,7 @@
 
 ## B 레인 (월드·표현) · 심지섭 · Unity AI · `docs/team/lane-b.md`
 - [x] B0 프리팹·아트 기반(Spec `ArtPipeline.md`, 규칙 `docs/rules/prefab.md`·`art-asset.md`)
-- [ ] B1 화이트박스 시설(Spec `FacilityLayout.md`)
+- [x] B1 화이트박스 시설(Spec `FacilityLayout.md`)
 - [ ] B2 플레이어 (Spec `Player.md`)
 - [ ] B3 졸개 몸 (Spec `MinionAgent.md`)
 - [ ] B4 ContaminationView

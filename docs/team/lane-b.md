@@ -5,7 +5,7 @@
 ## 맡는 일
 씬, 프리팹, 입력, 이동(NavMesh), 카메라, UI, 에디터 도구, 아트·사운드 적용.
 
-- **소유 경로**: `2_Script/Runtime/{Player, View, UI}/`, `2_Script/Editor/`, `2_Script/Test/{Art, View}/`, `1_Scene/`, `4_Prefab/`, `5_Art/`, `6_Audio/`, `7_Setting/InputSystem_Actions.inputactions`, `ProjectSettings/`, `docs/rules/{prefab, art-asset}.md`
+- **소유 경로**: `2_Script/Runtime/{Player, View, UI}/`, `2_Script/Editor/`, `2_Script/Test/{Art, View}/`, `3_Data/ScriptableObject/View/`, `1_Scene/`, `4_Prefab/`, `5_Art/`, `6_Audio/`, `7_Setting/InputSystem_Actions.inputactions`, `ProjectSettings/`, `docs/rules/{prefab, art-asset}.md`
 - **읽기만 하는 곳**: `Runtime/Contract/`(바꿀 때는 `collaboration.md` 2절 절차), A 레인의 규칙 코드와 `3_Data/`
 - **반드시 따를 규칙**: 씬에는 프리팹만 배치한다(`docs/rules/prefab.md`). 3D 에셋은 이름 규칙에 맞춰 넣고 메뉴로 적용한다(`docs/rules/art-asset.md`).
 

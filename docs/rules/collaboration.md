@@ -8,8 +8,8 @@
 
 | 레인 | 담당자 · 에이전트 | 담당 | 소유 경로 (`Assets/@UnityGameJam/` 기준) |
 |---|---|---|---|
-| **A: 규칙·시뮬레이션** | **김보경** · Codex | 순수 C# 게임 규칙, EditMode 테스트, 수치 데이터 | `2_Script/Runtime/{Cleaning, Minion, Proposal, Match, Facility, Data}/`, `2_Script/Test/`(B 하위 폴더 제외), `3_Data/` |
-| **B: 월드·표현** | **심지섭** · Unity AI | 씬, 프리팹, 입력, 이동, 카메라, UI, 에디터 도구, 아트·사운드 적용 | `2_Script/Runtime/{Player, View, UI}/`, `2_Script/Editor/`, `2_Script/Test/{Art, View}/`, `1_Scene/`, `4_Prefab/`, `5_Art/`, `6_Audio/`, `7_Setting/InputSystem_Actions.inputactions`, 저장소 루트의 `ProjectSettings/`, `docs/rules/{prefab, art-asset}.md` |
+| **A: 규칙·시뮬레이션** | **김보경** · Codex | 순수 C# 게임 규칙, EditMode 테스트, 수치 데이터 | `2_Script/Runtime/{Cleaning, Minion, Proposal, Match, Facility, Data}/`, `2_Script/Test/`(B 하위 폴더 제외), `3_Data/`(`3_Data/ScriptableObject/View/` 제외) |
+| **B: 월드·표현** | **심지섭** · Unity AI | 씬, 프리팹, 입력, 이동, 카메라, UI, 에디터 도구, 아트·사운드 적용 | `2_Script/Runtime/{Player, View, UI}/`, `2_Script/Editor/`, `2_Script/Test/{Art, View}/`, `3_Data/ScriptableObject/View/`(연출용 SO), `1_Scene/`, `4_Prefab/`, `5_Art/`, `6_Audio/`, `7_Setting/InputSystem_Actions.inputactions`, 저장소 루트의 `ProjectSettings/`, `docs/rules/{prefab, art-asset}.md` |
 
 - 담당자별 시작 문서(첫 프롬프트, 작업 큐, 체크리스트): `docs/team/lane-a.md`(김보경), `docs/team/lane-b.md`(심지섭). 각자 자기 문서만 고친다.
 - 사람 이름으로 레인을 알 수 있다. 에이전트는 "김보경"이면 A 레인, "심지섭"이면 B 레인으로 본다.
@@ -29,7 +29,8 @@
 | `FacilityLayout` | B → A | 씬에서 뽑은 순수 데이터. A는 테스트에서 직접 만들어 쓴다. |
 | `IWorkerBody`, `IMinionBody` | A → B | 규칙이 읽는 몸의 위치와 층, 졸개 두뇌가 몸(NavMeshAgent)에 내리는 명령. 층간 이동(계단)은 몸이 처리한다. |
 | `IMatchCommands` | B → A | 플레이어 입력을 규칙으로 넘긴다 |
-| `IMatchReadModel` | A → B | UI와 연출이 읽는 상태, DTO(`MinionStatus`, `MessageEntry`, `ItemSnapshot`, `MatchResult`), 이벤트 |
+| `IMatchReadModel` | A → B | UI와 연출이 읽는 상태(플레이어 이동 속도, 작업 진행도 0~100 포함), DTO(`MinionStatus`, `MessageEntry`, `ItemSnapshot`, `MatchResult`), 이벤트 |
+| `ZoneDisplayName` | 공용 | 구역 표시 이름(GDD 이름 그대로), 층, 로비 여부, 원격 안내 문구("1층 다목적실") |
 | `IMatchSession`, `MatchSetup`, `MatchSessionFactoryBase` | A → B | Bootstrap이 인스펙터로 팩토리 SO를 연결하고 판을 만든 뒤 매 프레임 `Tick`을 부른다. A는 실제 팩토리, B는 가짜 팩토리를 상속한다. |
 
 **바꾸는 절차**
@@ -56,7 +57,7 @@
 - 씬(`1_Scene/Facility.unity`)에는 Bootstrap, 카메라, 조명, 층 프리팹, UI 루트 프리팹만 둔다. 내용은 프리팹(`4_Prefab/`) 안에서 고친다.
 - 층(`Floor1/2/3.prefab`)과 UI 패널은 각각 별도의 (중첩) 프리팹으로 만든다.
 - 남의 씬이나 프리팹을 예외적으로 고쳐야 하면 메신저로 "잠금"을 알리고, 머지한 뒤 "해제"를 알린다.
-- 3_Data의 SO 에셋은 A 소유다. B가 연출 값이 필요하면 B 소유의 별도 SO(`ViewSettingsSO` 등)를 만든다.
+- 3_Data의 SO 에셋은 A 소유다. B가 연출 값(상호작용 거리, 카메라, 계단 이동 시간 등)이 필요하면 B 소유의 별도 SO(`ViewSettingsSO` 등)를 만들어 `3_Data/ScriptableObject/View/`에 둔다.
 
 ## 6. Git 운영
 - 브랜치는 Spec 하나에 하나씩 만든다: `feat/cleaning-model`, `feat/facility-layout` 등. PR은 1~2일 분량으로 작게 나누고, **상대가 리뷰한 뒤** Squash로 머지한다.

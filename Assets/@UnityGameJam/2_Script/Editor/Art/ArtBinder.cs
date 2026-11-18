@@ -390,13 +390,27 @@ namespace UnityGameJam.Editor.Art
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-                ArtSlot slot = prefab != null ? prefab.GetComponentInChildren<ArtSlot>(true) : null;
+                ArtSlot slot = prefab != null ? FindOwnSlot(prefab) : null;
                 if (slot == null) { continue; }
 
                 string key = ArtKeyRule.ResolvePrefabKey(slot.ArtKeyOverride, path);
                 result.Add(new ArtPrefabInfo(path, key, GetAppliedSourcePath(slot), slot.IsTextureOnly));
             }
             return result;
+        }
+
+        /// <summary>
+        /// 프리팹 자신의 ArtSlot만 찾는다. 표준 구조(docs/rules/prefab.md 3절)에서 ArtSlot은 루트 바로 아래 Visual에 있다.
+        /// FL_Floor처럼 다른 프리팹을 중첩한 조립품은 안의 ArtSlot이 더 깊이 있으므로 제외된다. Variant도 구조가 같아 그대로 잡힌다.
+        /// </summary>
+        private static ArtSlot FindOwnSlot(GameObject prefab)
+        {
+            foreach (Transform child in prefab.transform)
+            {
+                var slot = child.GetComponent<ArtSlot>();
+                if (slot != null) { return slot; }
+            }
+            return null;
         }
 
         private static List<string> CollectAssets(string root, string[] extensions)

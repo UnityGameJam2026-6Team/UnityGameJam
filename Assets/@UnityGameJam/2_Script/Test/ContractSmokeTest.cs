@@ -35,5 +35,27 @@ namespace UnityGameJam.Test
             Assert.AreEqual(EZoneId.Storage, layout.Zones[0].Zone);
             Assert.IsTrue(layout.Zones[0].Areas[0].Contains(new Vector3(5f, 0f, 1f)));
         }
+
+        [Test]
+        public void 모든_구역에_표시_이름이_있다()
+        {
+            foreach (EZoneId zone in Enum.GetValues(typeof(EZoneId)))
+            {
+                Assert.IsFalse(string.IsNullOrEmpty(ZoneDisplayName.GetName(zone)), zone.ToString());
+            }
+        }
+
+        [Test]
+        public void 일반_방은_층과_이름을_함께_표시한다()
+        {
+            Assert.AreEqual("1층 다목적실", ZoneDisplayName.GetFullName(EZoneId.MultipurposeRoom));
+            Assert.AreEqual("3층 간부실", ZoneDisplayName.GetFullName(EZoneId.ExecutiveRoom));
+        }
+
+        [Test]
+        public void 로비는_층을_중복해서_붙이지_않는다()
+        {
+            Assert.AreEqual("2층 로비", ZoneDisplayName.GetFullName(EZoneId.Floor2Lobby));
+        }
     }
 }
