@@ -40,6 +40,8 @@ Assets/
    └─ Spec/              기능별 구현 스펙 (_Template.md를 복사해서 쓴다)
 docs/rules/              에이전트 작업 규칙 (Assets 밖이라 .meta가 생기지 않는다)
 docs/team/               담당자별 시작 문서 (lane-a.md 김보경, lane-b.md 심지섭)
+docs/ai-workflow.md      사람용 AI 워크플로우 안내 (규칙 원본은 이 문서와 docs/rules)
+docs/art-naming-guide.md 아티스트용 아트 이름 규칙 안내 (원본은 docs/rules/art-asset.md)
 ```
 - 폴더 이름은 **단수형**으로 쓰고, 표시 순서는 번호 접두사(`N_`)로 정한다. 새 최상위 폴더는 사용자와 번호를 정한 뒤 만든다.
 - 예외: Unity 특수 폴더(`Resources`, `Plugins`, `StreamingAssets`, `Gizmos`, `Editor Default Resources`)는 정해진 이름 그대로 쓴다.

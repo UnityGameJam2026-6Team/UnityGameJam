@@ -1,0 +1,121 @@
+# 아트 에셋 이름 규칙 안내
+
+> 3D 모델, 텍스처, 애니메이션을 만들어 넘기는 사람(아티스트)과 받는 사람(심지섭)을 위한 안내서다.
+> 규칙 원본은 `docs/rules/art-asset.md`다. 둘이 다르면 원본을 따르고 이 문서를 고친다.
+
+## 1. 핵심 한 줄
+**파일 이름 = ArtKey = 게임 프리팹 이름.**
+`CH_Goblin.fbx`를 넣으면 게임의 `CH_Goblin` 프리팹에 자동으로 들어간다. 이름이 한 글자라도 다르면 들어가지 않는다.
+
+## 2. ArtKey 만드는 법
+```
+CH _ Goblin
+│     └─ 이름: 영어, 대문자로 시작하는 파스칼 케이스 (HeavyDebris, HomeSlot)
+└─ 접두사: 무엇인지
+```
+```
+IT _ HeavyDebris _ 01
+                  └─ 변형(선택): 같은 종류를 여러 개 만들 때 두 자리 숫자 또는 단어 (01, 02, Book, Cup)
+```
+
+| 접두사 | 분류 | 넣는 폴더 | 예 |
+|---|---|---|---|
+| `CH_` | 캐릭터 | `5_Art/Model/Character/` | `CH_Goblin`, `CH_DemonKing` |
+| `IT_` | 아이템 (들고 다니는 것, 오염) | `5_Art/Model/Item/` | `IT_Trash_01`, `IT_Mop` |
+| `PR_` | 소품, 가구, 시설물 | `5_Art/Model/Prop/` | `PR_Desk`, `PR_MopRack` |
+| `ENV_` | 환경 조각 (바닥, 벽, 문, 계단) | `5_Art/Model/Environment/` | `ENV_Wall_Curve`, `ENV_Stairs` |
+
+**규칙**
+- 영어와 숫자만 쓴다. 한글, 공백, 하이픈(`-`), 점(`.`)은 쓰지 않는다.
+- 접두사는 대문자로 쓰고, 나머지 단어는 대문자로 시작한다.
+- `_final`, `_v2`, `_new` 같은 버전 표시는 붙이지 않는다. 고친 파일은 **같은 이름으로 덮어쓴다**. 이전 버전은 git이 기억한다.
+
+## 3. 파일 종류별 이름
+| 종류 | 형식 | 예 |
+|---|---|---|
+| 모델 | `<ArtKey>.fbx` | `CH_Goblin.fbx` |
+| 애니메이션 (클립 하나에 파일 하나) | `<ArtKey>@<클립>.fbx` | `CH_Goblin@Walk.fbx` |
+| 색 텍스처 | `<ArtKey>_BaseMap.png` | `CH_Goblin_BaseMap.png` |
+| 노멀맵 | `<ArtKey>_Normal.png` | `CH_Goblin_Normal.png` |
+| 마스크 (R = 금속성, A = 매끈함) | `<ArtKey>_Mask.png` | `CH_Goblin_Mask.png` |
+| 발광 | `<ArtKey>_Emission.png` | `CH_Goblin_Emission.png` |
+| 머티리얼이 여러 개일 때의 텍스처 | `<ArtKey>_<재질>_<맵>.png` (`<재질>` = FBX 안의 머티리얼 이름) | `PR_Desk_Top_BaseMap.png`, `PR_Desk_Leg_BaseMap.png` |
+
+- 텍스처는 `.png`를 권장한다(`.tga`, `.jpg`도 됨). PSD 원본은 저장소에 넣지 않는다.
+- 머티리얼(`M_…`)과 애니메이션 컨트롤러(`AOC_…`)는 **만들지 않는다**. 도구가 자동으로 만든다.
+
+**애니메이션 클립 이름은 이 목록에서만 고른다**
+| 클립 | 쓰는 곳 |
+|---|---|
+| `Idle` | 서 있기 |
+| `Walk` | 걷기 |
+| `Carry` | 가벼운 물건 들고 걷기 |
+| `CarryHeavy` | 무거운 잔해 들고 걷기 |
+| `Mop` | 물걸레질 |
+| `Eat` | 슬라임이 먹기·소화 |
+| `Talk` | 대화(배정) 중 |
+| `Dispatch` | 헬하운드 배출 |
+
+목록에 없는 이름(`Dance`, `Run` 등)은 연결되지 않는다. 새 클립이 필요하면 먼저 심지섭에게 말한다.
+
+## 4. 좋은 예와 나쁜 예
+| O | X | 이유 |
+|---|---|---|
+| `CH_Goblin.fbx` | `goblin.fbx` | 접두사가 없고 소문자로 시작한다 |
+| `CH_Goblin.fbx` | `CH_Goblin_final.fbx` | 버전 표시를 붙였다 |
+| `IT_HeavyDebris_01.fbx` | `IT_Heavy Debris 1.fbx` | 공백이 있다 |
+| `ENV_Wall_Curve.fbx` | `ENV-Wall-Curve.fbx` | 하이픈을 썼다 |
+| `CH_Orc@Walk.fbx` | `CH_Orc_Walk.fbx` | 애니메이션은 `@`로 구분해야 한다 |
+| `CH_Orc@Walk.fbx` | `CH_Orc@walking.fbx` | 클립 목록에 없는 이름이다 |
+| `CH_Slime_BaseMap.png` | `CH_Slime_Diffuse.png` | 맵 이름은 BaseMap, Normal, Mask, Emission 중 하나다 |
+
+## 5. 지금 필요한 ArtKey (요약)
+전체 목록과 설명은 `docs/rules/art-asset.md` 4절에 있다.
+- **캐릭터**: `CH_Player`, `CH_Goblin`, `CH_Orc`, `CH_Skeleton`, `CH_Slime`, `CH_Hellhound`, `CH_DemonKing`
+- **아이템**: `IT_HeavyDebris_01`~, `IT_Trash_01`~, `IT_Clutter_<물건>`, `IT_FloorStain_01`~(텍스처만), `IT_Mop`
+- **소품**: `PR_MopRack`, `PR_DischargeBin`, `PR_HomeSlot_<물건>`, `PR_<가구>`
+- **환경**: `ENV_FloorTile`, `ENV_Wall_Straight`, `ENV_Wall_Corner`, `ENV_Wall_Curve`, `ENV_Door`, `ENV_Stairs`, `ENV_Entrance`, `ENV_Toilet`
+- `IT_Clutter_<물건>`과 `PR_HomeSlot_<물건>`은 같은 물건 이름으로 짝을 짓는다. 예: `IT_Clutter_Book`(책)은 `PR_HomeSlot_Book`(책꽂이)에 돌려놓는다.
+- 목록에 없는 새 ArtKey가 필요하면 먼저 목록에 추가한다. 그래야 게임 프리팹도 같은 이름으로 만들어진다.
+
+## 6. 내보내기 체크리스트
+- [ ] 단위는 미터, 스케일은 1
+- [ ] 정면은 +Z, 위쪽은 Y (Blender는 FBX 내보내기에서 축을 맞춘다)
+- [ ] 피벗: 캐릭터, 아이템, 소품은 **바닥 중앙**. 벽, 바닥, 문은 **1m 격자에 맞춘 모서리**
+- [ ] 메시는 가능하면 하나, 머티리얼은 2개 이하
+- [ ] 캐릭터는 Generic 리그, 애니메이션은 클립마다 별도 파일
+- [ ] 크기는 아래 권장 높이에 가깝게
+
+| 대상 | 높이 | 대상 | 높이 |
+|---|---|---|---|
+| 플레이어 | 1.7m | 슬라임 | 0.8m |
+| 고블린 | 1.0m | 헬하운드 | 1.2m (어깨) |
+| 오크 | 2.0m | 마왕 | 3.0m |
+| 스켈레톤 | 1.7m | 벽, 문 | 3.0m (벽 두께 0.2m) |
+
+- [ ] 바닥 얼룩은 메시 없이 알파가 있는 `IT_FloorStain_01_BaseMap.png`만 준다
+
+## 7. 넘기는 방법
+1. ArtKey마다 폴더를 하나 만들고, 그 안에 모델, 애니메이션, 텍스처를 함께 담는다.
+   ```
+   CH_Goblin/
+   ├─ CH_Goblin.fbx
+   ├─ CH_Goblin@Idle.fbx
+   ├─ CH_Goblin@Walk.fbx
+   ├─ CH_Goblin_BaseMap.png
+   └─ CH_Goblin_Normal.png
+   ```
+2. 저장소에 직접 올리면 PR 본문의 "적용 명세" 표에 파일 이름과 들어갈 프리팹(ArtKey)을 적는다. 파일만 전달할 때도 같은 내용을 메시지로 남긴다.
+3. 받는 쪽(심지섭)은 폴더를 `5_Art/Model/<분류>/`에 넣고 `Tools > UnityGameJam > Art > 검사` → `전체 적용`을 누른다.
+
+## 8. 적용 결과 읽는 법
+| 결과 창 표시 | 뜻 | 해결 |
+|---|---|---|
+| ✔ 적용됨 | 게임에 들어갔다 | - |
+| ● 적용 가능 | 들어갈 준비가 됐다 | `전체 적용`을 누른다 |
+| ○ 모델 없음 | 게임에는 자리가 있는데 파일이 아직 없다 | 파일을 만든다 |
+| ? 주인 없음 | 파일은 있는데 같은 이름의 게임 프리팹이 없다 | 이름 오타를 확인하거나 ArtKey 목록에 추가한다 |
+| ✖ 이름 오류 | 이름 규칙 위반 | 4절 표를 보고 이름을 고친다 |
+| ✖ 중복 | 같은 이름의 파일이 두 개 있다 | 하나만 남긴다 |
+
+크기나 방향이 어긋나면 받는 쪽이 프리팹의 ArtSlot에서 보정할 수 있다. 다만 다음 파일부터는 6절 체크리스트로 맞춰 내보내는 것이 좋다.
