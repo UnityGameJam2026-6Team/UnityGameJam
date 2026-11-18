@@ -126,6 +126,8 @@ MonoBehaviour:
   _time: {fileID: 7455097430679122521}
   _facilityProgress: {fileID: 3597574368795784713}
   _choices: {fileID: 7929369331757693043}
+  _assignmentTitle: {fileID: 3209059385082329804}
+  _assignmentRoom: {fileID: 8096890268467916427}
   _rooms:
   - {fileID: 2610358971519152739}
   - {fileID: 3802296008320708013}
@@ -854,6 +856,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
+--- !u!114 &3209059385082329804 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 9220132212935486206, guid: a03bb912db12814498a5c2e2864a3d28, type: 3}
+  m_PrefabInstance: {fileID: 6015863417222516786}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
 --- !u!114 &3802296008320708013 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 7473965428713700767, guid: a03bb912db12814498a5c2e2864a3d28, type: 3}
@@ -914,6 +927,17 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 4428837796708083777, guid: a03bb912db12814498a5c2e2864a3d28, type: 3}
   m_PrefabInstance: {fileID: 6015863417222516786}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &8096890268467916427 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2531389314207071929, guid: a03bb912db12814498a5c2e2864a3d28, type: 3}
+  m_PrefabInstance: {fileID: 6015863417222516786}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
 --- !u!114 &8801462093175699174 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 2979606982985344724, guid: a03bb912db12814498a5c2e2864a3d28, type: 3}

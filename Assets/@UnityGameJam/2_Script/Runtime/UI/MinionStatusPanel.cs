@@ -40,11 +40,13 @@ namespace UnityGameJam.UI
             {
                 MinionStatus status = minions[i];
                 if (i > 0) { _text.AppendLine(); }
-                string room = status.AssignedZone.HasValue ? ZoneDisplayName.GetFullName(status.AssignedZone.Value) : "미배정";
+                string room = RoomName(status.AssignedZone);
                 _text.Append(WorkerName(status.Minion)).Append("   ").Append(room).Append("  ·  ").Append(ActivityName(status.Activity));
             }
             _rows.SetText(_text);
         }
+
+        internal static string RoomName(EZoneId? zone) => zone.HasValue ? ZoneDisplayName.GetFullName(zone.Value) : "미배정";
 
         internal static string WorkerName(EWorkerType worker) => worker switch
         {

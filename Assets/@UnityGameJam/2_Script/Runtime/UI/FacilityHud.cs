@@ -18,6 +18,8 @@ namespace UnityGameJam.UI
         [SerializeField] private TMP_Text _time;
         [SerializeField] private TMP_Text _facilityProgress;
         [SerializeField] private GameObject _choices;
+        [SerializeField] private TMP_Text _assignmentTitle;
+        [SerializeField] private TMP_Text _assignmentRoom;
         [SerializeField] private Button[] _rooms;
         [SerializeField] private Button _cancel;
         [SerializeField] private MinionStatusPanel _minionPanel;
@@ -61,19 +63,25 @@ namespace UnityGameJam.UI
             _workGauge.SetActive(session.IsPlayerWorking);
             _workFill.anchorMax = new Vector2(Mathf.Clamp01(session.PlayerWorkProgress / 100f), 1f);
 
-            EWorkerType? talking = null;
+            MinionStatus? talking = null;
             if (session.MatchState == EMatchState.Running)
             {
                 foreach (MinionStatus minion in session.Minions)
                 {
-                    if (minion.Activity == EMinionActivity.Talking) { talking = minion.Minion; break; }
+                    if (minion.Activity == EMinionActivity.Talking) { talking = minion; break; }
                 }
             }
-            if (talking != _talking)
+            if (talking?.Minion != _talking)
             {
-                if (talking.HasValue && !_talking.HasValue) { OpenAssignmentPanel(); }
-                else if (!talking.HasValue) { CloseAssignmentPanel(); }
-                _talking = talking;
+                if (talking.HasValue)
+                {
+                    MinionStatus minion = talking.Value;
+                    _assignmentTitle.text = $"{MinionStatusPanel.WorkerName(minion.Minion)}에게 맡길 곳";
+                    _assignmentRoom.text = $"현재 담당 방  {MinionStatusPanel.RoomName(minion.AssignedZone)}";
+                    if (!_talking.HasValue) { OpenAssignmentPanel(); }
+                }
+                else { CloseAssignmentPanel(); }
+                _talking = talking?.Minion;
             }
             if (_talking.HasValue && EventSystem.current != null &&
                 EventSystem.current.currentInputModule is InputSystemUIInputModule input &&
