@@ -31,14 +31,15 @@ Assets/
 │  ├─ 1_Scene/
 │  ├─ 2_Script/{Editor, Runtime, Test}
 │  ├─ 3_Data/{Json, ScriptableObject, Sheet}   Sheet = 원본 xlsx
-│  ├─ 4_Prefab/
-│  ├─ 5_Art/{Font, Spine, Sprite}
+│  ├─ 4_Prefab/{Character, Item, Prop, Environment, Floor, Marker, UI, System}   접두사 규칙은 docs/rules/prefab.md
+│  ├─ 5_Art/{Font, Model, Spine, Sprite}   Model/{Character, Item, Prop, Environment}/<ArtKey>/
 │  ├─ 6_Audio/{BGM, SFX}
 │  └─ 7_Setting/         URP 에셋, InputSystem_Actions
 │     └─ AI/ProjectRule/SKILL.md   Unity AI용 연결 파일 (규칙 원본은 이 문서와 docs/rules)
 └─ GDD/                  기획 문서 (Project 창에서 보이도록 Assets 안에 둔다)
    └─ Spec/              기능별 구현 스펙 (_Template.md를 복사해서 쓴다)
 docs/rules/              에이전트 작업 규칙 (Assets 밖이라 .meta가 생기지 않는다)
+docs/team/               담당자별 시작 문서 (lane-a.md 김보경, lane-b.md 심지섭)
 ```
 - 폴더 이름은 **단수형**으로 쓰고, 표시 순서는 번호 접두사(`N_`)로 정한다. 새 최상위 폴더는 사용자와 번호를 정한 뒤 만든다.
 - 예외: Unity 특수 폴더(`Resources`, `Plugins`, `StreamingAssets`, `Gizmos`, `Editor Default Resources`)는 정해진 이름 그대로 쓴다.

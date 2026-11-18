@@ -6,10 +6,13 @@
 ## 1. 레인과 소유 경로
 파일마다 주인은 한 명이다. **주인이 아닌 사람(과 그 사람의 에이전트)은 그 파일을 고치거나 커밋하지 않는다.**
 
-| 레인 | 담당 | 소유 경로 (`Assets/@UnityGameJam/` 기준) |
-|---|---|---|
-| **A: 규칙·시뮬레이션** | 순수 C# 게임 규칙, EditMode 테스트, 수치 데이터 | `2_Script/Runtime/{Cleaning, Minion, Proposal, Match, Facility, Data}/`, `2_Script/Test/`, `3_Data/` |
-| **B: 월드·표현** | 씬, 프리팹, 입력, 이동, 카메라, UI, 에디터 도구, 아트·사운드 적용 | `2_Script/Runtime/{Player, View, UI}/`, `2_Script/Editor/`, `1_Scene/`, `4_Prefab/`, `5_Art/`, `6_Audio/`, `7_Setting/InputSystem_Actions.inputactions`, 저장소 루트의 `ProjectSettings/` |
+| 레인 | 담당자 · 에이전트 | 담당 | 소유 경로 (`Assets/@UnityGameJam/` 기준) |
+|---|---|---|---|
+| **A: 규칙·시뮬레이션** | **김보경** · Codex | 순수 C# 게임 규칙, EditMode 테스트, 수치 데이터 | `2_Script/Runtime/{Cleaning, Minion, Proposal, Match, Facility, Data}/`, `2_Script/Test/`(B 하위 폴더 제외), `3_Data/` |
+| **B: 월드·표현** | **심지섭** · Unity AI | 씬, 프리팹, 입력, 이동, 카메라, UI, 에디터 도구, 아트·사운드 적용 | `2_Script/Runtime/{Player, View, UI}/`, `2_Script/Editor/`, `2_Script/Test/{Art, View}/`, `1_Scene/`, `4_Prefab/`, `5_Art/`, `6_Audio/`, `7_Setting/InputSystem_Actions.inputactions`, 저장소 루트의 `ProjectSettings/`, `docs/rules/{prefab, art-asset}.md` |
+
+- 담당자별 시작 문서(첫 프롬프트, 작업 큐, 체크리스트): `docs/team/lane-a.md`(김보경), `docs/team/lane-b.md`(심지섭). 각자 자기 문서만 고친다.
+- 사람 이름으로 레인을 알 수 있다. 에이전트는 "김보경"이면 A 레인, "심지섭"이면 B 레인으로 본다.
 | **공동 (계약)** | 두 레인의 접점 | `2_Script/Runtime/Contract/` (2절 절차로만 바꾼다) |
 | **공동 (설정)** | 한 번 정하면 거의 바뀌지 않는 것 | asmdef, `Packages/manifest.json`, `7_Setting/` 아래 URP 에셋, `AGENTS.md`, `docs/rules/` (바꿀 때는 메신저로 먼저 알리고 단독 PR로 올린다) |
 

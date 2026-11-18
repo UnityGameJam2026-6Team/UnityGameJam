@@ -178,7 +178,7 @@ Unity에서 병합 충돌은 대부분 **씬, 프리팹, SO, 설정 파일 같�
 - **커밋 전 확인**: 자기 소유가 아닌 파일이 변경 목록에 있으면 되돌린다(`git restore <파일>`). Unity는 씬을 열기만 해도 ProjectSettings나 씬을 다시 저장하는 경우가 있어서, 의도하지 않은 변경이 섞이기 쉽다.
 - 공유 씬이나 프리팹을 예외적으로 고쳐야 하면 메신저로 "잠금"을 알리고, 끝나면 해제를 알린다.
 - 최후 수단으로 각자 로컬 git 설정에 UnityYAMLMerge(Smart Merge)를 mergetool로 등록한다. 경로 예: `<Unity 설치 경로>/Editor/Data/Tools/UnityYAMLMerge.exe merge -p "$BASE" "$REMOTE" "$LOCAL" "$MERGED"`
-- 두 사람 모두 Codex를 쓴다. 에이전트가 레인을 넘지 않도록 규칙을 `docs/rules/collaboration.md`에 적고, `AGENTS.md`와 `SKILL.md`의 문서 표에 연결한다. 작업을 시작할 때 "나는 A 레인"처럼 레인을 알려 주면 에이전트가 소유 경로 밖의 파일을 고치지 않는다.
+- 김보경(A 레인)은 Codex, 심지섭(B 레인)은 Unity AI를 쓴다(`Assets/Plans/team-division-prefab-art-pipeline.md`). 에이전트가 레인을 넘지 않도록규칙을 `docs/rules/collaboration.md`에 적고, `AGENTS.md`와 `SKILL.md`의 문서 표에 연결한다. 작업을 시작할 때 "나는 A 레인"처럼 레인을 알려 주면 에이전트가 소유 경로 밖의 파일을 고치지 않는다.
 
 # Implementation Steps
 각 단계에서 먼저 `Assets/GDD/Spec/<기능>.md`를 쓰고 승인을 받는다. 그다음 테스트 작성(실패 확인) → 구현 → 테스트 통과 순서로 진행한다. 아래 표기에서 **[A]**는 규칙·시뮬레이션 레인, **[B]**는 월드·표현 레인, **[A+B]**는 함께 하는 작업이다.

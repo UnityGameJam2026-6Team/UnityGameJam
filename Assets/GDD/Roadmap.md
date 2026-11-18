@@ -11,7 +11,7 @@
 - [x] 계약 코드 `Runtime/Contract/`
 - [x] 미결 질문 Q1~Q8 답변 반영 (`Undecided.md` U1~U8 결정)
 
-## A 레인 (규칙·시뮬레이션)
+## A 레인 (규칙·시뮬레이션) · 김보경 · Codex · `docs/team/lane-a.md`
 - [ ] A1 청결도·오염 모델 (Spec `Cleaning.md`)
 - [ ] A2 데이터와 생성 (Spec `ContaminationSpawn.md`)
 - [ ] A3 작업 선택과 능력 (Spec `TaskSelection.md`)
@@ -20,8 +20,9 @@
 - [ ] A6 제안 대기열과 대사 (Spec `Proposal.md`)
 - [ ] A7 판 흐름과 마감 (Spec `MatchFlow.md`)
 
-## B 레인 (월드·표현)
-- [ ] B1 화이트박스 시설 (Spec `FacilityLayout.md`)
+## B 레인 (월드·표현) · 심지섭 · Unity AI · `docs/team/lane-b.md`
+- [x] B0 프리팹·아트 기반(Spec `ArtPipeline.md`, 규칙 `docs/rules/prefab.md`·`art-asset.md`)
+- [ ] B1 화이트박스 시설(Spec `FacilityLayout.md`)
 - [ ] B2 플레이어 (Spec `Player.md`)
 - [ ] B3 졸개 몸 (Spec `MinionAgent.md`)
 - [ ] B4 ContaminationView
