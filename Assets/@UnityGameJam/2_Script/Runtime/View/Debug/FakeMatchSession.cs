@@ -14,20 +14,26 @@ namespace UnityGameJam.View
         public float HeavyCarryMultiplier { get; }
         public float MopSeconds { get; }
         public int ItemsPerTypePerZone { get; }
+        public float MinionMoveSpeed { get; }
+        public float HellhoundAwaySeconds { get; }
 
-        public FakeMatchSettings(float matchSeconds, float baseMoveSpeed, float heavyCarryMultiplier, float mopSeconds, int itemsPerTypePerZone)
+        public FakeMatchSettings(float matchSeconds, float baseMoveSpeed, float heavyCarryMultiplier, float mopSeconds, int itemsPerTypePerZone,
+            float minionMoveSpeed = 3.5f, float hellhoundAwaySeconds = 3f)
         {
             MatchSeconds = matchSeconds;
             BaseMoveSpeed = baseMoveSpeed;
             HeavyCarryMultiplier = heavyCarryMultiplier;
             MopSeconds = mopSeconds;
             ItemsPerTypePerZone = itemsPerTypePerZone;
+            MinionMoveSpeed = minionMoveSpeed;
+            HellhoundAwaySeconds = hellhoundAwaySeconds;
         }
     }
 
     /// <summary>
     /// B 레인이 규칙(A 레인) 구현 전에 조작과 화면을 만들 수 있게 하는 가짜 판.
-    /// 계약(IMatchSession)만 흉내 내며, 졸개 행동과 제안은 하지 않는다. 실제 게임에서는 쓰지 않는다.
+    /// 계약(IMatchSession)만 흉내 낸다. 졸개는 배정받은 구역의 순찰 첫 점까지 이동만 하고(판단·작업 없음),
+    /// 헬하운드는 배출 구역에 갔다가 잠시 뒤 돌아온다. 제안은 만들지 않는다. 실제 게임에서는 쓰지 않는다.
     /// </summary>
     public sealed class FakeMatchSession : IMatchSession
     {
@@ -64,15 +70,19 @@ namespace UnityGameJam.View
         private readonly List<MinionStatus> _minions = new List<MinionStatus>();
         private readonly List<MessageEntry> _messages = new List<MessageEntry>();
         private readonly Dictionary<EZoneId, float> _startWeights = new Dictionary<EZoneId, float>();
+        private readonly Dictionary<EWorkerType, IMinionBody> _bodies;
         private float _facilityStartWeight;
         private int? _carriedItemId;
         private int? _mopTargetId;
+        private float _hellhoundAwayTimer = -1f;
 
         public FakeMatchSession(MatchSetup setup, FakeMatchSettings settings)
         {
             _layout = setup.Layout;
             _player = setup.PlayerBody;
             _settings = settings;
+            _bodies = setup.MinionBodies;
+            foreach (IMinionBody body in _bodies.Values) { body.SetMoveSpeed(settings.MinionMoveSpeed); }
             CreateItems();
             foreach (EWorkerType minion in new[] { EWorkerType.Goblin, EWorkerType.Orc, EWorkerType.Skeleton, EWorkerType.Slime, EWorkerType.Hellhound })
             {
@@ -137,6 +147,8 @@ namespace UnityGameJam.View
                 }
             }
 
+            UpdateMinions(deltaTime);
+
             RemainingTime = Mathf.Max(0f, RemainingTime - deltaTime);
             if (RemainingTime <= 0f) { EndMatch(); }
         }
@@ -153,8 +165,14 @@ namespace UnityGameJam.View
         public bool AssignRoom(EWorkerType minion, EZoneId zone)
         {
             int index = _minions.FindIndex(m => m.Minion == minion);
-            if (!CanAct() || index < 0) { return false; }
+            if (!CanAct() || index < 0 || minion == EWorkerType.Hellhound) { return false; }
             _minions[index] = new MinionStatus(minion, EMinionActivity.MovingToRoom, zone, null, false);
+
+            PatrolRoute route = _layout.PatrolRoutes.FirstOrDefault(r => r.Zone == zone);
+            if (_bodies.TryGetValue(minion, out IMinionBody body) && route != null && route.Points.Count > 0)
+            {
+                body.MoveTo(ZoneDisplayName.GetFloor(zone), route.Points[0]);
+            }
             return true;
         }
 
@@ -290,6 +308,46 @@ namespace UnityGameJam.View
         private bool CanAct()
         {
             return MatchState == EMatchState.Running;
+        }
+
+        /// <summary>몸이 도착하면 다음 상태로 넘긴다. 헬하운드는 배출 구역에서 잠시 머문 뒤 대기 위치로 돌아온다.</summary>
+        private void UpdateMinions(float deltaTime)
+        {
+            foreach (MinionStatus status in _minions.ToList())
+            {
+                if (!_bodies.TryGetValue(status.Minion, out IMinionBody body) || !body.HasArrived) { continue; }
+                switch (status.Activity)
+                {
+                    case EMinionActivity.MovingToRoom:
+                        SetActivity(status.Minion, EMinionActivity.Working);
+                        break;
+                    case EMinionActivity.Dispatching:
+                        if (_hellhoundAwayTimer < 0f) { _hellhoundAwayTimer = _settings.HellhoundAwaySeconds; }
+                        _hellhoundAwayTimer -= deltaTime;
+                        if (_hellhoundAwayTimer <= 0f && _layout.StartPositions.TryGetValue(status.Minion, out Vector3 post))
+                        {
+                            SetActivity(status.Minion, EMinionActivity.ReturningToLobby);
+                            body.MoveTo(EFloor.Floor1, post);
+                        }
+                        break;
+                    case EMinionActivity.ReturningToLobby:
+                        SetActivity(status.Minion, EMinionActivity.LobbyIdle);
+                        break;
+                }
+            }
+        }
+
+        private MinionStatus GetStatus(EWorkerType minion)
+        {
+            return _minions.FirstOrDefault(m => m.Minion == minion);
+        }
+
+        private void SetActivity(EWorkerType minion, EMinionActivity activity)
+        {
+            int index = _minions.FindIndex(m => m.Minion == minion);
+            if (index < 0) { return; }
+            MinionStatus old = _minions[index];
+            _minions[index] = new MinionStatus(minion, activity, old.AssignedZone, old.CarriedItemId, old.IsHoldingMop);
         }
 
         private bool IsCarrying(EContaminationType type)

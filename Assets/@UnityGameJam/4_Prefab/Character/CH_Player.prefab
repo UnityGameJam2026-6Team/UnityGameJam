@@ -156,6 +156,7 @@ GameObject:
   - component: {fileID: 6831866444007299375}
   - component: {fileID: 8606171190559929349}
   - component: {fileID: 1313077891600216107}
+  - component: {fileID: 8877789678333897341}
   m_Layer: 6
   m_Name: CH_Player
   m_TagString: Untagged
@@ -230,7 +231,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.Player.PlayerController
   _moveAction: {fileID: -1680190386980627800, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  _floorDownAction: {fileID: 2411907206095950430, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  _floorUpAction: {fileID: 7476244043514120974, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   _turnSpeed: 720
+  _animatorDriver: {fileID: 8877789678333897341}
 --- !u!114 &1313077891600216107
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -246,6 +250,19 @@ MonoBehaviour:
   _interactAction: {fileID: 5374140043372179849, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   _dropAction: {fileID: 8227098187209558794, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   _targetMarker: {fileID: 858681988769876106}
+--- !u!114 &8877789678333897341
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5236925343925869943}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae22024f82f0ff24193b317926c7f5db, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.View.CharacterAnimatorDriver
+  _artSlot: {fileID: 3100925658620781268}
 --- !u!1 &5744977641301550323
 GameObject:
   m_ObjectHideFlags: 0

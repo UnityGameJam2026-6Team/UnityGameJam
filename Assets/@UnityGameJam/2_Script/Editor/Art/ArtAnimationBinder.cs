@@ -52,12 +52,47 @@ namespace UnityGameJam.Editor.Art
                 isChanged = true;
             }
 
+            isChanged |= EnsurePoseTransitions(controller, stateMachine);
+
             if (isChanged)
             {
                 EditorUtility.SetDirty(controller);
                 AssetDatabase.SaveAssets();
             }
             return controller;
+        }
+
+        public const string PoseParameter = "Pose";
+
+        /// <summary>
+        /// int 파라미터 Pose와, Any State에서 각 상태로 가는 전이(Pose == 클립 순서)를 보장한다(U201, Spec MinionAgent 규칙 6).
+        /// 이미 있으면 바꾸지 않는다.
+        /// </summary>
+        private static bool EnsurePoseTransitions(AnimatorController controller, AnimatorStateMachine stateMachine)
+        {
+            bool isChanged = false;
+            if (controller.parameters.All(p => p.name != PoseParameter))
+            {
+                controller.AddParameter(PoseParameter, AnimatorControllerParameterType.Int);
+                isChanged = true;
+            }
+
+            for (int index = 0; index < ArtKeyRule.AllowedClipNames.Count; index++)
+            {
+                string clipName = ArtKeyRule.AllowedClipNames[index];
+                AnimatorState state = stateMachine.states.Select(s => s.state).FirstOrDefault(s => s.name == clipName);
+                if (state == null) { continue; }
+                bool hasTransition = stateMachine.anyStateTransitions.Any(t => t.destinationState == state);
+                if (hasTransition) { continue; }
+
+                AnimatorStateTransition transition = stateMachine.AddAnyStateTransition(state);
+                transition.AddCondition(AnimatorConditionMode.Equals, index, PoseParameter);
+                transition.hasExitTime = false;
+                transition.duration = 0.1f;
+                transition.canTransitionToSelf = false;
+                isChanged = true;
+            }
+            return isChanged;
         }
 
         /// <summary>모델 폴더의 애니메이션 fbx로 AOC를 만들거나 갱신한다. 애니메이션이 없으면 null.</summary>

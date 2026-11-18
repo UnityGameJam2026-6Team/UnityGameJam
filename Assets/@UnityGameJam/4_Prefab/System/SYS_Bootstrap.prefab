@@ -52,6 +52,12 @@ MonoBehaviour:
   _floors: []
   _camera: {fileID: 0}
   _playerPrefab: {fileID: 6831866444007299375, guid: 72575d62b095ceb479a9686613167406, type: 3}
+  _minionPrefabs:
+  - {fileID: 3914535539312488626, guid: 35bc7327ea962924b9b341266709aaa8, type: 3}
+  - {fileID: 3640365528208275110, guid: c097ba2e5184c2149bdefd94e3d462e8, type: 3}
+  - {fileID: 6522907435623012895, guid: 649d940fbea18984394db2e9492f402b, type: 3}
+  - {fileID: 8022452784697503894, guid: c5bd16cd27920a746b3f8056a2799bc2, type: 3}
+  - {fileID: 318912596208051970, guid: 4cd905ea7310c344895e2f6231e11180, type: 3}
 --- !u!114 &5194371869596296944
 MonoBehaviour:
   m_ObjectHideFlags: 0

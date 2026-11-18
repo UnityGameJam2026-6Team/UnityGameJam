@@ -24,7 +24,7 @@
 - [x] B0 프리팹·아트 기반(Spec `ArtPipeline.md`, 규칙 `docs/rules/prefab.md`·`art-asset.md`)
 - [x] B1 화이트박스 시설(Spec `FacilityLayout.md`)
 - [x] B2 플레이어 (Spec `Player.md`)
-- [ ] B3 졸개 몸 (Spec `MinionAgent.md`)
+- [x] B3 졸개 몸 (Spec `MinionAgent.md`) — 졸개 층간 이동 도착은 플레이 확인 필요
 - [ ] B4 ContaminationView
 - [ ] B5 HUD (Spec `Hud.md`)
 - [ ] B6 대화와 제안 UI (Spec `AssignmentUi.md`)

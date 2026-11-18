@@ -25,10 +25,15 @@ namespace UnityGameJam.View
 
         [Header("생성")]
         [SerializeField] private PlayerBody _playerPrefab;
+        [Tooltip("CH_Goblin, CH_Orc, CH_Skeleton, CH_Slime, CH_Hellhound")]
+        [SerializeField] private MinionAgent[] _minionPrefabs = Array.Empty<MinionAgent>();
+
+        private readonly List<MinionAgent> _minions = new List<MinionAgent>();
 
         public IMatchSession Session { get; private set; }
         public FacilityLayout Layout { get; private set; }
         public PlayerBody Player { get; private set; }
+        public IReadOnlyList<MinionAgent> Minions => _minions;
 
         /// <summary>판이 만들어지고 시작된 직후. HUD 등 보기 전용 컴포넌트가 구독한다.</summary>
         public event Action<MatchBootstrap> MatchStarted;
@@ -45,14 +50,22 @@ namespace UnityGameJam.View
                 return;
             }
 
+            StairDirectory stairs = StairDirectory.FromFloors(_floors);
             Player = Instantiate(_playerPrefab, start, Quaternion.identity);
             Player.Initialize(Layout.Floors);
 
             var setup = new MatchSetup { Layout = Layout, Seed = _seed, PlayerBody = Player };
+            SpawnMinions(setup, stairs);
             Session = _factory.Create(setup);
 
-            Player.GetComponent<PlayerController>().Initialize(Session);
-            Player.GetComponent<PlayerInteractor>().Initialize(Session, Layout, _viewSettings);
+            Player.GetComponent<PlayerController>().Initialize(Session, stairs, _viewSettings);
+            var interactor = Player.GetComponent<PlayerInteractor>();
+            interactor.Initialize(Session, Layout, _viewSettings);
+            foreach (MinionAgent minion in _minions)
+            {
+                interactor.RegisterMinion(minion.Worker, minion.transform);
+                minion.GetComponent<MinionStatusPresenter>().Initialize(Session);
+            }
             if (_camera != null) { _camera.SetTarget(Player.transform); }
 
             Session.StartMatch();
@@ -62,6 +75,24 @@ namespace UnityGameJam.View
         private void Update()
         {
             Session?.Tick(Time.deltaTime);
+        }
+
+        /// <summary>졸개를 시작점(1층 로비, 헬하운드는 현관)에 만들고 규칙에 몸으로 넘긴다.</summary>
+        private void SpawnMinions(MatchSetup setup, StairDirectory stairs)
+        {
+            foreach (MinionAgent prefab in _minionPrefabs)
+            {
+                if (prefab == null) { continue; }
+                if (!Layout.StartPositions.TryGetValue(prefab.Worker, out Vector3 position))
+                {
+                    Debug.LogWarning($"[Bootstrap] {prefab.Worker} 시작점이 없습니다.", this);
+                    continue;
+                }
+                MinionAgent minion = Instantiate(prefab, position, Quaternion.identity);
+                minion.Initialize(stairs, Layout.Floors, _viewSettings.StairTransitSeconds);
+                setup.MinionBodies[minion.Worker] = minion;
+                _minions.Add(minion);
+            }
         }
     }
 }
