@@ -9,6 +9,9 @@ namespace UnityGameJam.Contract
     /// </summary>
     public abstract class MatchSessionFactoryBase : ScriptableObject
     {
+        /// <summary>대상 탐색에도 적용할 판의 상호작용 거리(m). 값이 없으면 화면 설정을 사용한다.</summary>
+        public virtual float? InteractionDistance => null;
+
         public abstract IMatchSession Create(MatchSetup setup);
     }
 }

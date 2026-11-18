@@ -18,7 +18,7 @@ namespace UnityGameJam.Editor
         {
             var window = GetWindow<UnitMotionTuningWindow>();
             window.titleContent = new GUIContent("레벨 디자인");
-            window.minSize = new Vector2(510f, 280f);
+            window.minSize = new Vector2(510f, 400f);
         }
 
         private void OnEnable() => Undo.undoRedoPerformed += Reload;
@@ -39,7 +39,7 @@ namespace UnityGameJam.Editor
             scroll.style.flexGrow = 1;
             scroll.style.paddingLeft = 12;
             scroll.style.paddingRight = 12;
-            scroll.Add(new Label("이동 속도와 재생 속도는 기존 값의 배율입니다. 1이면 기본값을 사용합니다."));
+            scroll.Add(new Label("1은 기본 배율입니다. 애니메이션 배속은 재생 속도에 적용됩니다."));
             var columns = new VisualElement();
             columns.style.flexDirection = FlexDirection.Row;
             columns.Add(CreateUnit("플레이어", "_playerMotion", true));
@@ -72,14 +72,32 @@ namespace UnityGameJam.Editor
             heading.style.marginTop = 10;
             heading.style.marginBottom = 4;
             column.Add(heading);
+            AddSection("이동 속도 (배)");
             Add("걷기", "_walkRate");
             Add("달리기", "_runRate");
             Add("한 손 운반", "_carryRate");
             if (canCarryHeavy) { Add("두 손 운반", "_heavyCarryRate"); }
             Add("걸레 이동", "_mopWalkRate");
-            Add("집기 재생", "_pickupRate");
-            Add("내려놓기 재생", "_dropRate");
+
+            AddSection("애니메이션 배속 (배)");
+            Add("대기", "_idleAnimationRate");
+            Add("걷기", "_walkAnimationRate");
+            Add("달리기", "_runAnimationRate");
+            Add("한 손 운반", "_carryAnimationRate");
+            if (canCarryHeavy) { Add("두 손 운반", "_heavyCarryAnimationRate"); }
+            Add("걸레 이동", "_mopWalkAnimationRate");
+            Add("물걸레질", "_mopAnimationRate");
+            Add("집기", "_pickupRate");
+            Add("내려놓기", "_dropRate");
             return column;
+
+            void AddSection(string label)
+            {
+                var section = new Label(label);
+                section.style.unityFontStyleAndWeight = FontStyle.Bold;
+                section.style.marginTop = 6;
+                column.Add(section);
+            }
 
             void Add(string label, string property)
             {

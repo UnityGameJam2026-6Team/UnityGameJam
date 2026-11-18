@@ -17,10 +17,6 @@ namespace UnityGameJam.Player
         [Header("입력")]
         [SerializeField] private InputActionReference _moveAction;
 
-        [Header("회전")]
-        [Tooltip("이동 방향으로 도는 속도(도/초)")]
-        [SerializeField] private float _turnSpeed = 720f;
-
         [Header("표시")]
         [SerializeField] private CharacterAnimatorDriver _animatorDriver;
 
@@ -172,7 +168,7 @@ namespace UnityGameJam.Player
         {
             direction.y = 0f;
             if (direction.sqrMagnitude <= 0.000001f) { return; }
-            actor.rotation = Quaternion.RotateTowards(actor.rotation, Quaternion.LookRotation(direction), _turnSpeed * Time.deltaTime);
+            actor.rotation = Quaternion.RotateTowards(actor.rotation, Quaternion.LookRotation(direction), _settings.PlayerTurnSpeed * Time.deltaTime);
         }
 
         private void BeginHandling(bool pickingUp, bool heavy)

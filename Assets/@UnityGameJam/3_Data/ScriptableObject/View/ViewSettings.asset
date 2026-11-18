@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: ViewSettings
   m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.View.ViewSettingsSO
   _interactRadius: 1.5
+  _playerTurnSpeed: 720
   _cameraHeight: 18
   _cameraBackDistance: 12
   _cameraPitch: 56
@@ -40,18 +41,32 @@ MonoBehaviour:
   _carryOffset: 0.2
   _mopOffset: {x: 0.45, y: 0, z: 0}
   _playerMotion:
-    _walkRate: 0
-    _runRate: 0
-    _carryRate: 0
-    _heavyCarryRate: 0
-    _mopWalkRate: 0
-    _pickupRate: 0
-    _dropRate: 0
+    _walkRate: 1
+    _runRate: 1
+    _carryRate: 1
+    _heavyCarryRate: 1
+    _mopWalkRate: 1
+    _idleAnimationRate: 1
+    _walkAnimationRate: 1
+    _runAnimationRate: 1
+    _carryAnimationRate: 1
+    _heavyCarryAnimationRate: 1
+    _mopWalkAnimationRate: 1
+    _mopAnimationRate: 1
+    _pickupRate: 1
+    _dropRate: 1
   _goblinMotion:
-    _walkRate: 0
-    _runRate: 0
-    _carryRate: 0
-    _heavyCarryRate: 0
-    _mopWalkRate: 0
-    _pickupRate: 0
-    _dropRate: 0
+    _walkRate: 1
+    _runRate: 1
+    _carryRate: 1
+    _heavyCarryRate: 1
+    _mopWalkRate: 1
+    _idleAnimationRate: 1
+    _walkAnimationRate: 1
+    _runAnimationRate: 1
+    _carryAnimationRate: 1
+    _heavyCarryAnimationRate: 1
+    _mopWalkAnimationRate: 1
+    _mopAnimationRate: 1
+    _pickupRate: 1
+    _dropRate: 1

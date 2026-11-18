@@ -188,8 +188,7 @@ namespace UnityGameJam.View
             bool moving = CurrentPose == EPose.Walk || CurrentPose == EPose.Dispatch ||
                 CurrentPose == EPose.Carry || CurrentPose == EPose.CarryHeavy;
             bool heavy = _carried == EContaminationType.HeavyDebris || CurrentPose == EPose.CarryHeavy;
-            AnimationClip clip = SelectLoop(moving, heavy);
-            if (clip == null) { clip = _set.Idle; }
+            var (clip, animationRate) = SelectLoop(moving, heavy);
             if (clip != _loop)
             {
                 _loop = clip;
@@ -201,13 +200,12 @@ namespace UnityGameJam.View
             if (holdHeavy) { _loopTime = 0f; }
             else
             {
-                float rate = 1f;
                 if (moving && _speed > 0f)
                 {
                     float reference = GetLocomotionSpeed(_speed, _sprint || CurrentPose == EPose.Dispatch, _carried, _holdingMop);
-                    rate = _speed / reference;
+                    animationRate *= _speed / reference;
                 }
-                _loopTime = Mathf.Repeat(_loopTime + Time.deltaTime * rate, Mathf.Max(0.001f, clip.length));
+                _loopTime = Mathf.Repeat(_loopTime + Time.deltaTime * animationRate, Mathf.Max(0.001f, clip.length));
             }
             Sample(clip, _loopTime);
             if (moving && _hips != null && clip.length > 0f)
@@ -217,15 +215,16 @@ namespace UnityGameJam.View
             if (!moving && !heavy && _carried.HasValue) { _holdingArm?.Apply(1f); }
         }
 
-        private AnimationClip SelectLoop(bool moving, bool heavy)
+        private (AnimationClip Clip, float Rate) SelectLoop(bool moving, bool heavy)
         {
-            if (CurrentPose == EPose.Mop && _set.Mop != null) { return _set.Mop; }
-            if (CurrentPose == EPose.Dispatch && _set.Dispatch != null) { return _set.Dispatch; }
-            if (heavy && _set.CarryHeavy != null) { return _set.CarryHeavy; }
-            if (!moving) { return _set.Idle; }
-            if (_holdingMop && _set.MopWalk != null) { return _set.MopWalk; }
-            if ((_carried.HasValue || CurrentPose == EPose.Carry) && _set.Carry != null) { return _set.Carry; }
-            return _sprint && _set.Run != null ? _set.Run : _set.Walk;
+            if (CurrentPose == EPose.Mop && _set.Mop != null) { return (_set.Mop, _tuning.MopAnimationRate); }
+            if (CurrentPose == EPose.Dispatch && _set.Dispatch != null) { return (_set.Dispatch, 1f); }
+            if (heavy && _set.CarryHeavy != null) { return (_set.CarryHeavy, _tuning.HeavyCarryAnimationRate); }
+            if (!moving) { return (_set.Idle, _tuning.IdleAnimationRate); }
+            if (_holdingMop && _set.MopWalk != null) { return (_set.MopWalk, _tuning.MopWalkAnimationRate); }
+            if ((_carried.HasValue || CurrentPose == EPose.Carry) && _set.Carry != null) { return (_set.Carry, _tuning.CarryAnimationRate); }
+            if (_sprint && _set.Run != null) { return (_set.Run, _tuning.RunAnimationRate); }
+            return _set.Walk != null ? (_set.Walk, _tuning.WalkAnimationRate) : (_set.Idle, _tuning.IdleAnimationRate);
         }
 
         private Vector3 MeasureCycleTravel(AnimationClip clip)

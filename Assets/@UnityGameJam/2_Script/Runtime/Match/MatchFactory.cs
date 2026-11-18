@@ -13,6 +13,8 @@ namespace UnityGameJam.Match
         [SerializeField] private ZoneSpawnTableSO _spawnTable;
         [SerializeField] private WorkerStatsSO[] _workerStats;
 
+        public override float? InteractionDistance => _rules != null ? _rules.InteractionDistance : null;
+
         public override IMatchSession Create(MatchSetup setup)
         {
             if (setup == null) { throw new System.ArgumentNullException(nameof(setup)); }

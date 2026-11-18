@@ -11,9 +11,13 @@ namespace UnityGameJam.View
     [CreateAssetMenu(menuName = "UnityGameJam/View Settings", fileName = "ViewSettings")]
     public sealed class ViewSettingsSO : ScriptableObject
     {
-        [Header("상호작용")]
-        [Tooltip("상호작용 대상을 고르는 반경(m)")]
-        [SerializeField] private float _interactRadius = 1.5f;
+        [Header("디버그 판")]
+        [Tooltip("GameRule을 사용하지 않는 판에서 대상을 고르는 반경(m)")]
+        [SerializeField, Min(0.01f)] private float _interactRadius = 1.5f;
+
+        [Header("플레이어 조작")]
+        [Tooltip("이동 또는 대화 방향으로 회전하는 속도(도/초)")]
+        [SerializeField, Min(1f)] private float _playerTurnSpeed = 720f;
 
         [Header("카메라")]
         [Tooltip("플레이어 위 높이(m)")]
@@ -27,9 +31,10 @@ namespace UnityGameJam.View
         [SerializeField, Range(10f, 55f)] private float _conversationCameraPitch = 24f;
         [SerializeField, Range(0.35f, 0.75f)] private float _conversationFrameHeight = 0.67f;
 
-        [Header("계단 (B3)")]
-        [Tooltip("계단으로 층을 옮길 때 걸리는 시간(초). 임시값")]
-        [SerializeField] private float _stairTransitSeconds = 2f;
+        [Header("계단")]
+        [Tooltip("플레이어와 졸개가 계단으로 층을 옮기는 데 걸리는 시간(초)")]
+        [SerializeField, Min(0f)] private float _stairTransitSeconds = 2f;
+        [Tooltip("플레이어가 계단을 자동으로 타기 시작하는 거리(m)")]
         [SerializeField, Min(0.1f)] private float _stairApproachRadius = 0.85f;
 
         [Serializable]
@@ -85,6 +90,7 @@ namespace UnityGameJam.View
         }
 
         public float InteractRadius => _interactRadius;
+        public float PlayerTurnSpeed => _playerTurnSpeed;
         public float CameraHeight => _cameraHeight;
         public float CameraBackDistance => _cameraBackDistance;
         public float CameraPitch => _cameraPitch;

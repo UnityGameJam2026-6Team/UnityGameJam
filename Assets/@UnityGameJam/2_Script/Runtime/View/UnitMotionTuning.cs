@@ -7,13 +7,31 @@ namespace UnityGameJam.View
     [Serializable]
     public struct UnitMotionTuning
     {
+        [Header("이동 속도 배율")]
         [SerializeField] private float _walkRate;
         [SerializeField] private float _runRate;
         [SerializeField] private float _carryRate;
         [SerializeField] private float _heavyCarryRate;
         [SerializeField] private float _mopWalkRate;
+
+        [Header("애니메이션 배속")]
+        [SerializeField] private float _idleAnimationRate;
+        [SerializeField] private float _walkAnimationRate;
+        [SerializeField] private float _runAnimationRate;
+        [SerializeField] private float _carryAnimationRate;
+        [SerializeField] private float _heavyCarryAnimationRate;
+        [SerializeField] private float _mopWalkAnimationRate;
+        [SerializeField] private float _mopAnimationRate;
         [SerializeField] private float _pickupRate;
         [SerializeField] private float _dropRate;
+
+        public float IdleAnimationRate => NormalizeRate(_idleAnimationRate);
+        public float WalkAnimationRate => NormalizeRate(_walkAnimationRate);
+        public float RunAnimationRate => NormalizeRate(_runAnimationRate);
+        public float CarryAnimationRate => NormalizeRate(_carryAnimationRate);
+        public float HeavyCarryAnimationRate => NormalizeRate(_heavyCarryAnimationRate);
+        public float MopWalkAnimationRate => NormalizeRate(_mopWalkAnimationRate);
+        public float MopAnimationRate => NormalizeRate(_mopAnimationRate);
 
         public float ResolveMoveSpeed(float walkSpeed, float measuredSpeed, float baseSpeed, float ruleSpeed,
             bool running, EContaminationType? carried, bool holdingMop)

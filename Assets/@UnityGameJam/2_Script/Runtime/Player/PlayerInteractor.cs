@@ -26,7 +26,7 @@ namespace UnityGameJam.Player
 
         private IMatchSession _session;
         private PlayerInteractionSelector _selector;
-        private ViewSettingsSO _settings;
+        private float _interactionDistance;
         private PlayerBody _playerBody;
         private PlayerController _playerController;
         private EFloor? _borrowedMopFloor;
@@ -39,10 +39,10 @@ namespace UnityGameJam.Player
             if (_interactAction != null) { _interactAction.action.Enable(); }
         }
 
-        public void Initialize(IMatchSession session, FacilityLayout layout, ViewSettingsSO settings)
+        public void Initialize(IMatchSession session, FacilityLayout layout, float interactionDistance)
         {
             _session = session;
-            _settings = settings;
+            _interactionDistance = interactionDistance;
             _playerBody = GetComponent<PlayerBody>();
             _playerController = GetComponent<PlayerController>();
             _borrowedMopFloor = null;
@@ -94,7 +94,7 @@ namespace UnityGameJam.Player
                 }
             }
             Vector3? hellhound = _minions.TryGetValue(EWorkerType.Hellhound, out Transform body) && body != null ? body.position : _hellhoundStart;
-            return new PlayerInteractionContext(transform.position, _playerBody.Floor, _settings.InteractRadius, carried,
+            return new PlayerInteractionContext(transform.position, _playerBody.Floor, _interactionDistance, carried,
                 _session.IsPlayerHoldingMop, _borrowedMopFloor, hellhound);
         }
 

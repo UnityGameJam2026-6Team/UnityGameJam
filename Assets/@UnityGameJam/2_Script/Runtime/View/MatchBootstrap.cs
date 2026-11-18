@@ -93,7 +93,7 @@ namespace UnityGameJam.View
 
             Player.GetComponent<PlayerController>().Initialize(Session, stairs, _viewSettings, _camera);
             var interactor = Player.GetComponent<PlayerInteractor>();
-            interactor.Initialize(Session, Layout, _viewSettings);
+            interactor.Initialize(Session, Layout, _factory.InteractionDistance ?? _viewSettings.InteractRadius);
             foreach (MinionAgent minion in _minions)
             {
                 interactor.RegisterMinion(minion.Worker, minion.transform);

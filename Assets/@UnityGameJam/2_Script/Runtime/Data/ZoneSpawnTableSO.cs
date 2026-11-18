@@ -8,8 +8,14 @@ namespace UnityGameJam.Data
     [CreateAssetMenu(menuName = "UnityGameJam/Data/Zone Spawn Table", fileName = "ZoneSpawnTable")]
     public sealed class ZoneSpawnTableSO : ScriptableObject
     {
+        [Header("구역별 초기 오염 개수")]
+        [Tooltip("구역과 오염 유형 조합마다 한 행을 유지합니다. 최대 개수는 생성 지점과 제자리 슬롯 수 이내여야 합니다.")]
         [SerializeField] private ZoneSpawnRange[] _ranges = Array.Empty<ZoneSpawnRange>();
+
+        [Header("시설 전체 초기 오염량")]
+        [Tooltip("오염 개수에 유형별 가중치를 곱한 합의 최소값")]
         [SerializeField, Min(1)] private int _minimumFacilityWeight;
+        [Tooltip("오염 개수에 유형별 가중치를 곱한 합의 최대값")]
         [SerializeField, Min(1)] private int _maximumFacilityWeight;
         [SerializeField, Min(1)] private int _maximumAttempts;
 
