@@ -25,10 +25,12 @@ namespace UnityGameJam.View
 
         [Header("생성")]
         [SerializeField] private PlayerBody _playerPrefab;
+        [SerializeField] private GameObject _roomCoverPrefab;
         [Tooltip("CH_Goblin, CH_Orc, CH_Skeleton, CH_Slime, CH_Hellhound")]
         [SerializeField] private MinionAgent[] _minionPrefabs = Array.Empty<MinionAgent>();
 
         private readonly List<MinionAgent> _minions = new List<MinionAgent>();
+        private RoomVisibility _roomVisibility;
 
         private readonly Dictionary<int, string> _homeSlotKinds = new Dictionary<int, string>();
         public IReadOnlyDictionary<int, string> HomeSlotKinds => _homeSlotKinds;
@@ -66,6 +68,11 @@ namespace UnityGameJam.View
             StairDirectory stairs = StairDirectory.FromFloors(_floors);
             Player = Instantiate(_playerPrefab, start, Quaternion.identity);
             Player.Initialize(Layout.Floors);
+            if (_roomCoverPrefab != null)
+            {
+                _roomVisibility = new RoomVisibility(Layout, _roomCoverPrefab, transform);
+                _roomVisibility.RevealAt(Player.Floor, start);
+            }
 
             var setup = new MatchSetup { Layout = Layout, Seed = _seed, PlayerBody = Player };
             SpawnMinions(setup, stairs);
@@ -89,6 +96,11 @@ namespace UnityGameJam.View
         private void Update()
         {
             Session?.Tick(Time.deltaTime);
+        }
+
+        private void LateUpdate()
+        {
+            _roomVisibility?.RevealAt(Player.Floor, Player.Position);
         }
 
         /// <summary>졸개를 시작점(1층 로비, 헬하운드는 현관)에 만들고 규칙에 몸으로 넘긴다.</summary>

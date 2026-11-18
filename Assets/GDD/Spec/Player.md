@@ -12,7 +12,7 @@
 ## 입력 / 출력
 | 구분 | 이름 | 설명 |
 |---|---|---|
-| 입력 | `Player/Move`, `Player/Interact`(E, Press), `Player/Drop`(Q) | Project-wide Input Actions |
+| 입력 | `Player/Move`(WASD), `Player/Interact`(J, Press), `Player/Drop`(Q) | Project-wide Input Actions |
 | 입력 | `IMatchReadModel` | 이동 속도, 운반 중인 개체, 걸레 보유, 작업 진행도, 개체 목록, 판 상태 |
 | 입력 | `FacilityLayout` | 화장실, 제자리 슬롯, 헬하운드 위치(시작점), 층 범위 |
 | 출력 | `IMatchCommands` 호출 | `TryPickUp`, `TryDrop`, `TryPlaceAtHome`, `TryStartMop`, `CancelWork`, `TryBorrowMop`, `TryReturnMop`, `DispatchHellhound`, `BeginTalk` |
@@ -23,8 +23,8 @@
 2. 판 상태가 Running이 아니면 이동과 상호작용을 받지 않는다.
 3. 작업 중(`IsPlayerWorking`)에는 이동하지 않는다. 이동 입력이 들어오면 `CancelWork`를 보내 작업을 멈춘다(U205 임시).
 4. 상호작용 대상은 반경(`ViewSettingsSO.InteractRadius`, 임시 1.5m) 안에서만 고르고, 아래 **우선순위가 높은 행동 하나**를 고른다(U206 임시). 같은 우선순위 안에서는 가까운 대상이 먼저다.
-   1. 작은 물건을 들고 있고 제자리 슬롯이 반경 안 → 제자리 정리(`TryPlaceAtHome`)
-   2. 화장실 걸레 위치가 반경 안: 걸레를 들고 있으면 반납, 빈손이면 대여(`TryReturnMop` / `TryBorrowMop(층)`)
+   1. 작은 물건을 들고 있고 그 물건의 `HomeSlotId`와 일치하는 자리가 현재 층의 반경 안 → 그 자리에 표시하고 제자리 정리(`TryPlaceAtHome`). 다른 자리만 가까이 있으면 다음 상호작용을 확인한다.
+   2. 현재 층의 걸레걸이가 반경 안 → 빈손이면 대여(`TryBorrowMop(층)`). 걸레를 든 동안에는 빌렸던 걸레걸이에서만 반납을 표시한다(`TryReturnMop`).
    3. 1층 헬하운드 위치가 반경 안 → 배출 명령(`DispatchHellhound`)
    4. 졸개가 반경 안 → 대화(`BeginTalk`). B2에서는 졸개 몸이 없으므로 대상이 생기지 않는다(B3에서 연결)
    5. 걸레를 들고 있고 바닥 얼룩이 반경 안 → 물걸레질 시작(`TryStartMop`)
@@ -45,7 +45,7 @@
 | `Runtime/Player/PlayerInteractionSelector.cs` | **순수 클래스**. 규칙 4의 우선순위로 행동 하나를 고른다(테스트 대상) |
 | `Runtime/Player/PlayerBody.cs` | `IWorkerBody` 구현. 위치와 층(규칙 8) |
 | `Runtime/Player/PlayerController.cs` | CharacterController 이동(규칙 1~3), 이동 방향으로 회전 |
-| `Runtime/Player/PlayerInteractor.cs` | 매 프레임 대상 고르기 → 표시(규칙 6), E·Q 입력 → 명령(규칙 4·5) |
+| `Runtime/Player/PlayerInteractor.cs` | 매 프레임 대상 고르기 → 표시(규칙 6), J·Q 입력 → 명령(규칙 4·5) |
 | `Runtime/Player/FloorCameraFollow.cs` | 카메라 추적(규칙 7). SYS_MainCamera에 붙인다 |
 | `Runtime/View/MatchBootstrap.cs` | 층 3개 → `FacilityLayoutBuilder` → 팩토리로 판 생성 → 플레이어 생성(시작점) → 카메라·입력 연결 → 매 프레임 `Tick` |
 | `Runtime/View/Debug/FakeMatchSession.cs` | 가짜 판. 생성 지점 일부에 개체를 놓고 줍기·내려놓기·제자리·걸레·물걸레질(진행도 0→100)·배출을 흉내 낸다. 운반 감속 50%, 청결도 계산(가중치 4/3/2/1) |
@@ -76,7 +76,7 @@
 ## 테스트 시나리오 (`Test/View/PlayerInteractionSelectorTest.cs`, `Test/View/FakeMatchSessionTest.cs`)
 | 규칙 | 조건 | 행동 | 기대 결과 | 테스트 메서드 이름 |
 |---|---|---|---|---|
-| 4-1 | 작은 물건을 들고 슬롯 옆 | 고르기 | 제자리 정리 | `작은_물건을_들고_제자리_옆이면_제자리_정리를_고른다` |
+| 4-1 | 작은 물건을 들고 여러 자리 옆 | 고르기 | 해당 물건의 지정 자리에만 제자리 정리 표시 | `작은_물건을_들고_제자리_옆이면_제자리_정리를_고른다`, `가까운_자리가_든_물건의_제자리가_아니면_정리를_고르지_않는다` |
 | 4-2 | 빈손으로 화장실 옆 / 걸레를 들고 화장실 옆 | 고르기 | 대여 / 반납 | `빈손으로_화장실_옆이면_걸레를_빌린다`, `걸레를_들고_화장실_옆이면_반납한다` |
 | 4-3 | 헬하운드 옆 | 고르기 | 배출 명령 | `헬하운드_옆이면_배출을_명령한다` |
 | 4-5 | 걸레를 들고 얼룩 옆 | 고르기 | 물걸레질 | `걸레를_들고_얼룩_옆이면_닦기를_고른다` |

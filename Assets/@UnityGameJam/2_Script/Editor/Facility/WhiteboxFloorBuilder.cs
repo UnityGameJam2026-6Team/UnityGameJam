@@ -209,7 +209,10 @@ namespace UnityGameJam.Editor.Facility
                         toiletFloor.localScale = new Vector3(r.width, 1f, r.height);
                         Transform toilet = Place("Marker/MK_Toilet", markers, center, 0f);
                         toilet.localScale = new Vector3(r.width, 3f, r.height);
-                        Place("Prop/PR_MopRack", props, new Vector3(r.xMin + 0.5f, 0f, center.z), 90f);
+                        Transform rack = Place("Prop/PR_MopRack", props, new Vector3(r.xMin + 0.5f, 0f, center.z), 90f);
+                        var station = new SerializedObject(toilet.GetComponent<ToiletAuthoring>());
+                        station.FindProperty("_mopPickup").objectReferenceValue = rack;
+                        station.ApplyModifiedPropertiesWithoutUndo();
                         break;
                     case ERoomKind.Stairs:
                         Place("Environment/ENV_Stairs", props, new Vector3(r.xMin, 0f, r.yMin), 0f);

@@ -7,7 +7,7 @@
 - Inspiration / Reference Games: 미정
 - Tone / Art Direction: 미정 (Art 폴더는 Font / Spine / Sprite)
 - Target Platform: PC (StandaloneWindows64)
-- Screen Orientation / Resolution: 미정 (가로 1920x1080 예상)
+- Screen Orientation / Resolution: 가로 1920×1080 (U18)
 - Render Pipeline: URP (PC_RPAsset / Mobile_RPAsset)
 
 # Game Mechanics

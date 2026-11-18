@@ -68,7 +68,7 @@ GDD §3.2의 경향을 자리 수로 옮겼다. 환산 기준: 적게(나올 수
 ## 규칙
 1. `FacilityLayout.Zones`에는 `EZoneId` 9개가 하나씩 있고, 각 구역의 `Floor`는 `ZoneDisplayName.GetFloor`와 같다.
 2. 구역 사각형끼리 겹치지 않는다(같은 구역 안의 사각형끼리도 겹치지 않는다).
-3. 화장실은 층마다 1개씩 모두 3개다. 화장실 범위는 어떤 구역 사각형과도 겹치지 않는다. `MopPickupPosition`은 화장실 범위 안에 있다.
+3. 화장실은 층마다 1개씩 모두 3개다. 화장실 범위는 어떤 구역 사각형과도 겹치지 않는다. `MopPickupPosition`은 해당 화장실 안의 걸레걸이(`PR_MopRack`) 위치다. 같은 위치에서 빌리고 반납한다.
 4. 배출 구역은 1층 로비 구역 안에 있다.
 5. `StartPositions`에 작업자 6종이 모두 있다.
 6. 구역마다 순찰 경로가 1개 있고 점이 3개 이상이며, 모든 점이 그 구역 안에 있다.
@@ -76,6 +76,7 @@ GDD §3.2의 경향을 자리 수로 옮겼다. 환산 기준: 적게(나올 수
 8. 제자리 슬롯의 SlotId는 겹치지 않고, 자기 구역 안에 있다. 구역별 개수는 작은 물건 용량과 같다.
 9. `Floors`에 층 범위 3개가 있다.
 10. 시작점, 순찰점, 생성 지점, 화장실 걸레 위치는 모두 NavMesh 위에 있다(1m 이내에서 샘플링).
+11. 한 판에서 플레이어가 아직 들어가지 않은 방은 내부가 보이지 않는다(U13). 플레이어가 그 방의 구역에 들어가면 방 전체가 드러나고, 다른 방이나 층으로 이동해도 방문 기록은 유지된다. 로비·화장실·계단은 처음부터 보인다. 졸개는 가려진 방에서도 작업할 수 있고, 졸개의 이동은 방을 공개하지 않는다. 다시 하기로 새 판을 시작하면 방문 기록을 초기화한다.
 
 ## 설계
 | 파일 | 역할 |
@@ -89,6 +90,8 @@ GDD §3.2의 경향을 자리 수로 옮겼다. 환산 기준: 적게(나올 수
 | `Runtime/View/Authoring/DischargeAreaAuthoring.cs` | BoxCollider(범위) |
 | `Runtime/View/Authoring/FloorAuthoring.cs` | `FL_` 루트. `EFloor` + 층 범위 |
 | `Runtime/View/Authoring/FacilityLayoutBuilder.cs` | 정적 클래스. `FloorAuthoring` 3개(와 그 자식 마커)를 받아 `FacilityLayout`을 만든다. Bootstrap(B2)은 씬의 층 인스턴스 3개를 인스펙터로 연결해 호출한다(Find 사용 안 함) |
+| `Runtime/View/RoomVisibility.cs`, `SYS_RoomCover` | 판 시작 시 방 구역의 각 사각형에 가림 프리팹을 생성한다. 가림에는 렌더러만 두고, 플레이어가 들어가면 같은 방의 가림을 모두 끈다. |
+| `UnvisitedRoom.shader`, `SYS_MainCamera` | 카메라 깊이 텍스처에서 화면에 보이는 표면의 월드 좌표를 읽는다. 미방문 방 안의 표면만 가려 문 밖 로비의 플레이어를 볼 수 있다. |
 | `Runtime/View/Authoring/StairAuthoring.cs` | 계단 마커(층, 출입 지점). B3의 StairPortal이 쓴다 |
 | `Runtime/View/Authoring/FacilityLayoutValidator.cs` | 규칙 1~9 검사 (순수, 테스트 대상) |
 | 프리팹 `MK_*` | 위 Authoring 하나씩 + Gizmo(구역별 색). 보이지 않는다 |
@@ -136,3 +139,4 @@ GDD §3.2의 경향을 자리 수로 옮겼다. 환산 기준: 적게(나올 수
 | 1~9 | 실제 `Facility.unity` | 추출 → 검사 | 위반 0, 추출 경고 0 | `Facility_씬의_배치_데이터는_규칙을_모두_만족한다` |
 | 7·8 | 실제 `Facility.unity` | 구역별 개수 세기 | 용량표와 같음 | `구역별_생성_지점과_제자리_슬롯_수가_용량표와_같다` |
 | 10 | 실제 씬 + NavMesh | 샘플링 | 모든 점이 NavMesh 위, 같은 층 계단에서 경로가 끝까지 이어짐 | `모든_저작_지점이_NavMesh_위에_있고_계단에서_갈_수_있다` |
+| 11 | 한 방에 구역 사각형 두 개, 다른 층에 방 하나 | 한 구역 진입 후 로비 복귀, 새 판 시작 | 방문한 방 전체만 공개되며 새 판에서는 다시 가려짐 | `RoomVisibilityTest` |

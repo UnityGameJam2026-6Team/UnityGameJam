@@ -7,9 +7,10 @@ using UnityGameJam.View;
 namespace UnityGameJam.Player
 {
     /// <summary>
-    /// 매 프레임 E키 대상을 골라 표시하고(Spec Player 규칙 4·6), E·Q 입력을 규칙 명령으로 바꾼다(규칙 4·5).
+    /// 매 프레임 상호작용 대상을 골라 표시하고(Spec Player 규칙 4·6), 상호작용·내려놓기 입력을 규칙 명령으로 바꾼다(규칙 4·5).
     /// 고르는 기준은 PlayerInteractionSelector가 갖고 있다.
     /// </summary>
+    [RequireComponent(typeof(PlayerBody))]
     public sealed class PlayerInteractor : MonoBehaviour
     {
         [Header("입력")]
@@ -26,6 +27,8 @@ namespace UnityGameJam.Player
         private IMatchSession _session;
         private PlayerInteractionSelector _selector;
         private ViewSettingsSO _settings;
+        private PlayerBody _playerBody;
+        private EFloor? _borrowedMopFloor;
         private Vector3? _hellhoundStart;
 
         public InteractionChoice CurrentChoice { get; private set; } = InteractionChoice.None;
@@ -40,6 +43,8 @@ namespace UnityGameJam.Player
         {
             _session = session;
             _settings = settings;
+            _playerBody = GetComponent<PlayerBody>();
+            _borrowedMopFloor = null;
             _selector = new PlayerInteractionSelector(layout);
             _hellhoundStart = layout.StartPositions.TryGetValue(EWorkerType.Hellhound, out Vector3 hellhound) ? hellhound : (Vector3?)null;
             if (_targetMarker != null) { _targetMarker.SetParent(null, true); } // 플레이어 회전을 따라가지 않게 분리
@@ -73,16 +78,22 @@ namespace UnityGameJam.Player
 
         private PlayerInteractionContext BuildContext()
         {
-            EContaminationType? carried = null;
-            if (_session.PlayerCarriedItemId.HasValue)
+            ItemSnapshot? carried = null;
+            int? carriedId = _session.PlayerCarriedItemId;
+            if (carriedId.HasValue)
             {
                 foreach (ItemSnapshot item in _session.Items)
                 {
-                    if (item.ItemId == _session.PlayerCarriedItemId.Value) { carried = item.Type; }
+                    if (item.ItemId == carriedId.Value)
+                    {
+                        carried = item;
+                        break;
+                    }
                 }
             }
             Vector3? hellhound = _minions.TryGetValue(EWorkerType.Hellhound, out Transform body) && body != null ? body.position : _hellhoundStart;
-            return new PlayerInteractionContext(transform.position, _settings.InteractRadius, carried, _session.IsPlayerHoldingMop, hellhound);
+            return new PlayerInteractionContext(transform.position, _playerBody.Floor, _settings.InteractRadius, carried,
+                _session.IsPlayerHoldingMop, _borrowedMopFloor, hellhound);
         }
 
         private List<(EWorkerType, Vector3)> CollectMinions()
@@ -100,8 +111,12 @@ namespace UnityGameJam.Player
             switch (choice.Kind)
             {
                 case EInteractionKind.PlaceAtHome: _session.TryPlaceAtHome(); break;
-                case EInteractionKind.ReturnMop: _session.TryReturnMop(); break;
-                case EInteractionKind.BorrowMop: _session.TryBorrowMop(choice.Floor); break;
+                case EInteractionKind.ReturnMop:
+                    if (_session.TryReturnMop()) { _borrowedMopFloor = null; }
+                    break;
+                case EInteractionKind.BorrowMop:
+                    if (_session.TryBorrowMop(choice.Floor)) { _borrowedMopFloor = choice.Floor; }
+                    break;
                 case EInteractionKind.DispatchHellhound: _session.DispatchHellhound(); break;
                 case EInteractionKind.TalkToMinion: _session.BeginTalk(choice.Minion); break;
                 case EInteractionKind.StartMop: _session.TryStartMop(choice.ItemId); break;

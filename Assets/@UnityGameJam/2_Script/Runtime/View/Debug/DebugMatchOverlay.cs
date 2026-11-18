@@ -39,7 +39,7 @@ namespace UnityGameJam.View
             _builder.AppendLine($"운반: {(session.PlayerCarriedItemId.HasValue ? "#" + session.PlayerCarriedItemId.Value : "-")}   걸레: {(session.IsPlayerHoldingMop ? "O" : "-")}");
             if (session.IsPlayerWorking) { _builder.AppendLine($"작업 중 {session.PlayerWorkProgress:0}%"); }
             if (_interactor == null && _bootstrap.Player != null) { _interactor = _bootstrap.Player.GetComponent<PlayerInteractor>(); }
-            if (_interactor != null) { _builder.AppendLine($"E: {_interactor.CurrentChoice.Kind}   Q: 내려놓기"); }
+            if (_interactor != null) { _builder.AppendLine($"J: {_interactor.CurrentChoice.Kind}   Q: 내려놓기"); }
             if (_controller == null && _bootstrap.Player != null) { _controller = _bootstrap.Player.GetComponent<PlayerController>(); }
             if (_controller != null && _controller.IsInStairTransit) { _builder.AppendLine("계단 이동 중..."); }
             else if (_controller != null && _controller.IsNearStair) { _builder.AppendLine("계단: 1 아래층 / 2 위층"); }

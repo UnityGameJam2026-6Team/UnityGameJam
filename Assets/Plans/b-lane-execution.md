@@ -28,11 +28,11 @@ New Input System, Project-wide `InputSystem_Actions` (B 소유)
 | 액션 | 키 | 비고 |
 |---|---|---|
 | Player/Move | WASD, 왼쪽 스틱 | 속도는 `IMatchReadModel.PlayerMoveSpeed`를 매 프레임 적용 |
-| Player/Interact | E | **지금은 Hold 인터랙션이 걸려 있다.** B2에서 Press로 바꾼다 |
+| Player/Interact | J | 한 번 눌러 근처 대상과 상호작용한다 |
 | Player/Drop | Q | 들고 있는 물건 내려놓기 |
-| Player/Approve, Hold | F, R | 가장 오래된 활성 제안 |
+| Player/Approve, Hold | K, L | 가장 오래된 활성 제안 |
 | Player/ToggleMinionPanel | Tab | 졸개 현황 패널 |
-| UI/Navigate, Submit, Cancel | 방향키, Enter, Esc | 배정 패널이 열리면 Player 맵을 끄고 UI 맵만 쓴다(U10 임시) |
+| UI/Navigate, Submit, Cancel | 방향키, Enter, Esc | 배정 패널이 열리면 Player 맵을 끄고 UI 맵만 쓴다(U10) |
 
 # UI
 HUD 5영역의 배치는 상위 계획의 와이어프레임을 따른다. B6과 B7에서 새로 만드는 화면은 다음과 같다.
@@ -150,7 +150,7 @@ float PlayerWorkProgress { get; }   // 0~100(%). 작업 중이 아니면 0
 | B2-3 | "Interact를 Press로 바꿔줘" | Input Actions의 Interact에서 Hold 제거 | 탭으로 반응 | `setting: Interact 입력을 Press로 변경` |
 | B2-4 | "FakeMatchSession을 만들어줘" | `FakeMatchSession : IMatchSession`(아이템 몇 개, 줍기·내려놓기·닦기 진행도 0→100, 운반 시 속도 50%), 팩토리 SO와 에셋, `FakeMatchSessionTest` | 테스트 통과 | `feat: 가짜 판 세션` |
 | B2-5 | "CH_Player와 PlayerController, PlayerBody를 만들어줘" | `CH_Player`(CharacterController, 표준 구조 1.7m), Move 입력 → `PlayerMoveSpeed` 적용, 층 판별 | 이동, 운반 시 절반 속도 | - |
-| B2-6 | "PlayerInteractor를 만들어줘" | 반경 안에서 가장 가까운 대상 강조, E → TryPickUp / TryPlaceAtHome / TryStartMop / BeginTalk / DispatchHellhound / TryBorrowMop·TryReturnMop, Q → TryDrop, 손 위치(CarryAnchor) | 가짜 세션으로 줍기·놓기·닦기 | - |
+| B2-6 | "PlayerInteractor를 만들어줘" | 반경 안에서 가장 가까운 대상 강조, J → TryPickUp / TryPlaceAtHome / TryStartMop / BeginTalk / DispatchHellhound / TryBorrowMop·TryReturnMop, Q → TryDrop, 손 위치(CarryAnchor) | 가짜 세션으로 줍기·놓기·닦기 | - |
 | B2-7 | "카메라와 Bootstrap을 붙여줘" | `FloorCameraFollow`(현재 층만 보이게), `SYS_Bootstrap`(`MatchBootstrap`: 팩토리 SO → Create → 매 프레임 Tick) | 플레이 확인 | `feat: 플레이어 이동·상호작용과 카메라` |
 
 ## B3. 졸개 몸 · `feat/minion-agent` · *의존: B1, B2-4*
@@ -187,7 +187,7 @@ float PlayerWorkProgress { get; }   // 0~100(%). 작업 중이 아니면 0
 |---|---|---|---|---|
 | B6-1 | "B6 Spec을 써줘" | `Spec/AssignmentUi.md`(입력 맵 전환, U9·U10 임시 처리) | **사람 승인** | `docs: B6 배정·제안 UI 스펙` |
 | B6-2 | "배정 패널을 만들어줘" | `UI_AssignmentPanel`(BeginTalk → 9개 구역 버튼 → AssignRoom / Esc → CancelTalk) | 가짜 세션으로 배정 | - |
-| B6-3 | "제안 스택을 만들어줘" | `UI_ProposalStack`(아래에서 올라옴, 7초 게이지, 입력 대상 강조, 통보는 회색, F/R → Approve/Hold) | 여러 제안이 동시에 올 때 | `feat: 배정 패널과 제안 스택` |
+| B6-3 | "제안 스택을 만들어줘" | `UI_ProposalStack`(아래에서 올라옴, 7초 게이지, 입력 대상 강조, 통보는 회색, K/L → Approve/Hold) | 여러 제안이 동시에 올 때 | `feat: 배정 패널과 제안 스택` |
 
 ## B7. 마감 연출과 결과 · `feat/result-ui` · *의존: B6*
 | 단위 | 명령 | 산출물 | 검증 | 커밋 |

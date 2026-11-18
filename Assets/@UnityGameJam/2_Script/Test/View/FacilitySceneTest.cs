@@ -63,6 +63,18 @@ namespace UnityGameJam.Test.View
         }
 
         [Test]
+        public void 각_층의_걸레_대여와_반납_지점은_실제_걸레걸이와_일치한다()
+        {
+            foreach (FloorAuthoring floor in _floors)
+            {
+                Transform rack = floor.transform.Find("Props/PR_MopRack");
+                Assert.IsNotNull(rack, floor.Floor.ToString());
+                ToiletStation station = _layout.Toilets.Single(t => t.Floor == floor.Floor);
+                Assert.That(Vector3.Distance(station.MopPickupPosition, rack.position), Is.LessThan(0.001f));
+            }
+        }
+
+        [Test]
         public void Facility_씬의_배치_데이터는_규칙을_모두_만족한다()
         {
             CollectionAssert.IsEmpty(_warnings);
