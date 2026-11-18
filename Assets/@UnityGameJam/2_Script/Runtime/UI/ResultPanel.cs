@@ -28,7 +28,6 @@ namespace UnityGameJam.UI
         private int _pageDirection;
         private bool _isReloading;
         private bool _hasRecorded;
-        private readonly string _recordId = Guid.NewGuid().ToString("N");
 
         public void Show(MatchResult result, float facilityThreshold, float zoneThreshold)
         {
@@ -49,24 +48,38 @@ namespace UnityGameJam.UI
             _hasRecorded = true;
             float seconds = bootstrap.CompletionSeconds ?? bootstrap.MatchDuration;
             bool isComplete = result.FacilityCleanliness >= 100f;
-            var entry = new LocalLeaderboard.Entry
-            {
-                Id = _recordId, Progress = result.FacilityCleanliness, Seconds = seconds, IsComplete = isComplete
-            };
             string time = LeaderboardView.FormatTime(seconds);
             _record.text = isComplete ? $"청소 완료  {time}" : $"종료 진행도  {result.FacilityCleanliness:0.##}%";
+            string nickname = PlayerNickname.Current;
+            bool hasNickname = !string.IsNullOrWhiteSpace(nickname);
+            LocalLeaderboard leaderboard = LocalLeaderboard.ForThisPc();
             try
             {
-                List<LocalLeaderboard.Entry> entries = LocalLeaderboard.ForThisPc().Add(entry);
-                int rank = entries.FindIndex(saved => saved.Id == _recordId) + 1;
-                _record.text += $"  ·  이번 기록 {rank}위";
-                _leaderboard.Show(entries, _recordId);
+                if (!hasNickname)
+                {
+                    _record.text += "  ·  닉네임 미등록";
+                    _leaderboard.Show(leaderboard.Read(), useKeyboardPaging: true);
+                    return;
+                }
+
+                var entry = new LocalLeaderboard.Entry
+                {
+                    Nickname = nickname,
+                    Progress = result.FacilityCleanliness,
+                    Seconds = seconds,
+                    IsComplete = isComplete
+                };
+                List<LocalLeaderboard.Entry> entries = leaderboard.Add(entry);
+                int index = entries.FindIndex(saved => saved.Nickname == nickname);
+                string best = ReferenceEquals(entries[index], entry) ? "새 최고 기록" : "최고 기록 유지";
+                _record.text += $"  ·  {best} {index + 1}위";
+                _leaderboard.Show(entries, nickname, useKeyboardPaging: true);
             }
             catch (Exception exception) when (exception is IOException || exception is InvalidDataException || exception is UnauthorizedAccessException ||
                 exception is ArgumentException)
             {
-                _leaderboard.ShowMessage("기록을 저장하지 못했습니다.");
-                Debug.LogWarning($"[순위표] 기록 저장 실패 · {exception.Message}", this);
+                _leaderboard.ShowMessage(hasNickname ? "기록을 저장하지 못했습니다." : "순위표를 읽지 못했습니다.");
+                Debug.LogWarning($"[순위표] 기록 처리 실패 · {exception.Message}", this);
             }
         }
 

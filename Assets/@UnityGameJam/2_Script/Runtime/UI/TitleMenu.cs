@@ -15,13 +15,14 @@ namespace UnityGameJam.UI
         [SerializeField] private GameObject _loadingLabel;
         [SerializeField] private GameObject _leaderboardOverlay;
         [SerializeField] private LeaderboardView _leaderboard;
+        [SerializeField] private NameInputPanel _nameInput;
         [SerializeField, Min(0.01f)] private float _fadeSeconds = 0.45f;
 
         private bool _isLoading;
 
         public void OpenLeaderboard()
         {
-            if (_isLoading) { return; }
+            if (_isLoading || _nameInput.IsOpen) { return; }
             try
             {
                 _leaderboard.Show(LocalLeaderboard.ForThisPc().Read());
@@ -42,13 +43,18 @@ namespace UnityGameJam.UI
 
         public void StartGame()
         {
-            if (_isLoading) { return; }
+            if (_isLoading || _nameInput.IsOpen || _leaderboardOverlay.activeSelf) { return; }
             if (!Application.CanStreamedLevelBeLoaded(_gameScene))
             {
                 Debug.LogError($"빌드 씬 목록에서 게임 씬을 찾을 수 없습니다. ({_gameScene})", this);
                 return;
             }
 
+            _nameInput.Open(BeginLoading);
+        }
+
+        private void BeginLoading()
+        {
             _isLoading = true;
             _menuInput.interactable = false;
             _fade.blocksRaycasts = true;
@@ -57,7 +63,7 @@ namespace UnityGameJam.UI
 
         public void QuitGame()
         {
-            if (_isLoading) { return; }
+            if (_isLoading || _nameInput.IsOpen) { return; }
 #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;
 #else

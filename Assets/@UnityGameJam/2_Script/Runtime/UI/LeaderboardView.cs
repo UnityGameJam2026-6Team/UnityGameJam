@@ -2,43 +2,71 @@ using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace UnityGameJam.UI
 {
     public sealed class LeaderboardView : MonoBehaviour
     {
         private const int DisplayCount = 10;
+        private static readonly Color32 _firstPlaceColor = new Color32(255, 209, 152, 255);
+        private static readonly Color32 _recordColor = new Color32(249, 227, 210, 255);
+        private static readonly Color32 _highlightColor = new Color32(255, 181, 209, 255);
 
-        [SerializeField] private TMP_Text[] _rows;
+        [Serializable]
+        private sealed class Row
+        {
+            public Image Background;
+            public TMP_Text Rank;
+            public TMP_Text Nickname;
+            public TMP_Text Record;
+        }
+
+        [SerializeField] private Row[] _rows;
+        [SerializeField] private GameObject _columnHeaders;
         [SerializeField] private TMP_Text _message;
         [SerializeField] private GameObject _pager;
         [SerializeField] private TMP_Text _pageIndicator;
-        [SerializeField] private UnityEngine.UI.Button _previous;
-        [SerializeField] private UnityEngine.UI.Button _next;
+        [SerializeField] private Button _previous;
+        [SerializeField] private Button _next;
 
         private IReadOnlyList<LocalLeaderboard.Entry> _entries = Array.Empty<LocalLeaderboard.Entry>();
-        private string _highlightedEntry;
+        private string _highlightedNickname;
         private int _page;
         private bool _useKeyboardPaging;
 
         private int EntryCount => Math.Min(_entries.Count, DisplayCount);
         private int LastPage => Math.Max(0, (EntryCount - 1) / _rows.Length);
 
-        internal void Show(IReadOnlyList<LocalLeaderboard.Entry> entries, string highlightedEntry = null)
+        internal void Show(IReadOnlyList<LocalLeaderboard.Entry> entries, string highlightedNickname = null, bool useKeyboardPaging = false)
         {
             _entries = entries;
-            _highlightedEntry = highlightedEntry;
-            _useKeyboardPaging = highlightedEntry != null;
+            _highlightedNickname = highlightedNickname;
+            _useKeyboardPaging = useKeyboardPaging;
             _page = 0;
-            if (EntryCount == 0) { ShowMessage("아직 기록이 없습니다."); }
-            else { RenderPage(); }
+            if (EntryCount == 0)
+            {
+                ShowMessage("아직 기록이 없습니다.");
+                return;
+            }
+
+            for (int i = 0; i < EntryCount; i++)
+            {
+                if (IsHighlighted(_entries[i]))
+                {
+                    _page = i / _rows.Length;
+                    break;
+                }
+            }
+            RenderPage();
         }
 
         internal void ShowMessage(string message)
         {
             _entries = Array.Empty<LocalLeaderboard.Entry>();
             _page = 0;
-            foreach (TMP_Text row in _rows) { row.gameObject.SetActive(false); }
+            foreach (Row row in _rows) { row.Background.gameObject.SetActive(false); }
+            _columnHeaders.SetActive(false);
             _pager.SetActive(false);
             _message.text = message;
             _message.gameObject.SetActive(true);
@@ -59,17 +87,21 @@ namespace UnityGameJam.UI
         {
             int firstRank = _page * _rows.Length;
             _message.gameObject.SetActive(false);
+            _columnHeaders.SetActive(true);
             for (int i = 0; i < _rows.Length; i++)
             {
                 int index = firstRank + i;
-                TMP_Text row = _rows[i];
-                row.gameObject.SetActive(index < EntryCount);
+                Row row = _rows[i];
+                row.Background.gameObject.SetActive(index < EntryCount);
                 if (index >= EntryCount) { continue; }
                 LocalLeaderboard.Entry entry = _entries[index];
-                string result = entry.IsComplete ? $"완료  {FormatTime(entry.Seconds)}" : $"{entry.Progress:0.##}%";
-                string color = index == 0 ? "#FFD198" : "#F9E3D2";
-                string marker = entry.Id == _highlightedEntry ? "<pos=310><color=#FFB5D1>이번 기록</color>" : "";
-                row.text = $"<color={color}>{index + 1}위</color><pos=94>{result}{marker}";
+                bool isHighlighted = IsHighlighted(entry);
+                row.Background.enabled = isHighlighted;
+                row.Rank.text = $"{index + 1}위";
+                row.Rank.color = index == 0 ? _firstPlaceColor : _recordColor;
+                row.Nickname.text = string.IsNullOrWhiteSpace(entry.Nickname) ? "이름 없음" : entry.Nickname;
+                row.Nickname.color = isHighlighted ? _highlightColor : _recordColor;
+                row.Record.text = entry.IsComplete ? FormatTime(entry.Seconds) : $"{entry.Progress:0.##}%";
             }
 
             _pager.SetActive(LastPage > 0);
@@ -77,6 +109,9 @@ namespace UnityGameJam.UI
             _previous.interactable = _page > 0;
             _next.interactable = _page < LastPage;
         }
+
+        private bool IsHighlighted(LocalLeaderboard.Entry entry) =>
+            !string.IsNullOrEmpty(_highlightedNickname) && entry.Nickname == _highlightedNickname;
 
         internal static string FormatTime(float seconds)
         {

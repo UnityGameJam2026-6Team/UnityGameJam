@@ -10,7 +10,9 @@ namespace UnityGameJam.UI
         [Serializable]
         internal sealed class Entry
         {
+            // 닉네임 등록 전에 저장한 기록은 기존 ID로 읽는다.
             public string Id;
+            public string Nickname;
             public float Progress;
             public float Seconds;
             public bool IsComplete;
@@ -45,7 +47,7 @@ namespace UnityGameJam.UI
             }
             foreach (Entry saved in history.Entries)
             {
-                if (saved == null || string.IsNullOrEmpty(saved.Id) ||
+                if (saved == null || (string.IsNullOrWhiteSpace(saved.Nickname) && string.IsNullOrEmpty(saved.Id)) ||
                     !float.IsFinite(saved.Progress) || saved.Progress < 0f || saved.Progress > 100f ||
                     !float.IsFinite(saved.Seconds) || saved.Seconds < 0f)
                 {
@@ -59,11 +61,20 @@ namespace UnityGameJam.UI
         internal List<Entry> Add(Entry entry)
         {
             List<Entry> entries = Read();
-            if (!entries.Exists(saved => saved.Id == entry.Id))
+            bool hasNickname = !string.IsNullOrWhiteSpace(entry.Nickname);
+            int index = hasNickname
+                ? entries.FindIndex(saved => saved.Nickname == entry.Nickname)
+                : entries.FindIndex(saved => string.IsNullOrWhiteSpace(saved.Nickname) && saved.Id == entry.Id);
+            if (index >= 0)
+            {
+                if (!hasNickname || CompareScores(entry, entries[index]) >= 0) { return entries; }
+                entries[index] = entry;
+            }
+            else
             {
                 entries.Add(entry);
-                entries.Sort(Compare);
             }
+            entries.Sort(Compare);
 
             Directory.CreateDirectory(Path.GetDirectoryName(_path));
             string temporary = _path + ".tmp";
@@ -81,11 +92,21 @@ namespace UnityGameJam.UI
 
         internal static int Compare(Entry first, Entry second)
         {
+            int comparison = CompareScores(first, second);
+            if (comparison != 0) { return comparison; }
+
+            string firstKey = string.IsNullOrWhiteSpace(first.Nickname) ? first.Id : first.Nickname;
+            string secondKey = string.IsNullOrWhiteSpace(second.Nickname) ? second.Id : second.Nickname;
+            int keyComparison = string.CompareOrdinal(firstKey, secondKey);
+            return keyComparison != 0 ? keyComparison : string.CompareOrdinal(first.Id, second.Id);
+        }
+
+        private static int CompareScores(Entry first, Entry second)
+        {
             if (first.IsComplete != second.IsComplete) { return first.IsComplete ? -1 : 1; }
-            int comparison = first.IsComplete
+            return first.IsComplete
                 ? first.Seconds.CompareTo(second.Seconds)
                 : second.Progress.CompareTo(first.Progress);
-            return comparison != 0 ? comparison : string.CompareOrdinal(first.Id, second.Id);
         }
     }
 }
