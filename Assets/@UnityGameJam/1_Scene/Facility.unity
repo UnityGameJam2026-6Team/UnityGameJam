@@ -181,6 +181,17 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8238399661577313726, guid: f60dd482a96c1074a9d8213eb303e3c5, type: 3}
   m_PrefabInstance: {fileID: 10453404}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &10453406 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3914812212179797820, guid: f60dd482a96c1074a9d8213eb303e3c5, type: 3}
+  m_PrefabInstance: {fileID: 10453404}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4284d5326091d034e8129396e183886f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.View.FloorAuthoring
 --- !u!1001 &69333934
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -309,8 +320,91 @@ Transform:
   - {fileID: 2026766808}
   - {fileID: 69333935}
   - {fileID: 1852920702}
+  - {fileID: 1417290734}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &1417290733
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1292269512}
+    m_Modifications:
+    - target: {fileID: 115705904595631096, guid: 811347c831847d54587db5008f94481f, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 115705904595631096, guid: 811347c831847d54587db5008f94481f, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 115705904595631096, guid: 811347c831847d54587db5008f94481f, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 115705904595631096, guid: 811347c831847d54587db5008f94481f, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 115705904595631096, guid: 811347c831847d54587db5008f94481f, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 115705904595631096, guid: 811347c831847d54587db5008f94481f, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 115705904595631096, guid: 811347c831847d54587db5008f94481f, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 115705904595631096, guid: 811347c831847d54587db5008f94481f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 115705904595631096, guid: 811347c831847d54587db5008f94481f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 115705904595631096, guid: 811347c831847d54587db5008f94481f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 690500462245009955, guid: 811347c831847d54587db5008f94481f, type: 3}
+      propertyPath: _camera
+      value: 
+      objectReference: {fileID: 2026766809}
+    - target: {fileID: 690500462245009955, guid: 811347c831847d54587db5008f94481f, type: 3}
+      propertyPath: _floors.Array.size
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 690500462245009955, guid: 811347c831847d54587db5008f94481f, type: 3}
+      propertyPath: '_floors.Array.data[0]'
+      value: 
+      objectReference: {fileID: 1497434822}
+    - target: {fileID: 690500462245009955, guid: 811347c831847d54587db5008f94481f, type: 3}
+      propertyPath: '_floors.Array.data[1]'
+      value: 
+      objectReference: {fileID: 10453406}
+    - target: {fileID: 690500462245009955, guid: 811347c831847d54587db5008f94481f, type: 3}
+      propertyPath: '_floors.Array.data[2]'
+      value: 
+      objectReference: {fileID: 1543948172}
+    - target: {fileID: 5952858674502005673, guid: 811347c831847d54587db5008f94481f, type: 3}
+      propertyPath: m_Name
+      value: SYS_Bootstrap
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 811347c831847d54587db5008f94481f, type: 3}
+--- !u!4 &1417290734 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 115705904595631096, guid: 811347c831847d54587db5008f94481f, type: 3}
+  m_PrefabInstance: {fileID: 1417290733}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1497434820
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -373,6 +467,17 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 618625605282739117, guid: 2c938951d55371941a4cd16f16310717, type: 3}
   m_PrefabInstance: {fileID: 1497434820}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1497434822 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5272328458516079516, guid: 2c938951d55371941a4cd16f16310717, type: 3}
+  m_PrefabInstance: {fileID: 1497434820}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4284d5326091d034e8129396e183886f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.View.FloorAuthoring
 --- !u!1001 &1543948170
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -435,6 +540,17 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 3547592685756675762, guid: 2f93fa2c204cd6340bd55b2e5f0d7f70, type: 3}
   m_PrefabInstance: {fileID: 1543948170}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1543948172 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4808428746085180456, guid: 2f93fa2c204cd6340bd55b2e5f0d7f70, type: 3}
+  m_PrefabInstance: {fileID: 1543948170}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4284d5326091d034e8129396e183886f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.View.FloorAuthoring
 --- !u!1001 &1852920701
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -559,6 +675,17 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1662321323445230795, guid: 70678236d0071ca408e5273d3d4c43ec, type: 3}
   m_PrefabInstance: {fileID: 2026766807}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &2026766809 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3124968332839938015, guid: 70678236d0071ca408e5273d3d4c43ec, type: 3}
+  m_PrefabInstance: {fileID: 2026766807}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5646db15312c377449f49697fbab50b4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.Player.FloorCameraFollow
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

@@ -1,0 +1,89 @@
+# 플레이어 (B2) 스펙
+
+- 상태: **확정** (사용자 요청으로 작성과 구현을 함께 진행. GDD에 없는 값은 U205~U207 임시값으로 두고 플레이테스트에서 조정)
+- 담당: B 레인 · 심지섭
+- 근거: GDD §1(핵심 흐름), §3.1(오염 유형별 처리), §4(플레이어: 무거운 잔해 운반 중 감속, 물걸레질은 한 번 상호작용한 뒤 일정 시간 작업), §5.1(대면 배정), §7.1(화장실·물걸레), §7.2(현관 배출), §9(카메라: 플레이어 중심 내려다보기, 현재 층만 표시) / Undecided U5(걸레 반납), U7(선점 가로채기), U20(운반 감속 50%), U21(진행도 0~100)
+- 범위: 이번에 하는 것은 플레이어 이동, 상호작용 대상 고르기와 명령 전달, 카메라 추적, Bootstrap, 가짜 판(FakeMatchSession), 연출용 설정 SO, Interact 입력 변경이다. 하지 않는 것은 졸개 몸과 계단 이동(B3, 플레이어 계단 이동 포함), 오염 표시(B4, 이번에는 디버그 표시만), HUD(B5)다.
+- 네임스페이스: `UnityGameJam.Player`, `UnityGameJam.View`
+
+## 목적
+플레이어가 시설을 걸어 다니며 줍기, 내려놓기, 제자리 정리, 물걸레질, 걸레 대여·반납, 헬하운드 배출, 졸개 대화를 **규칙(A 레인)에 명령으로 전달**하게 한다. 규칙 구현 전에도 가짜 판으로 끝까지 조작해 볼 수 있게 한다.
+
+## 입력 / 출력
+| 구분 | 이름 | 설명 |
+|---|---|---|
+| 입력 | `Player/Move`, `Player/Interact`(E, Press), `Player/Drop`(Q) | Project-wide Input Actions |
+| 입력 | `IMatchReadModel` | 이동 속도, 운반 중인 개체, 걸레 보유, 작업 진행도, 개체 목록, 판 상태 |
+| 입력 | `FacilityLayout` | 화장실, 제자리 슬롯, 헬하운드 위치(시작점), 층 범위 |
+| 출력 | `IMatchCommands` 호출 | `TryPickUp`, `TryDrop`, `TryPlaceAtHome`, `TryStartMop`, `CancelWork`, `TryBorrowMop`, `TryReturnMop`, `DispatchHellhound`, `BeginTalk` |
+| 출력 | `IWorkerBody` | 플레이어의 위치와 층(규칙이 읽음) |
+
+## 규칙
+1. 플레이어는 `IMatchReadModel.PlayerMoveSpeed`로 이동한다(무거운 잔해를 들면 규칙이 절반으로 준다, U20).
+2. 판 상태가 Running이 아니면 이동과 상호작용을 받지 않는다.
+3. 작업 중(`IsPlayerWorking`)에는 이동하지 않는다. 이동 입력이 들어오면 `CancelWork`를 보내 작업을 멈춘다(U205 임시).
+4. 상호작용 대상은 반경(`ViewSettingsSO.InteractRadius`, 임시 1.5m) 안에서만 고르고, 아래 **우선순위가 높은 행동 하나**를 고른다(U206 임시). 같은 우선순위 안에서는 가까운 대상이 먼저다.
+   1. 작은 물건을 들고 있고 제자리 슬롯이 반경 안 → 제자리 정리(`TryPlaceAtHome`)
+   2. 화장실 걸레 위치가 반경 안: 걸레를 들고 있으면 반납, 빈손이면 대여(`TryReturnMop` / `TryBorrowMop(층)`)
+   3. 1층 헬하운드 위치가 반경 안 → 배출 명령(`DispatchHellhound`)
+   4. 졸개가 반경 안 → 대화(`BeginTalk`). B2에서는 졸개 몸이 없으므로 대상이 생기지 않는다(B3에서 연결)
+   5. 걸레를 들고 있고 바닥 얼룩이 반경 안 → 물걸레질 시작(`TryStartMop`)
+   6. 아무것도 들지 않았고 걸레도 없으며 주울 수 있는 개체(무거운 잔해, 일반 쓰레기, 작은 물건. 상태가 바닥 또는 배출 구역)가 반경 안 → 줍기(`TryPickUp`)
+5. 들고 있는 물건은 Drop(Q)으로 그 자리에 내려놓는다(`TryDrop`).
+6. 고른 대상 위에 표시(TargetMarker)를 띄운다. 대상이 없으면 숨긴다.
+7. 카메라는 플레이어를 따라가며 위에서 내려다본다. 층은 X축으로 100m 떨어져 있어서 다른 층은 화면에 들어오지 않는다.
+8. 플레이어의 층은 층 범위(`FacilityLayout.Floors`) 중 위치가 들어 있는 층이다.
+
+## 예외 처리
+- 명령이 false를 돌려주면(규칙상 불가) 아무것도 바꾸지 않는다. 대상 표시는 다음 프레임에 다시 고른다.
+- 졸개가 잡아 둔 개체도 플레이어는 주울 수 있다(U7). 거부 여부는 규칙(A)이 정한다.
+
+## 설계
+| 파일 | 역할 |
+|---|---|
+| `Runtime/View/ViewSettingsSO.cs` | 연출용 설정: 상호작용 반경, 카메라 높이·거리·각도·추적 속도, 계단 이동 시간(B3용 임시값) |
+| `Runtime/Player/PlayerInteractionSelector.cs` | **순수 클래스**. 규칙 4의 우선순위로 행동 하나를 고른다(테스트 대상) |
+| `Runtime/Player/PlayerBody.cs` | `IWorkerBody` 구현. 위치와 층(규칙 8) |
+| `Runtime/Player/PlayerController.cs` | CharacterController 이동(규칙 1~3), 이동 방향으로 회전 |
+| `Runtime/Player/PlayerInteractor.cs` | 매 프레임 대상 고르기 → 표시(규칙 6), E·Q 입력 → 명령(규칙 4·5) |
+| `Runtime/Player/FloorCameraFollow.cs` | 카메라 추적(규칙 7). SYS_MainCamera에 붙인다 |
+| `Runtime/View/MatchBootstrap.cs` | 층 3개 → `FacilityLayoutBuilder` → 팩토리로 판 생성 → 플레이어 생성(시작점) → 카메라·입력 연결 → 매 프레임 `Tick` |
+| `Runtime/View/Debug/FakeMatchSession.cs` | 가짜 판. 생성 지점 일부에 개체를 놓고 줍기·내려놓기·제자리·걸레·물걸레질(진행도 0→100)·배출을 흉내 낸다. 운반 감속 50%, 청결도 계산(가중치 4/3/2/1) |
+| `Runtime/View/Debug/FakeMatchSessionFactorySO.cs` | 가짜 판 팩토리(디버그 값: 기본 속도, 물걸레질 시간, 판 시간, 구역당 개체 수) |
+| `Runtime/View/Debug/DebugItemView.cs` | B4 전까지 쓰는 개체 디버그 표시(유형별 색 도형, 운반 중이면 플레이어 머리 위) |
+| 프리팹 `CH_Player` | 표준 구조(1.7m 캡슐) + CharacterController + PlayerBody/Controller/Interactor + `TargetMarker` |
+| 프리팹 `SYS_Bootstrap` | MatchBootstrap + DebugItemView. 씬 인스턴스에서 층 3개·카메라 참조를 연결(인스턴스 저작 값) |
+| 에셋 `3_Data/ScriptableObject/View/ViewSettings.asset`, `FakeMatchSessionFactory.asset` | B 소유 SO |
+| `InputSystem_Actions` | Interact의 Hold 인터랙션 제거 → Press |
+
+**흐름**: Bootstrap.Start → 레이아웃 생성 → `factory.Create(setup)` → `StartMatch` → 플레이어 생성 → Update: `Tick` → PlayerController(이동) / PlayerInteractor(대상·명령) / Camera(추적)
+
+## 미정·보류
+- U205 이동하면 작업 취소 (임시)
+- U206 상호작용 우선순위 (임시, 규칙 4)
+- U207 카메라 값과 상호작용 반경 (임시: 반경 1.5m, 높이 18m, 뒤로 12m, 각도 56°)
+- 플레이어 계단 이동은 B3(StairPortal)에서 졸개와 함께 만든다.
+
+## 참조 테이블
+| 테이블 | 컬럼 | 용도 |
+|---|---|---|
+| (B) `ViewSettingsSO` | InteractRadius, Camera*, StairTransitSeconds | 연출 값 |
+| (B) `FakeMatchSessionFactorySO` | 디버그 값 | 가짜 판 |
+
+## 미결 질문
+- (없음. GDD에 없는 값은 U205~U207 임시값으로 진행)
+
+## 테스트 시나리오 (`Test/View/PlayerInteractionSelectorTest.cs`, `Test/View/FakeMatchSessionTest.cs`)
+| 규칙 | 조건 | 행동 | 기대 결과 | 테스트 메서드 이름 |
+|---|---|---|---|---|
+| 4-1 | 작은 물건을 들고 슬롯 옆 | 고르기 | 제자리 정리 | `작은_물건을_들고_제자리_옆이면_제자리_정리를_고른다` |
+| 4-2 | 빈손으로 화장실 옆 / 걸레를 들고 화장실 옆 | 고르기 | 대여 / 반납 | `빈손으로_화장실_옆이면_걸레를_빌린다`, `걸레를_들고_화장실_옆이면_반납한다` |
+| 4-3 | 헬하운드 옆 | 고르기 | 배출 명령 | `헬하운드_옆이면_배출을_명령한다` |
+| 4-5 | 걸레를 들고 얼룩 옆 | 고르기 | 물걸레질 | `걸레를_들고_얼룩_옆이면_닦기를_고른다` |
+| 4-6 | 빈손으로 쓰레기 두 개 옆 | 고르기 | 가까운 쪽 줍기 | `빈손이면_가장_가까운_개체를_줍는다` |
+| 4-6 | 무언가를 들고 있음 | 고르기 | 줍기 없음 | `무언가를_들고_있으면_줍지_않는다` |
+| 4-6 | 빈손으로 얼룩 옆 | 고르기 | 줍기 없음 | `얼룩은_주울_수_없다` |
+| 4 | 반경 밖의 개체 | 고르기 | 없음 | `반경_밖의_대상은_고르지_않는다` |
+| 1 | 무거운 잔해 줍기 (가짜 판) | 속도 확인 | 기본의 50% | `무거운_잔해를_들면_이동_속도가_절반이_된다` |
+| 3 | 물걸레질 시작 후 Tick | 진행도 | 0 → 100, 완료 시 얼룩 처리 | `닦기를_시작하면_진행도가_0에서_100으로_오른다` |
+| 5 | 다른 구역에서 내려놓기 (가짜 판) | 상태 확인 | 그 구역 바닥 | `내려놓으면_플레이어가_있는_구역의_바닥이_된다` |

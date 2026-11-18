@@ -1,0 +1,67 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityGameJam.Contract;
+using UnityGameJam.Player;
+
+namespace UnityGameJam.View
+{
+    /// <summary>
+    /// 씬에서 판 하나를 조립하고 진행한다. 층 3개 → FacilityLayout → 팩토리로 판 생성 → 플레이어 생성 → 매 프레임 Tick.
+    /// 팩토리는 계약 타입(MatchSessionFactoryBase)으로만 알기 때문에, 가짜 판에서 A 레인의 실제 판으로 바꿔도 이 코드는 그대로다.
+    /// </summary>
+    public sealed class MatchBootstrap : MonoBehaviour
+    {
+        [Header("판")]
+        [Tooltip("M1 전까지 FakeMatchSessionFactory, 이후 A 레인의 실제 팩토리")]
+        [SerializeField] private MatchSessionFactoryBase _factory;
+        [SerializeField] private ViewSettingsSO _viewSettings;
+        [SerializeField] private int _seed;
+
+        [Header("씬 참조 (인스턴스에서 연결)")]
+        [Tooltip("FL_Floor1~3 인스턴스")]
+        [SerializeField] private FloorAuthoring[] _floors = Array.Empty<FloorAuthoring>();
+        [SerializeField] private FloorCameraFollow _camera;
+
+        [Header("생성")]
+        [SerializeField] private PlayerBody _playerPrefab;
+
+        public IMatchSession Session { get; private set; }
+        public FacilityLayout Layout { get; private set; }
+        public PlayerBody Player { get; private set; }
+
+        /// <summary>판이 만들어지고 시작된 직후. HUD 등 보기 전용 컴포넌트가 구독한다.</summary>
+        public event Action<MatchBootstrap> MatchStarted;
+
+        private void Start()
+        {
+            var warnings = new List<string>();
+            Layout = FacilityLayoutBuilder.Build(_floors, warnings);
+            foreach (string warning in warnings) { Debug.LogWarning("[Bootstrap] " + warning, this); }
+
+            if (!Layout.StartPositions.TryGetValue(EWorkerType.Player, out Vector3 start))
+            {
+                Debug.LogError("[Bootstrap] 플레이어 시작점이 없습니다.", this);
+                return;
+            }
+
+            Player = Instantiate(_playerPrefab, start, Quaternion.identity);
+            Player.Initialize(Layout.Floors);
+
+            var setup = new MatchSetup { Layout = Layout, Seed = _seed, PlayerBody = Player };
+            Session = _factory.Create(setup);
+
+            Player.GetComponent<PlayerController>().Initialize(Session);
+            Player.GetComponent<PlayerInteractor>().Initialize(Session, Layout, _viewSettings);
+            if (_camera != null) { _camera.SetTarget(Player.transform); }
+
+            Session.StartMatch();
+            MatchStarted?.Invoke(this);
+        }
+
+        private void Update()
+        {
+            Session?.Tick(Time.deltaTime);
+        }
+    }
+}

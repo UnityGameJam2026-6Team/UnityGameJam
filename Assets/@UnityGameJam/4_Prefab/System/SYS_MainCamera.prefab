@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 8943699221487144264}
   - component: {fileID: 8873898632682984609}
   - component: {fileID: 5930657988997463688}
+  - component: {fileID: 3124968332839938015}
   m_Layer: 0
   m_Name: SYS_MainCamera
   m_TagString: MainCamera
@@ -137,3 +138,16 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
+--- !u!114 &3124968332839938015
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1237345487479857357}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5646db15312c377449f49697fbab50b4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.Player.FloorCameraFollow
+  _settings: {fileID: 11400000, guid: 4fa4de6e83935ad46870ce51993abb41, type: 2}
