@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -9,41 +8,112 @@ namespace UnityGameJam.UI
 {
     public sealed class MinionStatusPanel : MonoBehaviour
     {
-        [SerializeField] private InputActionReference _toggle;
-        [SerializeField] private TMP_Text _rows;
-        [SerializeField] private GameObject _body;
+        [System.Serializable]
+        private sealed class Slot
+        {
+            [SerializeField] internal EWorkerType _worker;
+            [SerializeField] internal TMP_Text _name;
+            [SerializeField] internal TMP_Text _room;
+            [SerializeField] internal TMP_Text _activity;
+            internal bool HasStatus;
+            internal EZoneId? LastZone;
+            internal EMinionActivity LastActivity;
+        }
 
-        private readonly StringBuilder _text = new StringBuilder(192);
+        [SerializeField] private Slot[] _slots = System.Array.Empty<Slot>();
+        [SerializeField] private InputActionReference _toggle;
+        [SerializeField] private RectTransform _body;
+        [SerializeField] private TMP_Text _title;
+        private InputAction _toggleAction;
+        private bool _ownsToggleAction;
+        private float _expandedHeight;
+        private float _collapsedHeight;
+
+        internal RectTransform Rect { get; private set; }
+        internal float HeightOffset => Rect.rect.height - _expandedHeight;
+
+        private void Awake()
+        {
+            Rect = (RectTransform)transform;
+            _expandedHeight = Rect.rect.height;
+            _collapsedHeight = ((RectTransform)_title.transform.parent).rect.height;
+            SetExpanded(_body.gameObject.activeSelf);
+        }
 
         private void OnEnable()
         {
-            _toggle.action.performed += OnToggle;
-            _toggle.action.Enable();
+            _toggleAction = _toggle?.action;
+            if (_toggleAction != null)
+            {
+                _ownsToggleAction = !_toggleAction.enabled;
+                _toggleAction.performed += OnToggle;
+                if (_ownsToggleAction) { _toggleAction.Enable(); }
+            }
+
+            foreach (Slot slot in _slots)
+            {
+                slot.HasStatus = false;
+                if (slot._name != null) { slot._name.text = WorkerName(slot._worker); }
+                if (slot._room != null) { slot._room.text = "미배정"; }
+                if (slot._activity != null) { slot._activity.text = "정보 없음"; }
+            }
         }
 
         private void OnDisable()
         {
-            _toggle.action.performed -= OnToggle;
-            _toggle.action.Disable();
+            if (_toggleAction == null) { return; }
+            _toggleAction.performed -= OnToggle;
+            if (_ownsToggleAction) { _toggleAction.Disable(); }
+            _toggleAction = null;
         }
 
         private void OnToggle(InputAction.CallbackContext context)
         {
-            _body.SetActive(!_body.activeSelf);
+            SetExpanded(!_body.gameObject.activeSelf);
+        }
+
+        internal void SetExpanded(bool isExpanded)
+        {
+            _body.gameObject.SetActive(isExpanded);
+            Rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, isExpanded ? _expandedHeight : _collapsedHeight);
+            _title.text = isExpanded ? "졸개 현황  ·  Tab 접기" : "졸개 현황  ·  Tab 펼치기";
         }
 
         public void Show(IReadOnlyList<MinionStatus> minions)
         {
-            if (!_body.activeSelf) { return; }
-            _text.Clear();
-            for (int i = 0; i < minions.Count; i++)
+            foreach (Slot slot in _slots)
             {
-                MinionStatus status = minions[i];
-                if (i > 0) { _text.AppendLine(); }
-                string room = RoomName(status.AssignedZone);
-                _text.Append(WorkerName(status.Minion)).Append("   ").Append(room).Append("  ·  ").Append(ActivityName(status.Activity));
+                MinionStatus? found = null;
+                if (minions != null)
+                {
+                    for (int i = 0; i < minions.Count; i++)
+                    {
+                        if (minions[i].Minion == slot._worker) { found = minions[i]; break; }
+                    }
+                }
+                if (!found.HasValue)
+                {
+                    if (slot.HasStatus)
+                    {
+                        slot._room.text = "미배정";
+                        slot._activity.text = "정보 없음";
+                        slot.HasStatus = false;
+                    }
+                    continue;
+                }
+                MinionStatus status = found.Value;
+                if (!slot.HasStatus || slot.LastZone != status.AssignedZone)
+                {
+                    slot._room.text = RoomName(status.AssignedZone);
+                    slot.LastZone = status.AssignedZone;
+                }
+                if (!slot.HasStatus || slot.LastActivity != status.Activity)
+                {
+                    slot._activity.text = ActivityName(status.Activity);
+                    slot.LastActivity = status.Activity;
+                }
+                slot.HasStatus = true;
             }
-            _rows.SetText(_text);
         }
 
         internal static string RoomName(EZoneId? zone) => zone.HasValue ? ZoneDisplayName.GetFullName(zone.Value) : "미배정";

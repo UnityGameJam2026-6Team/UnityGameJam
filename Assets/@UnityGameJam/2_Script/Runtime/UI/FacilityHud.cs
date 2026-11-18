@@ -30,8 +30,8 @@ namespace UnityGameJam.UI
         [SerializeField] private RectTransform _workFill;
         private MatchBootstrap _bootstrap;
         private RectTransform _assignmentPanel;
-        private RectTransform _dialogueCard;
-        private RectTransform _dialogueArea;
+        private RectTransform _workGaugeRect;
+        private Vector2 _assignmentOrigin;
         private MinionSpeechBubble _speechBubble;
         private EWorkerType? _talking;
         private readonly List<InputAction> _suspendedActions = new List<InputAction>();
@@ -42,8 +42,8 @@ namespace UnityGameJam.UI
         {
             _bootstrap = FindFirstObjectByType<MatchBootstrap>();
             _assignmentPanel = (RectTransform)_choices.transform;
-            _dialogueArea = _assignmentPanel.parent as RectTransform;
-            if (_assignmentDialogue != null) { _dialogueCard = _assignmentDialogue.rectTransform.parent as RectTransform; }
+            _assignmentOrigin = _assignmentPanel.anchoredPosition;
+            _workGaugeRect = (RectTransform)_workGauge.transform;
             _assignmentTitle.text = "작업 지시";
             _choices.SetActive(false);
             for (int i = 0; i < _rooms.Length; i++)
@@ -92,15 +92,23 @@ namespace UnityGameJam.UI
             _zoneProgress.gameObject.SetActive(zone.HasValue);
             if (zone.HasValue) { ShowProgress(_zoneProgress, "지역 진척도", session.GetZoneCleanliness(zone.Value), session.ZoneThreshold); }
             ShowProgress(_facilityProgress, "전체 진행도", session.FacilityCleanliness, session.FacilityThreshold);
-            _minionPanel.Show(session.Minions);
-            _workGauge.SetActive(session.IsPlayerWorking);
-            _workFill.anchorMax = new Vector2(Mathf.Clamp01(session.PlayerWorkProgress / 100f), 1f);
+            IReadOnlyList<MinionStatus> minions = session.Minions;
+            _minionPanel.Show(minions);
+            float lowerHudTop = _assignmentOrigin.y + _minionPanel.HeightOffset;
+            _assignmentPanel.anchoredPosition = new Vector2(_assignmentOrigin.x, lowerHudTop);
+            bool isWorking = session.IsPlayerWorking;
+            if (_workGauge.activeSelf != isWorking) { _workGauge.SetActive(isWorking); }
+            if (isWorking)
+            {
+                _workGaugeRect.anchoredPosition = new Vector2(_workGaugeRect.anchoredPosition.x, lowerHudTop);
+                _workFill.anchorMax = new Vector2(Mathf.Clamp01(session.PlayerWorkProgress / 100f), 1f);
+            }
 
             bool wasTalking = _talking.HasValue;
             MinionStatus? talking = null;
             if (session.MatchState == EMatchState.Running)
             {
-                foreach (MinionStatus minion in session.Minions)
+                foreach (MinionStatus minion in minions)
                 {
                     if (minion.Activity == EMinionActivity.Talking) { talking = minion; break; }
                 }
@@ -125,13 +133,11 @@ namespace UnityGameJam.UI
             if (_talking.HasValue && EventSystem.current != null &&
                 EventSystem.current.currentInputModule is InputSystemUIInputModule input &&
                 input.cancel?.action?.WasPressedThisFrame() == true) { Cancel(); }
-            if (talking.HasValue && _dialogueCard != null && _dialogueArea != null)
-            {
-                float x = _dialogueArea.rect.xMin - _assignmentPanel.anchoredPosition.x;
-                _dialogueCard.position = _dialogueArea.TransformPoint(x, _dialogueArea.rect.center.y + 24f, 0f);
-            }
-            _proposalStack.Show(session, _bootstrap.MatchDuration - session.RemainingTime,
-                _assignmentPanel, wasTalking || talking.HasValue);
+            RectTransform messageBoundary = _minionPanel.Rect;
+            if (talking.HasValue) { messageBoundary = _assignmentPanel; }
+            else if (isWorking) { messageBoundary = _workGaugeRect; }
+            _proposalStack.Show(session, minions, _bootstrap.MatchDuration - session.RemainingTime,
+                messageBoundary, wasTalking || talking.HasValue);
             var speech = (session as IMinionSpeechSource)?.CurrentSpeech;
             if (speech.HasValue && _speechBubble == null) { _speechBubble = new MinionSpeechBubble(_zone); }
             _speechBubble?.Show(_bootstrap, talking.HasValue ? null : speech);
