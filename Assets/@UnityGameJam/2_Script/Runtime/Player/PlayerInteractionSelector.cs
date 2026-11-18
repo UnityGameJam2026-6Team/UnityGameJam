@@ -39,23 +39,28 @@ namespace UnityGameJam.Player
     public readonly struct PlayerInteractionContext
     {
         public Vector3 PlayerPosition { get; }
+        public EFloor PlayerFloor { get; }
         public float Radius { get; }
-        public EContaminationType? CarriedType { get; }
+        public ItemSnapshot? CarriedItem { get; }
         public bool IsHoldingMop { get; }
+        public EFloor? BorrowedMopFloor { get; }
         public Vector3? HellhoundPosition { get; }
 
-        public PlayerInteractionContext(Vector3 playerPosition, float radius, EContaminationType? carriedType, bool isHoldingMop, Vector3? hellhoundPosition)
+        public PlayerInteractionContext(Vector3 playerPosition, EFloor playerFloor, float radius, ItemSnapshot? carriedItem,
+            bool isHoldingMop, EFloor? borrowedMopFloor, Vector3? hellhoundPosition)
         {
             PlayerPosition = playerPosition;
+            PlayerFloor = playerFloor;
             Radius = radius;
-            CarriedType = carriedType;
+            CarriedItem = carriedItem;
             IsHoldingMop = isHoldingMop;
+            BorrowedMopFloor = borrowedMopFloor;
             HellhoundPosition = hellhoundPosition;
         }
     }
 
     /// <summary>
-    /// E키가 지금 할 행동 하나를 고른다(Spec Player 규칙 4, U206 임시 우선순위).
+    /// 상호작용 입력으로 지금 할 행동 하나를 고른다(Spec Player 규칙 4, U206 임시 우선순위).
     /// 거리는 XZ 평면 기준이다. 실제로 할 수 있는지는 규칙(A 레인)이 명령을 받아 다시 판단한다.
     /// </summary>
     public sealed class PlayerInteractionSelector
@@ -71,18 +76,30 @@ namespace UnityGameJam.Player
         {
             Vector3 player = context.PlayerPosition;
             float radius = context.Radius;
-            bool isCarrying = context.CarriedType.HasValue;
+            bool isCarrying = context.CarriedItem.HasValue;
 
             // 1. 작은 물건을 들고 제자리 옆
-            if (context.CarriedType == EContaminationType.ClutterItem && TryNearest(_layout.HomeSlots, s => s.Position, player, radius, out HomeSlot slot))
+            if (context.CarriedItem?.Type == EContaminationType.ClutterItem && context.CarriedItem.Value.HomeSlotId is int homeSlotId)
             {
-                return new InteractionChoice(EInteractionKind.PlaceAtHome, -1, default, default, slot.Position);
+                foreach (HomeSlot slot in _layout.HomeSlots)
+                {
+                    if (slot.SlotId == homeSlotId && ZoneDisplayName.GetFloor(slot.Zone) == context.PlayerFloor
+                        && DistanceXZ(player, slot.Position) <= radius)
+                    {
+                        return new InteractionChoice(EInteractionKind.PlaceAtHome, -1, default, default, slot.Position);
+                    }
+                }
             }
 
             // 2. 화장실: 걸레 반납 또는 대여 (물건을 들고 있으면 대여하지 않는다)
-            if (TryNearest(_layout.Toilets, t => t.MopPickupPosition, player, radius, out ToiletStation toilet))
+            foreach (ToiletStation toilet in _layout.Toilets)
             {
-                if (context.IsHoldingMop) { return new InteractionChoice(EInteractionKind.ReturnMop, -1, default, toilet.Floor, toilet.MopPickupPosition); }
+                if (toilet.Floor != context.PlayerFloor || DistanceXZ(player, toilet.MopPickupPosition) > radius) { continue; }
+                if (context.IsHoldingMop)
+                {
+                    if (context.BorrowedMopFloor != toilet.Floor) { continue; }
+                    return new InteractionChoice(EInteractionKind.ReturnMop, -1, default, toilet.Floor, toilet.MopPickupPosition);
+                }
                 if (!isCarrying) { return new InteractionChoice(EInteractionKind.BorrowMop, -1, default, toilet.Floor, toilet.MopPickupPosition); }
             }
 

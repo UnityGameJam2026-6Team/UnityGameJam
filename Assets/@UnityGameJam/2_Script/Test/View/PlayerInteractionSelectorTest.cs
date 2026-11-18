@@ -6,7 +6,7 @@ using UnityGameJam.Player;
 
 namespace UnityGameJam.Test.View
 {
-    /// <summary>Spec Player 규칙 4: E키가 고르는 행동의 우선순위와 반경.</summary>
+    /// <summary>Spec Player 규칙 4: 상호작용 대상의 우선순위와 반경.</summary>
     public class PlayerInteractionSelectorTest
     {
         private const float Radius = 1.5f;
@@ -23,6 +23,7 @@ namespace UnityGameJam.Test.View
             var layout = new FacilityLayout();
             layout.Toilets.Add(new ToiletStation { Floor = EFloor.Floor2, MopPickupPosition = Toilet });
             layout.HomeSlots.Add(new HomeSlot { SlotId = 7, Zone = EZoneId.Lounge, Position = Slot });
+            layout.HomeSlots.Add(new HomeSlot { SlotId = 8, Zone = EZoneId.Lounge, Position = Slot + Vector3.left });
             _selector = new PlayerInteractionSelector(layout);
             _items = new List<ItemSnapshot>();
         }
@@ -32,15 +33,25 @@ namespace UnityGameJam.Test.View
         {
             _items.Add(Item(1, EContaminationType.Trash, Slot + Vector3.right * 0.5f));
 
-            InteractionChoice choice = Select(Slot + Vector3.left, EContaminationType.ClutterItem, false);
+            InteractionChoice choice = Select(Slot + Vector3.left, EContaminationType.ClutterItem, false, 7);
 
             Assert.AreEqual(EInteractionKind.PlaceAtHome, choice.Kind);
+            Assert.AreEqual(Slot, choice.TargetPosition);
+        }
+
+        [TestCase(7)]
+        [TestCase(null)]
+        public void 가까운_자리가_든_물건의_제자리가_아니면_정리를_고르지_않는다(int? homeSlotId)
+        {
+            InteractionChoice choice = Select(Slot + Vector3.left * 2f, EContaminationType.ClutterItem, false, homeSlotId);
+
+            Assert.AreEqual(EInteractionKind.None, choice.Kind);
         }
 
         [Test]
         public void 빈손으로_화장실_옆이면_걸레를_빌린다()
         {
-            InteractionChoice choice = Select(Toilet + Vector3.forward, null, false);
+            InteractionChoice choice = Select(Toilet + Vector3.forward, null, false, floor: EFloor.Floor2);
 
             Assert.AreEqual(EInteractionKind.BorrowMop, choice.Kind);
             Assert.AreEqual(EFloor.Floor2, choice.Floor);
@@ -49,13 +60,25 @@ namespace UnityGameJam.Test.View
         [Test]
         public void 걸레를_들고_화장실_옆이면_반납한다()
         {
-            Assert.AreEqual(EInteractionKind.ReturnMop, Select(Toilet, null, true).Kind);
+            Assert.AreEqual(EInteractionKind.ReturnMop, Select(Toilet, null, true, floor: EFloor.Floor2, mopOrigin: EFloor.Floor2).Kind);
+        }
+
+        [Test]
+        public void 다른_층에서_빌린_걸레는_이_층_걸레걸이에_반납을_표시하지_않는다()
+        {
+            Assert.AreEqual(EInteractionKind.None, Select(Toilet, null, true, floor: EFloor.Floor2, mopOrigin: EFloor.Floor1).Kind);
+        }
+
+        [Test]
+        public void 좌표가_같아도_다른_층의_제자리에_정리를_표시하지_않는다()
+        {
+            Assert.AreEqual(EInteractionKind.None, Select(Slot, EContaminationType.ClutterItem, false, 7, EFloor.Floor2).Kind);
         }
 
         [Test]
         public void 물건을_들고_화장실_옆이면_걸레를_빌리지_않는다()
         {
-            Assert.AreEqual(EInteractionKind.None, Select(Toilet, EContaminationType.Trash, false).Kind);
+            Assert.AreEqual(EInteractionKind.None, Select(Toilet, EContaminationType.Trash, false, floor: EFloor.Floor2).Kind);
         }
 
         [Test]
@@ -69,7 +92,8 @@ namespace UnityGameJam.Test.View
         {
             var minions = new List<(EWorkerType, Vector3)> { (EWorkerType.Orc, new Vector3(40f, 0f, 0f)) };
 
-            InteractionChoice choice = _selector.Select(Context(new Vector3(40f, 0f, 1f), null, false), _items, minions);
+            var context = new PlayerInteractionContext(new Vector3(40f, 0f, 1f), EFloor.Floor1, Radius, null, false, null, Hellhound);
+            InteractionChoice choice = _selector.Select(context, _items, minions);
 
             Assert.AreEqual(EInteractionKind.TalkToMinion, choice.Kind);
             Assert.AreEqual(EWorkerType.Orc, choice.Minion);
@@ -147,14 +171,14 @@ namespace UnityGameJam.Test.View
             Assert.AreEqual(EInteractionKind.None, Select(new Vector3(50f, 0f, 0f), null, false).Kind);
         }
 
-        private InteractionChoice Select(Vector3 position, EContaminationType? carried, bool isHoldingMop)
+        private InteractionChoice Select(Vector3 position, EContaminationType? carried, bool isHoldingMop, int? homeSlotId = null,
+            EFloor floor = EFloor.Floor1, EFloor? mopOrigin = null)
         {
-            return _selector.Select(Context(position, carried, isHoldingMop), _items, new List<(EWorkerType, Vector3)>());
-        }
-
-        private static PlayerInteractionContext Context(Vector3 position, EContaminationType? carried, bool isHoldingMop)
-        {
-            return new PlayerInteractionContext(position, Radius, carried, isHoldingMop, Hellhound);
+            ItemSnapshot? item = carried.HasValue
+                ? new ItemSnapshot(1, carried.Value, EItemState.Carried, position, EWorkerType.Player, homeSlotId)
+                : (ItemSnapshot?)null;
+            var context = new PlayerInteractionContext(position, floor, Radius, item, isHoldingMop, mopOrigin, Hellhound);
+            return _selector.Select(context, _items, new List<(EWorkerType, Vector3)>());
         }
 
         private static ItemSnapshot Item(int id, EContaminationType type, Vector3 position, EItemState state = EItemState.OnFloor)

@@ -6948,6 +6948,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: MK_Toilet
       objectReference: {fileID: 0}
+    - target: {fileID: 8543324474053597569, guid: 2563da1b3a6b2cd46944b2f7c407d0c6, type: 3}
+      propertyPath: _mopPickup
+      value: 
+      objectReference: {fileID: 2766833070673159594}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

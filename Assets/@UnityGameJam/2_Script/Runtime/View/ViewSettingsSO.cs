@@ -12,7 +12,7 @@ namespace UnityGameJam.View
     public sealed class ViewSettingsSO : ScriptableObject
     {
         [Header("상호작용")]
-        [Tooltip("E키 대상 고르기 반경(m)")]
+        [Tooltip("상호작용 대상을 고르는 반경(m)")]
         [SerializeField] private float _interactRadius = 1.5f;
 
         [Header("카메라")]

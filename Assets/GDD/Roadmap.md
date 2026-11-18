@@ -23,7 +23,7 @@
 ## B 레인 (월드·표현) · 심지섭 · Unity AI · `docs/team/lane-b.md`
 - [x] B0 프리팹·아트 기반(Spec `ArtPipeline.md`, 규칙 `docs/rules/prefab.md`·`art-asset.md`)
 - [x] B1 화이트박스 시설(Spec `FacilityLayout.md`)
-- [x] B2 플레이어 (Spec `Player.md`)
+- [x] B2 플레이어 (Spec `Player.md`) — U11 키 배치 반영. U13에 따라 플레이어가 들어간 일반 방만 공개하며, 새 판에서는 여섯 방을 다시 가린다.
 - [x] B3 졸개 몸 (Spec `MinionAgent.md`) — 실제 판에서 고블린이 1층 → 2층 → 3층 간부실에 도착해 탐색을 시작하는 것까지 확인
 - [x] B4 ContaminationView (Spec `ContaminationView.md`) — 가짜 판과 실제 판에서 오염 표시 및 슬롯별 외형 확인.
 - [x] B5 HUD (Spec `Hud.md`) — 실제 판에서 Tab 현황 패널과 직접 청소 게이지 확인. D5 결정에 따라 상단 중앙 타이머를 분:초(`03:00`)로 표시한다.
