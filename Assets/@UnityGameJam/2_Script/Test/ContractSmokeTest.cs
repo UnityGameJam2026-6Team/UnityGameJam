@@ -53,6 +53,16 @@ namespace UnityGameJam.Test
         }
 
         [Test]
+        public void 개체_스냅샷은_제자리_슬롯을_담을_수_있고_기본값은_없음이다()
+        {
+            var clutter = new ItemSnapshot(1, EContaminationType.ClutterItem, EItemState.OnFloor, Vector3.zero, null, 7);
+            var trash = new ItemSnapshot(2, EContaminationType.Trash, EItemState.OnFloor, Vector3.zero, null);
+
+            Assert.AreEqual(7, clutter.HomeSlotId);
+            Assert.IsNull(trash.HomeSlotId);
+        }
+
+        [Test]
         public void 로비는_층을_중복해서_붙이지_않는다()
         {
             Assert.AreEqual("2층 로비", ZoneDisplayName.GetFullName(EZoneId.Floor2Lobby));

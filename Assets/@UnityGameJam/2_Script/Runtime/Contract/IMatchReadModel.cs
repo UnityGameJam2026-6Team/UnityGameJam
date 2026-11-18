@@ -98,14 +98,16 @@ namespace UnityGameJam.Contract
         public EItemState State { get; }
         public Vector3 Position { get; }     // 운반 중이면 마지막으로 놓였던 위치. 화면에서는 운반자를 따라간다.
         public EWorkerType? Carrier { get; } // 운반 중이거나 소화 중일 때의 작업자
+        public int? HomeSlotId { get; }      // 어질러진 작은 물건의 제자리 슬롯(U3). 화면에서 물건 종류(Book 등)를 고르는 데 쓴다. 다른 유형은 null
 
-        public ItemSnapshot(int itemId, EContaminationType type, EItemState state, Vector3 position, EWorkerType? carrier)
+        public ItemSnapshot(int itemId, EContaminationType type, EItemState state, Vector3 position, EWorkerType? carrier, int? homeSlotId = null)
         {
             ItemId = itemId;
             Type = type;
             State = state;
             Position = position;
             Carrier = carrier;
+            HomeSlotId = homeSlotId;
         }
     }
 

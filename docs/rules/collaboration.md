@@ -29,7 +29,7 @@
 | `FacilityLayout` | B → A | 씬에서 뽑은 순수 데이터. A는 테스트에서 직접 만들어 쓴다. |
 | `IWorkerBody`, `IMinionBody` | A → B | 규칙이 읽는 몸의 위치와 층, 졸개 두뇌가 몸(NavMeshAgent)에 내리는 명령. 층간 이동(계단)은 몸이 처리한다. |
 | `IMatchCommands` | B → A | 플레이어 입력을 규칙으로 넘긴다 |
-| `IMatchReadModel` | A → B | UI와 연출이 읽는 상태(플레이어 이동 속도, 작업 진행도 0~100 포함), DTO(`MinionStatus`, `MessageEntry`, `ItemSnapshot`, `MatchResult`), 이벤트 |
+| `IMatchReadModel` | A → B | UI와 연출이 읽는 상태(플레이어 이동 속도, 작업 진행도 0~100 포함), DTO(`MinionStatus`, `MessageEntry`, `ItemSnapshot`(작은 물건의 `HomeSlotId` 포함), `MatchResult`), 이벤트 |
 | `ZoneDisplayName` | 공용 | 구역 표시 이름(GDD 이름 그대로), 층, 로비 여부, 원격 안내 문구("1층 다목적실") |
 | `IMatchSession`, `MatchSetup`, `MatchSessionFactoryBase` | A → B | Bootstrap이 인스펙터로 팩토리 SO를 연결하고 판을 만든 뒤 매 프레임 `Tick`을 부른다. A는 실제 팩토리, B는 가짜 팩토리를 상속한다. |
 
