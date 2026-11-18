@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 using UnityGameJam.Contract;
@@ -24,6 +26,7 @@ namespace UnityGameJam.UI
         [SerializeField] private RectTransform _workFill;
         private MatchBootstrap _bootstrap;
         private EWorkerType? _talking;
+        private readonly List<InputAction> _suspendedActions = new List<InputAction>();
         private int _lastSecond = -1;
 
         private void Awake()
@@ -68,15 +71,43 @@ namespace UnityGameJam.UI
             }
             if (talking != _talking)
             {
+                if (talking.HasValue && !_talking.HasValue) { OpenAssignmentPanel(); }
+                else if (!talking.HasValue) { CloseAssignmentPanel(); }
                 _talking = talking;
-                _choices.SetActive(talking.HasValue);
-                if (talking.HasValue) { _rooms[0].Select(); }
             }
             if (_talking.HasValue && EventSystem.current != null &&
                 EventSystem.current.currentInputModule is InputSystemUIInputModule input &&
                 input.cancel?.action?.WasPressedThisFrame() == true) { Cancel(); }
             _proposalStack.Show(session, _bootstrap.InitialMatchTime - session.RemainingTime,
                 (RectTransform)_choices.transform, talking.HasValue);
+        }
+
+        private void OnDisable()
+        {
+            if (_talking.HasValue)
+            {
+                CloseAssignmentPanel();
+                _talking = null;
+            }
+        }
+
+        private void OpenAssignmentPanel()
+        {
+            InputActionMap playerMap = InputSystem.actions.FindActionMap("Player", true);
+            foreach (InputAction action in playerMap.actions)
+            {
+                if (action.enabled) { _suspendedActions.Add(action); }
+            }
+            playerMap.Disable();
+            _choices.SetActive(true);
+            _rooms[0].Select();
+        }
+
+        private void CloseAssignmentPanel()
+        {
+            _choices.SetActive(false);
+            foreach (InputAction action in _suspendedActions) { action.Enable(); }
+            _suspendedActions.Clear();
         }
 
         private static void ShowProgress(TMP_Text label, string title, float value, float threshold)

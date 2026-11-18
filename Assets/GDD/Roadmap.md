@@ -27,7 +27,7 @@
 - [x] B3 졸개 몸 (Spec `MinionAgent.md`) — 실제 판에서 고블린이 1층 → 2층 → 3층 간부실에 도착해 탐색을 시작하는 것까지 확인
 - [x] B4 ContaminationView (Spec `ContaminationView.md`) — 가짜 판과 실제 판에서 오염 표시 및 슬롯별 외형 확인.
 - [ ] B5 HUD (Spec `Hud.md`) — 실제 판에서 Tab 현황 패널과 직접 청소 게이지 확인. 타이머 형식 D5 검토 대기.
-- [ ] B6 대화와 제안 UI (Spec `AssignmentUi.md`) — 우측 하단 제안 스택, 방 선택 중 제안 입력 차단과 만료, M2에서 대면 배정 및 자연 발생 제안 응답 확인. 방 선택 중 이동 입력과 방향키·Enter·Esc 조작은 별도 확인 대상.
+- [ ] B6 대화와 제안 UI (Spec `AssignmentUi.md`) — M2 대면 배정과 제안 응답 확인. Facility에서 방향키로 방을 고르는 동안 플레이어가 제자리에 있고, Enter 배정·Esc 취소 후 이동이 재개되는 것을 확인했다. 배정 패널에 대화 상대와 현재 담당 방을 표시하는 작업이 남았다.
 - [ ] B7 마감 연출과 결과 (Spec `ResultUi.md`)
 
 ## 통합 (A+B)
