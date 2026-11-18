@@ -82,9 +82,11 @@ namespace UnityGameJam.Test.View
         }
 
         [Test]
-        public void 헬하운드_옆이면_배출을_명령한다()
+        public void 헬하운드_옆이면_대화_상대로_고른다()
         {
-            Assert.AreEqual(EInteractionKind.DispatchHellhound, Select(Hellhound + Vector3.left, null, false).Kind);
+            InteractionChoice choice = Select(Hellhound + Vector3.left, null, false);
+            Assert.AreEqual(EInteractionKind.TalkToMinion, choice.Kind);
+            Assert.AreEqual(EWorkerType.Hellhound, choice.Minion);
         }
 
         [Test]

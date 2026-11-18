@@ -30,6 +30,7 @@ namespace UnityGameJam.UI
         [SerializeField] private RectTransform _workFill;
         private MatchBootstrap _bootstrap;
         private RectTransform _assignmentPanel;
+        private AssignmentPanelChoices _panelChoices;
         private RectTransform _workGaugeRect;
         private float _workGaugeOriginY;
         private MinionSpeechBubble _speechBubble;
@@ -55,6 +56,8 @@ namespace UnityGameJam.UI
                 _rooms[i].onClick.AddListener(() => Assign(zone));
             }
             _cancel.onClick.AddListener(Cancel);
+            _panelChoices = _choices.GetComponent<AssignmentPanelChoices>();
+            _panelChoices.BindHellhoundCommands(DispatchHellhound, Cancel);
             ConfigureRoomNavigation();
         }
 
@@ -113,7 +116,12 @@ namespace UnityGameJam.UI
             {
                 foreach (MinionStatus minion in minions)
                 {
-                    if (minion.Activity == EMinionActivity.Talking) { talking = minion; break; }
+                    if (minion.Activity == EMinionActivity.Talking ||
+                        (minion.Minion == EWorkerType.Hellhound && _bootstrap.PlayerController.IsTalkingToHellhound && !_bootstrap.IsFastForwarding))
+                    {
+                        talking = minion;
+                        break;
+                    }
                 }
             }
             if (talking?.Minion != _talking)
@@ -121,13 +129,7 @@ namespace UnityGameJam.UI
                 if (talking.HasValue)
                 {
                     MinionStatus minion = talking.Value;
-                    if (_dialogueSpeaker != null) { _dialogueSpeaker.text = MinionStatusPanel.WorkerName(minion.Minion); }
-                    _assignmentRoom.text = $"현재 담당 방  {MinionStatusPanel.RoomName(minion.AssignedZone)}";
-                    if (_assignmentDialogue != null)
-                    {
-                        _assignmentDialogue.text = minion.AssignedZone.HasValue ? "어느 방으로 옮길까요?" : "어느 방부터 청소할까요?";
-                    }
-                    if (!_talking.HasValue) { OpenAssignmentPanel(minion.AssignedZone); }
+                    OpenAssignmentPanel(minion);
                 }
                 else { CloseAssignmentPanel(); }
                 _talking = talking?.Minion;
@@ -156,11 +158,24 @@ namespace UnityGameJam.UI
             }
         }
 
-        private void OpenAssignmentPanel(EZoneId? assigned)
+        private void OpenAssignmentPanel(MinionStatus minion)
         {
-            SuspendPlayerInput();
+            if (!_talking.HasValue) { SuspendPlayerInput(); }
             _choices.SetActive(true);
+            _panelChoices.ShowFor(minion.Minion);
+            if (_dialogueSpeaker != null) { _dialogueSpeaker.text = MinionStatusPanel.WorkerName(minion.Minion); }
             GameSfxPlayer.Play(ESfxCue.PanelOpen);
+            if (minion.Minion == EWorkerType.Hellhound)
+            {
+                _assignmentDialogue.text = "현관에 모인 폐기물을 배출할까요?";
+                return;
+            }
+            EZoneId? assigned = minion.AssignedZone;
+            _assignmentRoom.text = $"현재 담당 방  {MinionStatusPanel.RoomName(assigned)}";
+            if (_assignmentDialogue != null)
+            {
+                _assignmentDialogue.text = assigned.HasValue ? "어느 방으로 옮길까요?" : "어느 방부터 청소할까요?";
+            }
             int focus = Array.FindIndex(Zones, zone => zone == assigned ||
                 (!assigned.HasValue && ZoneDisplayName.GetFloor(zone) == _bootstrap.Player.Floor && ZoneDisplayName.IsLobby(zone)));
             _rooms[Mathf.Clamp(focus, 0, _rooms.Length - 1)].Select();
@@ -185,6 +200,7 @@ namespace UnityGameJam.UI
                 events.SetSelectedGameObject(null);
             }
             _choices.SetActive(false);
+            if (_bootstrap != null && _bootstrap.PlayerController != null) { _bootstrap.PlayerController.EndHellhoundTalk(); }
             _bootstrap?.FocusConversation(null);
             RestorePlayerInput();
         }
@@ -200,6 +216,7 @@ namespace UnityGameJam.UI
             ShowTime(0f);
             // 대화 중 마감되면 기존 잠금을 다음 판까지 유지한다.
             if (!_talking.HasValue) { SuspendPlayerInput(); }
+            _bootstrap.PlayerController.EndHellhoundTalk();
             _talking = null;
             _choices.SetActive(false);
             _bootstrap.FocusConversation(null);
@@ -244,11 +261,22 @@ namespace UnityGameJam.UI
             }
         }
 
+        private void DispatchHellhound()
+        {
+            if (_talking != EWorkerType.Hellhound || !_bootstrap.PlayerController.IsTalkingToHellhound ||
+                _bootstrap.Session.MatchState != EMatchState.Running) { return; }
+            _bootstrap.PlayerController.EndHellhoundTalk();
+            bool accepted = _bootstrap.Session.DispatchHellhound();
+            GameAudioPresenter.QuietHoundNotice();
+            GameSfxPlayer.Play(accepted ? ESfxCue.Confirm : ESfxCue.Unavailable);
+        }
+
         private void Cancel()
         {
             if (_talking.HasValue)
             {
-                _bootstrap.Session.CancelTalk(_talking.Value);
+                if (_talking == EWorkerType.Hellhound) { _bootstrap.PlayerController.EndHellhoundTalk(); }
+                else { _bootstrap.Session.CancelTalk(_talking.Value); }
                 GameSfxPlayer.Play(ESfxCue.Cancel);
             }
         }

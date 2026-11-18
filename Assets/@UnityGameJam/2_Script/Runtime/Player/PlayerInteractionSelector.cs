@@ -10,7 +10,6 @@ namespace UnityGameJam.Player
         PlaceAtHome,
         ReturnMop,
         BorrowMop,
-        DispatchHellhound,
         TalkToMinion,
         StartMop,
         PickUp,
@@ -115,9 +114,10 @@ namespace UnityGameJam.Player
             }
 
             // 3. 헬하운드
-            if (context.HellhoundPosition.HasValue && DistanceXZ(player, context.HellhoundPosition.Value) <= radius)
+            if (context.PlayerFloor == EFloor.Floor1 && context.HellhoundPosition.HasValue &&
+                DistanceXZ(player, context.HellhoundPosition.Value) <= radius)
             {
-                return new InteractionChoice(EInteractionKind.DispatchHellhound, -1, EWorkerType.Hellhound, default, context.HellhoundPosition.Value);
+                return new InteractionChoice(EInteractionKind.TalkToMinion, -1, EWorkerType.Hellhound, EFloor.Floor1, context.HellhoundPosition.Value);
             }
 
             // 4. 졸개 대화

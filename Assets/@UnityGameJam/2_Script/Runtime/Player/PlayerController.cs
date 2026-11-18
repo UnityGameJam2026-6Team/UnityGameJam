@@ -37,6 +37,7 @@ namespace UnityGameJam.Player
 
         public bool IsInStairTransit { get; private set; }
         public bool IsInConversation => _talkPartner != null;
+        internal bool IsTalkingToHellhound => IsInConversation && _talkWorker == EWorkerType.Hellhound;
         public bool IsHandling => _animatorDriver != null && _animatorDriver.IsHandling;
 
 
@@ -147,15 +148,20 @@ namespace UnityGameJam.Player
             _talkPartner = partner;
         }
 
+        internal void EndHellhoundTalk()
+        {
+            if (IsTalkingToHellhound) { _talkPartner = null; }
+        }
+
         private bool UpdateTalk()
         {
             if (_talkPartner == null) { return false; }
             foreach (MinionStatus status in _session.Minions)
             {
-                if (status.Minion != _talkWorker || status.Activity != EMinionActivity.Talking) { continue; }
+                if (status.Minion != _talkWorker || (status.Activity != EMinionActivity.Talking && !IsTalkingToHellhound)) { continue; }
                 Vector3 direction = _talkPartner.position - transform.position;
                 Face(transform, direction);
-                Face(_talkPartner, -direction);
+                if (status.Activity is EMinionActivity.Talking or EMinionActivity.LobbyIdle) { Face(_talkPartner, -direction); }
                 _controller.SimpleMove(Vector3.zero);
                 _animatorDriver?.SetPose(EPose.Talk, holdingMop: _carry.IsHoldingMop);
                 return true;

@@ -30,9 +30,11 @@ namespace UnityGameJam.Player
         private PlayerBody _playerBody;
         private PlayerController _playerController;
         private EFloor? _borrowedMopFloor;
-        private Vector3? _hellhoundStart;
+        private Transform _hellhound;
+        private MinionStatusPresenter _hellhoundPresenter;
 
         public InteractionChoice CurrentChoice { get; private set; } = InteractionChoice.None;
+        private bool IsHellhoundVisible => _hellhound != null && _hellhoundPresenter?.IsHidden != true;
 
         private void OnEnable()
         {
@@ -47,20 +49,29 @@ namespace UnityGameJam.Player
             _playerController = GetComponent<PlayerController>();
             _borrowedMopFloor = null;
             _selector = new PlayerInteractionSelector(layout);
-            _hellhoundStart = layout.StartPositions.TryGetValue(EWorkerType.Hellhound, out Vector3 hellhound) ? hellhound : (Vector3?)null;
             if (_targetMarker != null) { _targetMarker.SetParent(null, true); } // 플레이어 회전을 따라가지 않게 분리
         }
 
-        /// <summary>졸개 몸(B3)이 생기면 등록한다. 헬하운드를 등록하면 시작점 대신 실제 위치로 배출 명령 대상을 고른다.</summary>
+        /// <summary>대화 상대는 실제로 생성된 졸개의 위치에서 고른다.</summary>
         public void RegisterMinion(EWorkerType minion, Transform body)
         {
             _minions[minion] = body;
+            if (minion == EWorkerType.Hellhound)
+            {
+                _hellhound = body;
+                _hellhoundPresenter = body != null ? body.GetComponent<MinionStatusPresenter>() : null;
+            }
         }
 
         public void SetInteractionDistance(float distance) => _interactionDistance = distance;
 
         private void Update()
         {
+            if (_playerController != null && _playerController.IsTalkingToHellhound &&
+                (!IsHellhoundVisible || PlayerInteractionSelector.DistanceXZ(transform.position, _hellhound.position) > _interactionDistance))
+            {
+                _playerController.EndHellhoundTalk();
+            }
             if (_session == null || _session.MatchState != EMatchState.Running || _playerController.IsHandling
                 || _playerController.IsInStairTransit || _playerController.IsInConversation)
             {
@@ -95,7 +106,7 @@ namespace UnityGameJam.Player
                     }
                 }
             }
-            Vector3? hellhound = _minions.TryGetValue(EWorkerType.Hellhound, out Transform body) && body != null ? body.position : _hellhoundStart;
+            Vector3? hellhound = IsHellhoundVisible ? _hellhound.position : (Vector3?)null;
             return new PlayerInteractionContext(transform.position, _playerBody.Floor, _interactionDistance, carried,
                 _session.IsPlayerHoldingMop, _borrowedMopFloor, hellhound);
         }
@@ -136,15 +147,12 @@ namespace UnityGameJam.Player
                         _playerController.RefreshMop();
                     }
                     break;
-                case EInteractionKind.DispatchHellhound:
-                    accepted = _session.DispatchHellhound();
-                    GameAudioPresenter.QuietHoundNotice();
-                    break;
                 case EInteractionKind.TalkToMinion:
-                    accepted = _session.BeginTalk(choice.Minion);
-                    if (accepted && _minions.TryGetValue(choice.Minion, out Transform partner))
+                    if (_minions.TryGetValue(choice.Minion, out Transform partner) && partner != null)
                     {
-                        _playerController.FaceForTalk(choice.Minion, partner);
+                        // 헬하운드는 방 배정 세션에 참여하지 않고 대화창에서 배출을 확인한다.
+                        accepted = choice.Minion == EWorkerType.Hellhound || _session.BeginTalk(choice.Minion);
+                        if (accepted) { _playerController.FaceForTalk(choice.Minion, partner); }
                     }
                     break;
                 case EInteractionKind.StartMop:
