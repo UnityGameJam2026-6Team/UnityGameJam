@@ -33,7 +33,7 @@
 5. 물건을 들고 J를 누르면 맞는 제자리를 우선 사용하고, 그 밖에서는 그 자리에 내려놓는다(`TryDrop`). 걸레를 들고 있으면 빌린 걸레걸이에서 반납하거나 가까운 얼룩에서 닦는다.
    - 줍기, 내려놓기, 제자리 정리, 배출 구역 적치, 걸레 대여·반납이 성공하면 해당 클립 구간이 끝날 때까지 이동·계단·다른 상호작용을 멈춘다. 내려놓기와 반납은 집기 구간을 역재생한다. 종료 후 계속 누르고 있는 이동 키로 즉시 움직인다.
    - 졸개와 대화를 시작하면 두 유닛이 제자리에서 서로를 향해 회전한다.
-6. 고른 대상 위에 표시(TargetMarker)를 띄운다. 대상이 없으면 숨긴다.
+6. 상호작용으로 대화할 수 있는 졸개가 선택되면 그 졸개의 머리 위에 `paper` 스프라이트 말풍선을 표시한다. 범위 밖, 대화 중, 화면 밖, 가려진 구역에서는 숨긴다.
 7. 카메라는 플레이어를 높이 12m, 후방 8m에서 따라가며 위에서 내려다본다. 층은 X축으로 100m 떨어져 있어서 다른 층은 화면에 들어오지 않는다. 층을 옮길 때는 새 위치의 플레이어에게 즉시 맞춘다.
 8. 플레이어의 층은 층 범위(`FacilityLayout.Floors`) 중 위치가 들어 있는 층이다.
 
@@ -54,7 +54,8 @@
 | `Runtime/View/Debug/FakeMatchSession.cs` | 가짜 판. 생성 지점 일부에 개체를 놓고 줍기·내려놓기·제자리·걸레·물걸레질(진행도 0→100)·배출을 흉내 낸다. 운반 감속 50%, 청결도 계산(가중치 4/3/2/1) |
 | `Runtime/View/Debug/FakeMatchSessionFactorySO.cs` | 가짜 판 팩토리(디버그 값: 기본 속도, 물걸레질 시간, 판 시간, 구역당 개체 수) |
 | `Runtime/View/Debug/DebugItemView.cs` | B4 전까지 쓰는 개체 디버그 표시(유형별 색 도형, 운반 중이면 플레이어 머리 위) |
-| 프리팹 `CH_Player` | 표준 구조(1.7m 캡슐) + CharacterController + PlayerBody/Controller/Interactor + `TargetMarker` |
+| 프리팹 `CH_Player` | 표준 구조(1.7m 캡슐) + CharacterController + PlayerBody/Controller/Interactor |
+| 프리팹 `UI_HudRoot`의 `MinionInteractionPrompt` | 선택된 대화 대상의 모델 높이를 화면 좌표로 변환해 말풍선을 배치 |
 | 프리팹 `SYS_Bootstrap` | MatchBootstrap + DebugItemView. 씬 인스턴스에서 층 3개·카메라 참조를 연결(인스턴스 저작 값) |
 | 에셋 `3_Data/ScriptableObject/View/ViewSettings.asset`, `FakeMatchSessionFactory.asset` | B 소유 SO |
 | `InputSystem_Actions` | Interact의 Hold 인터랙션 제거 → Press |

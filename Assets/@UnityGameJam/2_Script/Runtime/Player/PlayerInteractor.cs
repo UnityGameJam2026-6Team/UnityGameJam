@@ -7,7 +7,7 @@ using UnityGameJam.View;
 namespace UnityGameJam.Player
 {
     /// <summary>
-    /// 매 프레임 상호작용 대상을 골라 표시하고(Spec Player 규칙 4·6), 상호작용·내려놓기 입력을 규칙 명령으로 바꾼다(규칙 4·5).
+    /// 매 프레임 상호작용 대상을 고르고(Spec Player 규칙 4), 상호작용·내려놓기 입력을 규칙 명령으로 바꾼다(규칙 4·5).
     /// 고르는 기준은 PlayerInteractionSelector가 갖고 있다.
     /// </summary>
     [RequireComponent(typeof(PlayerBody), typeof(PlayerController))]
@@ -16,10 +16,6 @@ namespace UnityGameJam.Player
     {
         [Header("입력")]
         [SerializeField] private InputActionReference _interactAction;
-
-        [Header("표시")]
-        [Tooltip("고른 대상 위에 띄우는 표시")]
-        [SerializeField] private Transform _targetMarker;
 
         private readonly List<(EWorkerType Minion, Vector3 Position)> _minionPositions = new List<(EWorkerType, Vector3)>();
         private readonly Dictionary<EWorkerType, Transform> _minions = new Dictionary<EWorkerType, Transform>();
@@ -34,6 +30,8 @@ namespace UnityGameJam.Player
         private MinionStatusPresenter _hellhoundPresenter;
 
         public InteractionChoice CurrentChoice { get; private set; } = InteractionChoice.None;
+        internal EWorkerType? AvailableConversationTarget => isActiveAndEnabled && CurrentChoice.Kind == EInteractionKind.TalkToMinion
+            && !_playerController.IsInConversation ? CurrentChoice.Minion : null;
         private bool IsHellhoundVisible => _hellhound != null && _hellhoundPresenter?.IsHidden != true;
 
         private void OnEnable()
@@ -49,7 +47,6 @@ namespace UnityGameJam.Player
             _playerController = GetComponent<PlayerController>();
             _borrowedMopFloor = null;
             _selector = new PlayerInteractionSelector(layout);
-            if (_targetMarker != null) { _targetMarker.SetParent(null, true); } // 플레이어 회전을 따라가지 않게 분리
         }
 
         /// <summary>대화 상대는 실제로 생성된 졸개의 위치에서 고른다.</summary>
@@ -76,19 +73,11 @@ namespace UnityGameJam.Player
                 || _playerController.IsInStairTransit || _playerController.IsInConversation)
             {
                 CurrentChoice = InteractionChoice.None;
-                SetMarker(CurrentChoice);
                 return;
             }
 
             CurrentChoice = _session.IsPlayerWorking ? InteractionChoice.None : _selector.Select(BuildContext(), _session.Items, CollectMinions());
-            SetMarker(CurrentChoice);
-
             if (_interactAction != null && _interactAction.action.WasPressedThisFrame()) { Execute(CurrentChoice); }
-        }
-
-        private void OnDestroy()
-        {
-            if (_targetMarker != null) { Destroy(_targetMarker.gameObject); }
         }
 
         private PlayerInteractionContext BuildContext()
@@ -166,14 +155,6 @@ namespace UnityGameJam.Player
                     break;
             }
             if (!accepted && choice.Kind != EInteractionKind.None) { GameSfxPlayer.Play(ESfxCue.Unavailable); }
-        }
-
-        private void SetMarker(InteractionChoice choice)
-        {
-            if (_targetMarker == null) { return; }
-            bool isVisible = choice.Kind != EInteractionKind.None;
-            if (_targetMarker.gameObject.activeSelf != isVisible) { _targetMarker.gameObject.SetActive(isVisible); }
-            if (isVisible) { _targetMarker.SetPositionAndRotation(choice.TargetPosition + Vector3.up * 0.03f, Quaternion.identity); }
         }
     }
 }

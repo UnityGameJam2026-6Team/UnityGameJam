@@ -48,6 +48,7 @@ namespace UnityGameJam.View
         public FacilityLayout Layout { get; private set; }
         public PlayerBody Player { get; private set; }
         internal PlayerController PlayerController => _playerController;
+        internal PlayerInteractor PlayerInteractor => _playerInteractor;
         public IReadOnlyList<MinionAgent> Minions => _minions;
 
         internal bool CanSeeMinion(MinionAgent minion)
