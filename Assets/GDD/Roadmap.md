@@ -15,7 +15,7 @@
 - [x] A1 청결도·오염 모델 (Spec `Cleaning.md`)
 - [x] A2 데이터와 생성 (Spec `ContaminationSpawn.md`)
 - [x] A3 작업 선택과 능력 (Spec `TaskSelection.md`)
-- [ ] A4 도구·배출·소화 (Spec `ToolAndDischarge.md`)
+- [x] A4 도구·배출·소화 (Spec `ToolAndDischarge.md`)
 - [ ] A5 졸개 두뇌와 기억 (Spec `MinionBrain.md`)
 - [ ] A6 제안 대기열과 대사 (Spec `Proposal.md`)
 - [ ] A7 판 흐름과 마감 (Spec `MatchFlow.md`)
