@@ -467,22 +467,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f5653f5e930ff59478ce778287d6931b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.View.CharacterAnimationSet
-  _idle: {fileID: -3100369314251171874, guid: ae56bc416591fc14cb31a0fcba77569e, type: 3}
-  _walk: {fileID: -1610863427237328480, guid: ae56bc416591fc14cb31a0fcba77569e, type: 3}
-  _run: {fileID: 0}
-  _pickUp: {fileID: 0}
-  _pickUpHeavy: {fileID: 0}
-  _carry: {fileID: 0}
-  _carryHeavy: {fileID: 0}
   _leftHandCarry: 0
   _pickUpContact: 0
   _pickUpEnd: 0
   _pickUpHeavyContact: 0
   _pickUpHeavyEnd: 0
-  _mopWalk: {fileID: 0}
-  _mop: {fileID: 0}
-  _eat: {fileID: 0}
-  _dispatch: {fileID: 0}
   _walkSpeed: 1.1173356
   _runSpeed: 0
   _carrySpeed: 0
@@ -1048,6 +1037,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Model
       objectReference: {fileID: 0}
+    - target: {fileID: 5866666021909216657, guid: ae56bc416591fc14cb31a0fcba77569e, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: b9cbf1190b83f7242ac3d43bbdcb38c3, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

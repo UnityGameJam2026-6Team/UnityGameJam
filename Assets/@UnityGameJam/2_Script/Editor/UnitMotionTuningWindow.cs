@@ -8,6 +8,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 using UnityGameJam.Contract;
 using UnityGameJam.Data;
+using UnityGameJam.Editor.Art;
 using UnityGameJam.Match;
 using UnityGameJam.View;
 
@@ -204,39 +205,40 @@ namespace UnityGameJam.Editor
             if (path == null || prefab == null) { return; }
 
             var group = settings.FindProperty(path);
-            var clips = prefab.GetComponentInChildren<CharacterAnimationSet>(true);
+            RuntimeAnimatorController controller = prefab.GetComponentInChildren<ArtSlot>(true)?.Animator?.runtimeAnimatorController;
+            bool HasMotion(ECharacterAnimation state) => EmbeddedCharacterAnimationBinder.GetMotion(controller, state) != null;
             string title = GetWorkerName(worker);
             var section = AddSection(parent, title, worker == EWorkerType.Player);
             var movement = AddSection(section, "이동 속도 (배)", true);
             bool canWalk = worker != EWorkerType.Hellhound;
             bool canRun = worker != EWorkerType.Slime;
-            bool isMissingSkeletonClips = worker == EWorkerType.Skeleton && clips?.Idle == null;
+            bool isMissingSkeletonClips = worker == EWorkerType.Skeleton && !HasMotion(ECharacterAnimation.Idle);
             if (canWalk) { AddMovement(worker == EWorkerType.Slime ? "이동" : "걷기", "_walkRate"); }
             if (canRun) { AddMovement("달리기", "_runRate"); }
-            if (clips?.Carry != null) { AddMovement("한 손 운반", "_carryRate"); }
-            if (clips?.CarryHeavy != null) { AddMovement("두 손 운반", "_heavyCarryRate"); }
-            if (clips?.MopWalk != null || isMissingSkeletonClips) { AddMovement("걸레 이동", "_mopWalkRate"); }
-            if (clips == null && !isMissingSkeletonClips) { return; }
+            if (HasMotion(ECharacterAnimation.Carry)) { AddMovement("한 손 운반", "_carryRate"); }
+            if (HasMotion(ECharacterAnimation.CarryHeavy)) { AddMovement("두 손 운반", "_heavyCarryRate"); }
+            if (HasMotion(ECharacterAnimation.MopWalk) || isMissingSkeletonClips) { AddMovement("걸레 이동", "_mopWalkRate"); }
+            if (controller == null && !isMissingSkeletonClips) { return; }
 
             string animationTitle = isMissingSkeletonClips ? "애니메이션 배속 (FBX 연결 필요)" : "애니메이션 배속 (배)";
             var animation = AddSection(section, animationTitle, true);
-            if (clips?.Idle != null || isMissingSkeletonClips) { AddAnimation("대기", "_idleAnimationRate"); }
-            if (canWalk && (clips?.Walk != null || isMissingSkeletonClips))
+            if (HasMotion(ECharacterAnimation.Idle) || isMissingSkeletonClips) { AddAnimation("대기", "_idleAnimationRate"); }
+            if (canWalk && (HasMotion(ECharacterAnimation.Walk) || isMissingSkeletonClips))
             {
                 AddAnimation(worker == EWorkerType.Slime ? "이동" : "걷기", "_walkAnimationRate");
             }
-            if (canRun && (clips?.Run != null || isMissingSkeletonClips)) { AddAnimation("달리기", "_runAnimationRate"); }
-            if (clips?.Carry != null) { AddAnimation("한 손 운반", "_carryAnimationRate"); }
-            if (clips?.CarryHeavy != null) { AddAnimation("두 손 운반", "_heavyCarryAnimationRate"); }
-            if (clips?.MopWalk != null || isMissingSkeletonClips) { AddAnimation("걸레 이동", "_mopWalkAnimationRate"); }
-            if (clips?.Mop != null || isMissingSkeletonClips) { AddAnimation("물걸레질", "_mopAnimationRate"); }
-            if (clips?.PickUp != null || clips?.PickUpHeavy != null || isMissingSkeletonClips)
+            if (canRun && (HasMotion(ECharacterAnimation.Run) || isMissingSkeletonClips)) { AddAnimation("달리기", "_runAnimationRate"); }
+            if (HasMotion(ECharacterAnimation.Carry)) { AddAnimation("한 손 운반", "_carryAnimationRate"); }
+            if (HasMotion(ECharacterAnimation.CarryHeavy)) { AddAnimation("두 손 운반", "_heavyCarryAnimationRate"); }
+            if (HasMotion(ECharacterAnimation.MopWalk) || isMissingSkeletonClips) { AddAnimation("걸레 이동", "_mopWalkAnimationRate"); }
+            if (HasMotion(ECharacterAnimation.Mop) || isMissingSkeletonClips) { AddAnimation("물걸레질", "_mopAnimationRate"); }
+            if (HasMotion(ECharacterAnimation.PickUp) || HasMotion(ECharacterAnimation.PickUpHeavy) || isMissingSkeletonClips)
             {
                 AddAnimation("집기", "_pickupRate");
                 AddAnimation("내려놓기", "_dropRate");
             }
-            if (clips?.Eat != null) { AddAnimation("먹기", "_eatAnimationRate"); }
-            if (clips?.Dispatch != null) { AddAnimation("배출 이동", "_dispatchAnimationRate"); }
+            if (HasMotion(ECharacterAnimation.Eat)) { AddAnimation("먹기", "_eatAnimationRate"); }
+            if (HasMotion(ECharacterAnimation.Dispatch)) { AddAnimation("배출 이동", "_dispatchAnimationRate"); }
 
             void AddMovement(string label, string property)
             {

@@ -224,6 +224,10 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 7
       objectReference: {fileID: 0}
+    - target: {fileID: 5866666021909216657, guid: 434d7bc77378a134e9b105d0fa3f9842, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: 3bc4187613282ea448c6ed4c607040e3, type: 2}
     - target: {fileID: 6259991943363107928, guid: 434d7bc77378a134e9b105d0fa3f9842, type: 3}
       propertyPath: m_Layer
       value: 7
@@ -383,22 +387,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f5653f5e930ff59478ce778287d6931b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.View.CharacterAnimationSet
-  _idle: {fileID: -3548273549459496330, guid: 434d7bc77378a134e9b105d0fa3f9842, type: 3}
-  _walk: {fileID: -1610863427237328480, guid: 434d7bc77378a134e9b105d0fa3f9842, type: 3}
-  _run: {fileID: -9121621101649706817, guid: 434d7bc77378a134e9b105d0fa3f9842, type: 3}
-  _pickUp: {fileID: -6757020630807413255, guid: 434d7bc77378a134e9b105d0fa3f9842, type: 3}
-  _pickUpHeavy: {fileID: -6757020630807413255, guid: 434d7bc77378a134e9b105d0fa3f9842, type: 3}
-  _carry: {fileID: 354216277352124052, guid: 434d7bc77378a134e9b105d0fa3f9842, type: 3}
-  _carryHeavy: {fileID: -577597912951214202, guid: 434d7bc77378a134e9b105d0fa3f9842, type: 3}
   _leftHandCarry: 1
   _pickUpContact: 3.414365
   _pickUpEnd: 4.3430943
   _pickUpHeavyContact: 3.414365
   _pickUpHeavyEnd: 4.3430943
-  _mopWalk: {fileID: -5558302777307758154, guid: 434d7bc77378a134e9b105d0fa3f9842, type: 3}
-  _mop: {fileID: -8303932156236803649, guid: 434d7bc77378a134e9b105d0fa3f9842, type: 3}
-  _eat: {fileID: 0}
-  _dispatch: {fileID: 0}
   _walkSpeed: 0.9251073
   _runSpeed: 2.4762688
   _carrySpeed: 0.8309032

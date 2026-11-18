@@ -232,6 +232,10 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 7
       objectReference: {fileID: 0}
+    - target: {fileID: 5866666021909216657, guid: 9be4fc8a0841fad44812e594f0fc58c4, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: ab9623424b0440f44affcde63930dbf2, type: 2}
     - target: {fileID: 6212345190297909993, guid: 9be4fc8a0841fad44812e594f0fc58c4, type: 3}
       propertyPath: m_Layer
       value: 7
@@ -440,22 +444,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f5653f5e930ff59478ce778287d6931b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.View.CharacterAnimationSet
-  _idle: {fileID: -3100369314251171874, guid: 9be4fc8a0841fad44812e594f0fc58c4, type: 3}
-  _walk: {fileID: -3100369314251171874, guid: 9be4fc8a0841fad44812e594f0fc58c4, type: 3}
-  _run: {fileID: 0}
-  _pickUp: {fileID: 0}
-  _pickUpHeavy: {fileID: 0}
-  _carry: {fileID: 0}
-  _carryHeavy: {fileID: 0}
   _leftHandCarry: 0
   _pickUpContact: 0
   _pickUpEnd: 0
   _pickUpHeavyContact: 0
   _pickUpHeavyEnd: 0
-  _mopWalk: {fileID: 0}
-  _mop: {fileID: 0}
-  _eat: {fileID: -3453376765216658904, guid: 9be4fc8a0841fad44812e594f0fc58c4, type: 3}
-  _dispatch: {fileID: 0}
   _walkSpeed: 0
   _runSpeed: 0
   _carrySpeed: 0

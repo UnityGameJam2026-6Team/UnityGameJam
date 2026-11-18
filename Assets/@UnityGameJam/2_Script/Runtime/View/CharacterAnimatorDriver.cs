@@ -1,24 +1,26 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Animations;
-using UnityEngine.Playables;
 using UnityGameJam.Contract;
 
 namespace UnityGameJam.View
 {
-    /// <summary>규칙이 정한 동작을 해당 유닛 FBX의 클립으로 재생한다. 몸의 실제 이동은 컨트롤러가 맡는다.</summary>
+    /// <summary>규칙이 정한 동작을 캐릭터의 Animator Controller 상태에 연결한다.</summary>
     [DefaultExecutionOrder(20)]
     public sealed class CharacterAnimatorDriver : MonoBehaviour
     {
         private static readonly int PoseId = Animator.StringToHash("Pose");
+        private static readonly int[] _stateHashes = Array.ConvertAll((ECharacterAnimation[])Enum.GetValues(typeof(ECharacterAnimation)),
+            state => Animator.StringToHash($"Base Layer.{state}"));
 
         [SerializeField] private ArtSlot _artSlot;
 
         private CharacterAnimationSet _set;
         private Animator _animator;
-        private PlayableGraph _graph;
-        private AnimationPlayableOutput _output;
-        private AnimationClipPlayable _playable;
+        private readonly Dictionary<ECharacterAnimation, AnimationClip> _clips = new();
+        private readonly List<AnimatorClipInfo> _clipInfo = new();
+        private bool _hasController;
+        private float _originalAnimatorSpeed;
         private AnimationClip _loop;
         private float _loopTime;
         private Vector3 _cycleTravel;
@@ -34,6 +36,7 @@ namespace UnityGameJam.View
         private float _eatStarted;
         private UnitMotionTuning _tuning;
         private AnimationClip _handling;
+        private ECharacterAnimation _handlingState;
         private bool _handlingHeavy;
         private float _handlingStart;
         private UnitHandlingTiming _handlingTiming;
@@ -53,32 +56,35 @@ namespace UnityGameJam.View
             if (_artSlot == null) { return; }
             _set = _artSlot.AnimationSet;
             _animator = _artSlot.Animator;
-            if (_set == null || _set.Idle == null || _animator == null) { return; }
+            if (_set == null || _animator == null || _animator.runtimeAnimatorController == null) { return; }
 
             _animator.applyRootMotion = false;
-            _graph = PlayableGraph.Create(gameObject.name);
-            _graph.SetTimeUpdateMode(DirectorUpdateMode.Manual);
-            _output = AnimationPlayableOutput.Create(_graph, "FBX", _animator);
-            _graph.Play();
+            _animator.Update(0f);
+            if (!HasState(ECharacterAnimation.Idle)) { return; }
+            _hasController = true;
+            _originalAnimatorSpeed = _animator.speed;
+            // 손 접촉과 물건의 표시 시점이 같도록 상태의 시간을 직접 맞춘다.
+            _animator.speed = 0f;
 
             Transform[] bones = _animator.GetComponentsInChildren<Transform>(true);
             _hips = FindBone(bones, "Hips");
             _leftHand = FindBone(bones, "LeftHand");
             _rightHand = FindBone(bones, "RightHand");
-            if (_set.Carry != null)
+            _holdingArm = SampleArm(FindBone(bones, _set.LeftHandCarry ? "LeftArm" : "RightArm"), ECharacterAnimation.Carry);
+            AnimationClip heavyPickup = GetClip(ECharacterAnimation.PickUpHeavy);
+            if (_set.LeftHandCarry && heavyPickup != null && heavyPickup == GetClip(ECharacterAnimation.PickUp))
             {
-                _holdingArm = SampleArm(FindBone(bones, _set.LeftHandCarry ? "LeftArm" : "RightArm"), _set.Carry);
+                _supportArm = SampleArm(FindBone(bones, "RightArm"), ECharacterAnimation.CarryHeavy);
             }
-            if (_set.LeftHandCarry && _set.PickUpHeavy != null && _set.PickUpHeavy == _set.PickUp)
-            {
-                _supportArm = SampleArm(FindBone(bones, "RightArm"), _set.CarryHeavy);
-            }
-            Sample(_set.Idle, 0f);
+            AnimationClip idle = GetClip(ECharacterAnimation.Idle);
+            if (idle != null) { Sample(ECharacterAnimation.Idle, idle, 0f); }
         }
 
         private void OnDisable()
         {
-            if (_graph.IsValid()) { _graph.Destroy(); }
+            if (_hasController && _animator != null) { _animator.speed = _originalAnimatorSpeed; }
+            _hasController = false;
+            _clips.Clear();
             CurrentClip = null;
             _handling = null;
             _loop = null;
@@ -92,7 +98,7 @@ namespace UnityGameJam.View
             if (IsHandling)
             {
                 float progress = HandlingProgress;
-                _handlingTiming = tuning.ResolveHandling(_set, IsPickingUp, _handlingHeavy);
+                _handlingTiming = tuning.ResolveHandling(_set, _handling.length, IsPickingUp, _handlingHeavy);
                 _handlingStart = now - progress * _handlingTiming.Duration;
             }
             if (CurrentPose == EPose.Eat)
@@ -112,7 +118,7 @@ namespace UnityGameJam.View
             _sprint = running;
             _carried = carried;
             _holdingMop = holdingMop;
-            if (!_graph.IsValid() && _animator != null && _animator.runtimeAnimatorController != null)
+            if (!_hasController && _animator != null && _animator.runtimeAnimatorController != null)
             {
                 _animator.SetInteger(PoseId, (int)pose);
             }
@@ -139,14 +145,16 @@ namespace UnityGameJam.View
 
         public float BeginHandling(bool pickingUp, bool heavy = false)
         {
-            if (!_graph.IsValid()) { return 0f; }
-            AnimationClip clip = heavy ? _set.PickUpHeavy : _set.PickUp;
+            if (!_hasController || !_animator.isActiveAndEnabled) { return 0f; }
+            ECharacterAnimation state = heavy ? ECharacterAnimation.PickUpHeavy : ECharacterAnimation.PickUp;
+            AnimationClip clip = GetClip(state);
             if (clip == null) { return 0f; }
             IsPickingUp = pickingUp;
             _handlingHeavy = heavy;
             _handling = clip;
+            _handlingState = state;
             _handlingStart = Time.time;
-            _handlingTiming = _tuning.ResolveHandling(_set, pickingUp, heavy);
+            _handlingTiming = _tuning.ResolveHandling(_set, clip.length, pickingUp, heavy);
             _loop = null;
             return _handlingTiming.Duration;
         }
@@ -179,11 +187,11 @@ namespace UnityGameJam.View
 
         private void LateUpdate()
         {
-            if (!_graph.IsValid() || !_animator.gameObject.activeInHierarchy) { return; }
+            if (!_hasController || !_animator.isActiveAndEnabled) { return; }
             if (IsHandling)
             {
                 float time = _handlingTiming.ClipTime(Time.time - _handlingStart);
-                Sample(_handling, time);
+                Sample(_handlingState, _handling, time);
                 if (_handlingHeavy && _supportArm != null)
                 {
                     // 오크가 물건을 들어 올리는 동안 오른팔을 두 손 운반 자세로 가져온다.
@@ -193,13 +201,13 @@ namespace UnityGameJam.View
             }
             _handling = null;
 
-            if (CurrentPose == EPose.Eat && _set.Eat != null)
+            if (CurrentPose == EPose.Eat && GetClip(ECharacterAnimation.Eat) is AnimationClip eat)
             {
                 float eatTime = (Time.time - _eatStarted) * _tuning.EatAnimationRate;
-                if (eatTime < _set.Eat.length)
+                if (eatTime < eat.length)
                 {
                     _loop = null;
-                    Sample(_set.Eat, eatTime);
+                    Sample(ECharacterAnimation.Eat, eat, eatTime);
                     return;
                 }
             }
@@ -207,15 +215,17 @@ namespace UnityGameJam.View
             bool moving = CurrentPose == EPose.Walk || CurrentPose == EPose.Dispatch ||
                 CurrentPose == EPose.Carry || CurrentPose == EPose.CarryHeavy;
             bool heavy = _carried == EContaminationType.HeavyDebris || CurrentPose == EPose.CarryHeavy;
-            var (clip, animationRate) = SelectLoop(moving, heavy);
+            var (state, animationRate) = SelectLoop(moving, heavy);
+            AnimationClip clip = GetClip(state);
+            if (clip == null) { return; }
             if (clip != _loop)
             {
                 _loop = clip;
                 _loopTime = 0f;
-                _cycleTravel = moving ? MeasureCycleTravel(clip) : Vector3.zero;
+                _cycleTravel = moving ? MeasureCycleTravel(state, clip) : Vector3.zero;
             }
 
-            bool holdHeavy = !moving && heavy && clip == _set.CarryHeavy;
+            bool holdHeavy = !moving && heavy && state == ECharacterAnimation.CarryHeavy;
             if (holdHeavy) { _loopTime = 0f; }
             else
             {
@@ -226,7 +236,7 @@ namespace UnityGameJam.View
                 }
                 _loopTime = Mathf.Repeat(_loopTime + Time.deltaTime * animationRate, Mathf.Max(0.001f, clip.length));
             }
-            Sample(clip, _loopTime);
+            Sample(state, clip, _loopTime);
             if (moving && _hips != null && clip.length > 0f)
             {
                 _hips.position -= transform.TransformVector(_cycleTravel * (_loopTime / clip.length));
@@ -234,52 +244,64 @@ namespace UnityGameJam.View
             if (!moving && !heavy && _carried.HasValue) { _holdingArm?.Apply(1f); }
         }
 
-        private (AnimationClip Clip, float Rate) SelectLoop(bool moving, bool heavy)
+        private (ECharacterAnimation State, float Rate) SelectLoop(bool moving, bool heavy)
         {
-            if (CurrentPose == EPose.Mop && _set.Mop != null) { return (_set.Mop, _tuning.MopAnimationRate); }
-            if (CurrentPose == EPose.Dispatch && _set.Dispatch != null) { return (_set.Dispatch, _tuning.DispatchAnimationRate); }
-            if (heavy && _set.CarryHeavy != null) { return (_set.CarryHeavy, _tuning.HeavyCarryAnimationRate); }
-            if (!moving) { return (_set.Idle, _tuning.IdleAnimationRate); }
-            if (_holdingMop && _set.MopWalk != null) { return (_set.MopWalk, _tuning.MopWalkAnimationRate); }
-            if ((_carried.HasValue || CurrentPose == EPose.Carry) && _set.Carry != null) { return (_set.Carry, _tuning.CarryAnimationRate); }
-            if (_sprint && _set.Run != null) { return (_set.Run, _tuning.RunAnimationRate); }
-            return _set.Walk != null ? (_set.Walk, _tuning.WalkAnimationRate) : (_set.Idle, _tuning.IdleAnimationRate);
+            if (CurrentPose == EPose.Mop && HasState(ECharacterAnimation.Mop)) { return (ECharacterAnimation.Mop, _tuning.MopAnimationRate); }
+            if (CurrentPose == EPose.Dispatch && HasState(ECharacterAnimation.Dispatch)) { return (ECharacterAnimation.Dispatch, _tuning.DispatchAnimationRate); }
+            if (heavy && HasState(ECharacterAnimation.CarryHeavy)) { return (ECharacterAnimation.CarryHeavy, _tuning.HeavyCarryAnimationRate); }
+            if (!moving) { return (ECharacterAnimation.Idle, _tuning.IdleAnimationRate); }
+            if (_holdingMop && HasState(ECharacterAnimation.MopWalk)) { return (ECharacterAnimation.MopWalk, _tuning.MopWalkAnimationRate); }
+            if ((_carried.HasValue || CurrentPose == EPose.Carry) && HasState(ECharacterAnimation.Carry)) { return (ECharacterAnimation.Carry, _tuning.CarryAnimationRate); }
+            if (_sprint && HasState(ECharacterAnimation.Run)) { return (ECharacterAnimation.Run, _tuning.RunAnimationRate); }
+            return HasState(ECharacterAnimation.Walk) ? (ECharacterAnimation.Walk, _tuning.WalkAnimationRate)
+                : (ECharacterAnimation.Idle, _tuning.IdleAnimationRate);
         }
 
-        private Vector3 MeasureCycleTravel(AnimationClip clip)
+        private Vector3 MeasureCycleTravel(ECharacterAnimation state, AnimationClip clip)
         {
             if (_hips == null || clip == null) { return Vector3.zero; }
-            Sample(clip, 0f);
+            Sample(state, clip, 0f);
             Vector3 start = transform.InverseTransformPoint(_hips.position);
-            Sample(clip, clip.length);
+            Sample(state, clip, clip.length);
             Vector3 delta = transform.InverseTransformPoint(_hips.position) - start;
             delta.y = 0f;
             return delta;
         }
 
-        private void Sample(AnimationClip clip, float time)
+        private bool HasState(ECharacterAnimation state) => _animator.HasState(0, _stateHashes[(int)state]);
+
+        private AnimationClip GetClip(ECharacterAnimation state)
         {
-            if (clip != CurrentClip)
-            {
-                if (_playable.IsValid())
-                {
-                    _output.SetSourcePlayable(Playable.Null);
-                    _playable.Destroy();
-                }
-                _playable = AnimationClipPlayable.Create(_graph, clip);
-                _playable.SetSpeed(0d);
-                _output.SetSourcePlayable(_playable);
-                CurrentClip = clip;
-            }
-            ClipTime = time;
-            _playable.SetTime(time);
-            _graph.Evaluate(0f);
+            if (_clips.TryGetValue(state, out AnimationClip clip)) { return clip; }
+            if (!HasState(state)) { return null; }
+            PlayAt(state, 0f);
+            _clipInfo.Clear();
+            _animator.GetCurrentAnimatorClipInfo(0, _clipInfo);
+            clip = _clipInfo.Count > 0 ? _clipInfo[0].clip : null;
+            if (clip != null) { _clips.Add(state, clip); }
+            return clip;
         }
 
-        private ArmPose SampleArm(Transform upperArm, AnimationClip clip)
+        private void Sample(ECharacterAnimation state, AnimationClip clip, float time)
         {
-            if (upperArm == null || clip == null) { return null; }
-            Sample(clip, 0f);
+            CurrentClip = clip;
+            ClipTime = time;
+            float normalizedTime = clip.length > 0f ? Mathf.Min(time / clip.length, 0.99999f) : 0f;
+            PlayAt(state, normalizedTime);
+        }
+
+        private void PlayAt(ECharacterAnimation state, float normalizedTime)
+        {
+            _animator.Play(_stateHashes[(int)state], 0, normalizedTime);
+            _animator.Update(0f);
+        }
+
+        private ArmPose SampleArm(Transform upperArm, ECharacterAnimation state)
+        {
+            if (upperArm == null) { return null; }
+            AnimationClip clip = GetClip(state);
+            if (clip == null) { return null; }
+            Sample(state, clip, 0f);
             return new ArmPose(upperArm);
         }
 

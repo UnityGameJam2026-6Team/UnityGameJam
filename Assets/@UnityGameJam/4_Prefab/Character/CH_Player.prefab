@@ -157,22 +157,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f5653f5e930ff59478ce778287d6931b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.View.CharacterAnimationSet
-  _idle: {fileID: 9100177260916811552, guid: b5d3f0172858995439c096df9f42ea3f, type: 3}
-  _walk: {fileID: -1610863427237328480, guid: b5d3f0172858995439c096df9f42ea3f, type: 3}
-  _run: {fileID: -9121621101649706817, guid: b5d3f0172858995439c096df9f42ea3f, type: 3}
-  _pickUp: {fileID: 4727725557492882056, guid: b5d3f0172858995439c096df9f42ea3f, type: 3}
-  _pickUpHeavy: {fileID: -6119365465334510249, guid: b5d3f0172858995439c096df9f42ea3f, type: 3}
-  _carry: {fileID: 354216277352124052, guid: b5d3f0172858995439c096df9f42ea3f, type: 3}
-  _carryHeavy: {fileID: -577597912951214202, guid: b5d3f0172858995439c096df9f42ea3f, type: 3}
   _leftHandCarry: 1
   _pickUpContact: 1.5531609
   _pickUpEnd: 2.5454023
   _pickUpHeavyContact: 0.9666667
   _pickUpHeavyEnd: 1.6333334
-  _mopWalk: {fileID: -5558302777307758154, guid: b5d3f0172858995439c096df9f42ea3f, type: 3}
-  _mop: {fileID: -8303932156236803649, guid: b5d3f0172858995439c096df9f42ea3f, type: 3}
-  _eat: {fileID: 0}
-  _dispatch: {fileID: 0}
   _walkSpeed: 0.8108946
   _runSpeed: 2.1547396
   _carrySpeed: 0.7483602
@@ -266,9 +255,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.Player.PlayerController
   _moveAction: {fileID: -1680190386980627800, guid: 052faaac586de48259a63d0c4782560b, type: 3}
-  _floorDownAction: {fileID: 2411907206095950430, guid: 052faaac586de48259a63d0c4782560b, type: 3}
-  _floorUpAction: {fileID: 7476244043514120974, guid: 052faaac586de48259a63d0c4782560b, type: 3}
-  _turnSpeed: 720
   _animatorDriver: {fileID: 8877789678333897341}
 --- !u!114 &1313077891600216107
 MonoBehaviour:
@@ -283,7 +269,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.Player.PlayerInteractor
   _interactAction: {fileID: 5374140043372179849, guid: 052faaac586de48259a63d0c4782560b, type: 3}
-  _dropAction: {fileID: 8227098187209558794, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   _targetMarker: {fileID: 858681988769876106}
 --- !u!114 &8877789678333897341
 MonoBehaviour:
@@ -616,6 +601,10 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}
+    - target: {fileID: 5866666021909216657, guid: b5d3f0172858995439c096df9f42ea3f, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: c4f61de5ab97b50459d88a58a97e0969, type: 2}
     - target: {fileID: 6259991943363107928, guid: b5d3f0172858995439c096df9f42ea3f, type: 3}
       propertyPath: m_Layer
       value: 6
