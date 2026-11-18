@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using UnityGameJam.View;
 using TMPro;
 using UnityEngine;
@@ -24,11 +23,12 @@ namespace UnityGameJam.UI
         [SerializeField] private InputActionReference _restartAction;
 
         [SerializeField] private TMP_Text _record;
-        [SerializeField] private TMP_Text _leaderboard;
+        [SerializeField] private LeaderboardView _leaderboard;
+        private InputAction _leaderboardNavigation;
+        private int _pageDirection;
         private bool _isReloading;
         private bool _hasRecorded;
         private readonly string _recordId = Guid.NewGuid().ToString("N");
-        private const int DisplayCount = 10;
 
         public void Show(MatchResult result, float facilityThreshold, float zoneThreshold)
         {
@@ -53,36 +53,21 @@ namespace UnityGameJam.UI
             {
                 Id = _recordId, Progress = result.FacilityCleanliness, Seconds = seconds, IsComplete = isComplete
             };
-            string time = FormatTime(seconds);
+            string time = LeaderboardView.FormatTime(seconds);
             _record.text = isComplete ? $"청소 완료  {time}" : $"종료 진행도  {result.FacilityCleanliness:0.##}%";
             try
             {
-                string path = Path.Combine(Application.persistentDataPath, "leaderboard.json");
-                List<LocalLeaderboard.Entry> entries = new LocalLeaderboard(path).Add(entry);
+                List<LocalLeaderboard.Entry> entries = LocalLeaderboard.ForThisPc().Add(entry);
                 int rank = entries.FindIndex(saved => saved.Id == _recordId) + 1;
                 _record.text += $"  ·  이번 기록 {rank}위";
-                var text = new StringBuilder("이 PC 순위표\n");
-                for (int i = 0; i < entries.Count && i < DisplayCount; i++)
-                {
-                    LocalLeaderboard.Entry saved = entries[i];
-                    string value = saved.IsComplete ? $"완료  {FormatTime(saved.Seconds)}" : $"{saved.Progress:0.##}%";
-                    string marker = saved.Id == _recordId ? "  ◀ 이번 기록" : "";
-                    text.AppendLine($"{i + 1}위    {value}{marker}");
-                }
-                _leaderboard.text = text.ToString();
+                _leaderboard.Show(entries, _recordId);
             }
-            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException ||
+            catch (Exception exception) when (exception is IOException || exception is InvalidDataException || exception is UnauthorizedAccessException ||
                 exception is ArgumentException)
             {
-                _leaderboard.text = "기록을 저장하지 못했습니다.";
+                _leaderboard.ShowMessage("기록을 저장하지 못했습니다.");
                 Debug.LogWarning($"[순위표] 기록 저장 실패 · {exception.Message}", this);
             }
-        }
-
-        private static string FormatTime(float seconds)
-        {
-            int centiseconds = Mathf.Max(0, Mathf.RoundToInt(seconds * 100f));
-            return $"{centiseconds / 6000:00}:{centiseconds / 100 % 60:00}.{centiseconds % 100:00}";
         }
 
         private void OnEnable()
@@ -91,6 +76,8 @@ namespace UnityGameJam.UI
             // 결과가 열린 뒤의 새 누름만 받는다. UI/Restart는 초기 키 상태 검사를 끈 Button 액션이다.
             _restartAction.action.performed += OnRestartPressed;
             _restartAction.action.Enable();
+            _leaderboardNavigation = InputSystem.actions?.FindAction("UI/Navigate");
+            if (_leaderboardNavigation != null) { _leaderboardNavigation.performed += OnLeaderboardNavigate; }
         }
 
         private void OnDisable()
@@ -98,6 +85,16 @@ namespace UnityGameJam.UI
             _restartButton.onClick.RemoveListener(Restart);
             _restartAction.action.performed -= OnRestartPressed;
             _restartAction.action.Disable();
+            if (_leaderboardNavigation != null) { _leaderboardNavigation.performed -= OnLeaderboardNavigate; }
+            _pageDirection = 0;
+        }
+
+        private void OnLeaderboardNavigate(InputAction.CallbackContext context)
+        {
+            float horizontal = context.ReadValue<Vector2>().x;
+            int direction = horizontal > 0.5f ? 1 : horizontal < -0.5f ? -1 : 0;
+            if (!_isReloading && direction != 0 && direction != _pageDirection) { _leaderboard.ChangePage(direction); }
+            _pageDirection = direction;
         }
 
         private static void ShowScore(TMP_Text row, string name, float score, float threshold)
