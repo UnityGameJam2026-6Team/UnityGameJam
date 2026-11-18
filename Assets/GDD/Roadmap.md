@@ -12,7 +12,7 @@
 - [x] 미결 질문 Q1~Q8 답변 반영 (`Undecided.md` U1~U8 결정)
 
 ## A 레인 (규칙·시뮬레이션) · 김보경 · Codex · `docs/team/lane-a.md`
-- [ ] A1 청결도·오염 모델 (Spec `Cleaning.md`)
+- [x] A1 청결도·오염 모델 (Spec `Cleaning.md`)
 - [ ] A2 데이터와 생성 (Spec `ContaminationSpawn.md`)
 - [ ] A3 작업 선택과 능력 (Spec `TaskSelection.md`)
 - [ ] A4 도구·배출·소화 (Spec `ToolAndDischarge.md`)
