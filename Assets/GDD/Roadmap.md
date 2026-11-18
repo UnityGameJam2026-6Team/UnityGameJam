@@ -24,7 +24,7 @@
 - [x] B0 프리팹·아트 기반(Spec `ArtPipeline.md`, 규칙 `docs/rules/prefab.md`·`art-asset.md`)
 - [x] B1 화이트박스 시설(Spec `FacilityLayout.md`)
 - [x] B2 플레이어 (Spec `Player.md`)
-- [x] B3 졸개 몸 (Spec `MinionAgent.md`) — 졸개 층간 이동 도착은 플레이 확인 필요
+- [x] B3 졸개 몸 (Spec `MinionAgent.md`) — 실제 판에서 고블린이 1층 → 2층 → 3층 간부실에 도착해 탐색을 시작하는 것까지 확인
 - [x] B4 ContaminationView (Spec `ContaminationView.md`) — 가짜 판과 실제 판에서 오염 표시 및 슬롯별 외형 확인.
 - [ ] B5 HUD (Spec `Hud.md`)
 - [ ] B6 대화와 제안 UI (Spec `AssignmentUi.md`)
