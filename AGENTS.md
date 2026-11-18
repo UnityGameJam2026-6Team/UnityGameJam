@@ -1,6 +1,7 @@
 # UnityGameJam (가제)
 
-게임 기획은 아직 정해지지 않았다. 정해지면 이 단락에 한두 문장으로 요약한다.
+**마왕 도착 전 시설 청소**: 마왕이 도착하기까지 남은 180초 동안 졸개 5종(고블린, 오크, 스켈레톤, 슬라임, 헬하운드)을 지휘하고 직접 청소해서, 9개 구역이 각각 60% 이상, 시설 전체가 85% 이상이 되게 하는 3D 탑다운 지휘 게임이다. 기획은 `Assets/GDD/GDD/Demon_King_Cleaning_Gameplay_Spec.md`, 전체 계획은 `Assets/Plans/demon-king-cleaning-implementation.md`를 본다.
+- 프로그래머 2명이 **A 레인(규칙·시뮬레이션)**과 **B 레인(월드·표현)**으로 나눠 작업한다. 작업을 시작할 때 어느 레인인지 확인하고, 자기 레인의 소유 경로 밖은 고치지 않는다([docs/rules/collaboration.md](docs/rules/collaboration.md)).
 
 - Unity 6000.3.28f1, URP (PC/Mobile 렌더러), Input System(신규)만 사용
 - 대상 플랫폼: PC (Windows 64bit)
@@ -11,7 +12,8 @@ Codex는 아래 문서를 자동으로 불러오지 않는다. **해당 작업�
 
 | 작업 | 문서 |
 |---|---|
-| 게임 기능 개발 (스펙 → 테스트 → 구현 → 완료 조건) | [docs/rules/workflow.md](docs/rules/workflow.md) |
+| 모든 작업 (레인 소유 경로, 계약 변경, 번호 대역, 커밋 전 확인) | [docs/rules/collaboration.md](docs/rules/collaboration.md) |
+| 게임 기능 개발(스펙 → 테스트 → 구현 → 완료 조건) | [docs/rules/workflow.md](docs/rules/workflow.md) |
 | C# 코드 작성·수정 | [docs/rules/coding-convention.md](docs/rules/coding-convention.md) |
 | 씬·프리팹·에셋·ProjectSettings·Packages 수정 | [docs/rules/unity-editor.md](docs/rules/unity-editor.md) |
 

@@ -13,6 +13,7 @@ description: UnityGameJam 프로젝트 규칙. C# 스크립트 작성·수정, �
 | 언제 | 문서 |
 |---|---|
 | 모든 작업 (항상 먼저) | `AGENTS.md` |
+| 모든 작업 (레인 소유 경로·계약 변경) | `docs/rules/collaboration.md` |
 | C# 코드 작성·수정 | `docs/rules/coding-convention.md` |
 | 게임 기능 개발, 규칙 변경 | `docs/rules/workflow.md` |
 | 씬·프리팹·에셋·ProjectSettings·Packages 수정 | `docs/rules/unity-editor.md` |
