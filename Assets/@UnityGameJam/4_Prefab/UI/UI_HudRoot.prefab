@@ -1216,6 +1216,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 3588831574828298697}
     m_Modifications:
+    - target: {fileID: 2041840902526336145, guid: 57dad90062140d747957b8cea7443e43, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 2582398395798777420, guid: 57dad90062140d747957b8cea7443e43, type: 3}
       propertyPath: m_Name
       value: UI_FacilityHud
@@ -1283,10 +1287,6 @@ PrefabInstance:
     - target: {fileID: 5461527240317724726, guid: 57dad90062140d747957b8cea7443e43, type: 3}
       propertyPath: m_AnchoredPosition.x
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5461527240317724726, guid: 57dad90062140d747957b8cea7443e43, type: 3}
-      propertyPath: m_AnchoredPosition.y
-      value: -78
       objectReference: {fileID: 0}
     - target: {fileID: 5461527240317724726, guid: 57dad90062140d747957b8cea7443e43, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x

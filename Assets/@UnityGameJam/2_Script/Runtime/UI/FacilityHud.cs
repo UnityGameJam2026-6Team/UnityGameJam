@@ -29,6 +29,7 @@ namespace UnityGameJam.UI
         [SerializeField] private GameObject _workGauge;
         [SerializeField] private RectTransform _workFill;
         private MatchBootstrap _bootstrap;
+        private Slider _facilityProgressSlider;
         private RectTransform _assignmentPanel;
         private AssignmentPanelChoices _panelChoices;
         private RectTransform _workGaugeRect;
@@ -43,6 +44,7 @@ namespace UnityGameJam.UI
         private void Awake()
         {
             _bootstrap = FindFirstObjectByType<MatchBootstrap>();
+            _facilityProgressSlider = _facilityProgress.GetComponentInParent<Slider>(true);
             if (_countdown == null) { _countdown = GetComponentInChildren<DemonKing.UI.DemonKingCountdownHUD>(true); }
             if (_countdown != null) { _countdown.PauseTimer(); }
             _assignmentPanel = (RectTransform)_choices.transform;
@@ -96,8 +98,10 @@ namespace UnityGameJam.UI
             EZoneId? zone = session.PlayerZone;
             _zone.text = zone.HasValue ? ZoneDisplayName.GetFullName(zone.Value) : ZoneDisplayName.GetFloorLabel(_bootstrap.Player.Floor);
             _zoneProgress.gameObject.SetActive(zone.HasValue);
-            if (zone.HasValue) { ShowProgress(_zoneProgress, "지역 진척도", session.GetZoneCleanliness(zone.Value), session.ZoneThreshold); }
-            ShowProgress(_facilityProgress, "전체 진행도", session.FacilityCleanliness, session.FacilityThreshold);
+            if (zone.HasValue) { ShowProgress(_zoneProgress, session.GetZoneCleanliness(zone.Value), session.ZoneThreshold); }
+            float facilityCleanliness = session.FacilityCleanliness;
+            if (_facilityProgressSlider != null) { _facilityProgressSlider.SetValueWithoutNotify(facilityCleanliness); }
+            ShowProgress(_facilityProgress, facilityCleanliness, session.FacilityThreshold);
             IReadOnlyList<MinionStatus> minions = session.Minions;
             _minionPanel.Show(minions);
             bool isWorking = session.IsPlayerWorking;
@@ -246,10 +250,9 @@ namespace UnityGameJam.UI
             if (_time != null) { _time.text = $"{seconds / 60:00}:{seconds % 60:00}"; }
         }
 
-        private static void ShowProgress(TMP_Text label, string title, float value, float threshold)
+        private static void ShowProgress(TMP_Text label, float value, float threshold)
         {
-            int percent = Mathf.FloorToInt(value);
-            label.SetText(value < threshold ? title + "  {0}% / {1}%  미달" : title + "  {0}% / {1}%", percent, threshold);
+            label.SetText("{0}%/{1}%", Mathf.FloorToInt(value), Mathf.CeilToInt(threshold));
         }
 
         private void Assign(EZoneId zone)
