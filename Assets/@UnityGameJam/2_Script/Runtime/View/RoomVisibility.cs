@@ -41,5 +41,18 @@ namespace UnityGameJam.View
                 }
             }
         }
+
+        public bool IsCovered(EFloor floor, Vector3 position)
+        {
+            foreach (var (room, _) in _unvisited)
+            {
+                if (room.Floor != floor) { continue; }
+                foreach (Bounds bounds in room.Areas)
+                {
+                    if (FacilityLayoutValidator.ContainsXZ(bounds, position)) { return true; }
+                }
+            }
+            return false;
+        }
     }
 }

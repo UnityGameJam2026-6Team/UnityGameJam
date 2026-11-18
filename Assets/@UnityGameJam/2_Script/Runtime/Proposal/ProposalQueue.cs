@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 using UnityGameJam.Contract;
 
 namespace UnityGameJam.Proposal
@@ -11,8 +13,8 @@ namespace UnityGameJam.Proposal
         private readonly float _noticeSeconds;
         private readonly float _replySeconds;
         private readonly IProposalDialogueProvider _provider;
-        private readonly Dictionary<EWorkerType, (ProposalRequest Request, float Deadline)> _pending =
-            new Dictionary<EWorkerType, (ProposalRequest, float)>();
+        private readonly Dictionary<EWorkerType, (ProposalRequest Request, float Deadline, CancellationTokenSource Cancellation)> _pending =
+            new Dictionary<EWorkerType, (ProposalRequest, float, CancellationTokenSource)>();
         private readonly ConcurrentQueue<(ProposalRequest Request, ProposalReply Reply)> _replies =
             new ConcurrentQueue<(ProposalRequest, ProposalReply)>();
         private readonly List<(MessageEntry Message, ProposalRequest? Request, float Deadline)> _active =
@@ -51,12 +53,15 @@ namespace UnityGameJam.Proposal
         }
 
         public void Request(EWorkerType worker, int assignmentId, EZoneId zone, EProposalReason reason,
-            bool areMopsUnavailable, float? requestedAt = null)
+            bool areMopsUnavailable, float? requestedAt = null, IReadOnlyList<EZoneId> candidates = null,
+            bool isOrcHelp = false)
         {
             if (_isClosed || _pending.ContainsKey(worker)
                 || _active.Exists(entry => entry.Request?.Worker == worker)) { return; }
-            var request = new ProposalRequest(++_nextId, worker, assignmentId, zone, reason, areMopsUnavailable);
-            _pending.Add(worker, (request, (requestedAt ?? _time) + _replySeconds));
+            var cancellation = new CancellationTokenSource();
+            var request = new ProposalRequest(++_nextId, worker, assignmentId, zone, reason, areMopsUnavailable,
+                candidates, isOrcHelp, cancellation.Token);
+            _pending.Add(worker, (request, (requestedAt ?? _time) + _replySeconds, cancellation));
             try
             {
                 _provider.Request(request, reply => _replies.Enqueue((request, reply)));
@@ -128,14 +133,14 @@ namespace UnityGameJam.Proposal
 
         public void Cancel(EWorkerType worker)
         {
-            _pending.Remove(worker);
+            CancelPending(worker);
             if (_active.RemoveAll(entry => entry.Request?.Worker == worker) > 0) { Changed?.Invoke(); }
         }
 
         public void Close()
         {
             _isClosed = true;
-            _pending.Clear();
+            foreach (EWorkerType worker in _pending.Keys.ToArray()) { CancelPending(worker); }
             if (_active.Count > 0)
             {
                 _active.Clear();
@@ -158,12 +163,22 @@ namespace UnityGameJam.Proposal
 
         private void Show(ProposalRequest request, ProposalReply reply)
         {
-            _pending.Remove(request.Worker);
-            string text = reply.Zone == request.Zone && !string.IsNullOrWhiteSpace(reply.Text)
-                ? reply.Text : DefaultProposalDialogueProvider.Format(request);
+            CancelPending(request.Worker);
+            bool hasValidReply = !string.IsNullOrWhiteSpace(reply.Text) && request.Candidates.Contains(reply.Zone);
+            EZoneId zone = hasValidReply ? reply.Zone : request.Zone;
+            string text = hasValidReply ? reply.Text : DefaultProposalDialogueProvider.Format(request);
+            var shown = new ProposalRequest(request.Id, request.Worker, request.AssignmentId, zone,
+                request.Reason, request.AreMopsUnavailable, request.Candidates, request.IsOrcHelp);
             var message = new MessageEntry(request.Id, EMessageKind.Proposal, request.Worker, text,
-                request.Zone, _time, _proposalSeconds, false);
-            _active.Add((message, request, _time + _proposalSeconds));
+                zone, _time, _proposalSeconds, false);
+            _active.Add((message, shown, _time + _proposalSeconds));
+        }
+
+        private void CancelPending(EWorkerType worker)
+        {
+            if (!_pending.Remove(worker, out var pending)) { return; }
+            pending.Cancellation.Cancel();
+            pending.Cancellation.Dispose();
         }
     }
 }

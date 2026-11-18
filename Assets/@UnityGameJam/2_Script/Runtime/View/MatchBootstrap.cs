@@ -42,6 +42,12 @@ namespace UnityGameJam.View
         public PlayerBody Player { get; private set; }
         public IReadOnlyList<MinionAgent> Minions => _minions;
 
+        internal bool CanSeeMinion(MinionAgent minion)
+        {
+            return Player != null && minion != null && minion.Floor == Player.Floor
+                && (_roomVisibility == null || !_roomVisibility.IsCovered(minion.Floor, minion.Position));
+        }
+
         public void FocusConversation(EWorkerType? worker)
         {
             if (_camera == null) { return; }
@@ -110,6 +116,11 @@ namespace UnityGameJam.View
         private void Update()
         {
             Session?.Tick(Time.deltaTime);
+        }
+
+        private void OnDestroy()
+        {
+            (Session as IDisposable)?.Dispose();
         }
 
         public void RefreshLevelDesign()

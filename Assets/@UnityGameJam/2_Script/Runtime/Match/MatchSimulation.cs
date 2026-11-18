@@ -11,8 +11,9 @@ using UnityGameJam.Proposal;
 
 namespace UnityGameJam.Match
 {
-    internal sealed class MatchSimulation : IMatchSession
+    internal sealed class MatchSimulation : IMatchSession, IMinionSpeechSource, IDisposable
     {
+        private const float SecondsPerSpeech = 1.8f;
         private readonly MatchSetup _setup;
         private readonly GameRuleSO _rules;
         private readonly ContaminationTypeSO _types;
@@ -29,6 +30,8 @@ namespace UnityGameJam.Match
         private readonly SlimeDigestion _digestion;
         private readonly ProposalQueue _proposals;
         private readonly Dictionary<EWorkerType, MinionBrain> _minions = new Dictionary<EWorkerType, MinionBrain>();
+        private (EZoneId Zone, EProposalReason Reason, bool AreMopsUnavailable, float StartedAt)? _orcHelp;
+        private bool _hasSubmittedOrcHelp;
         private EWorkerType? _talkingWith;
         private int? _mopTarget;
         private float _mopSeconds;
@@ -52,6 +55,20 @@ namespace UnityGameJam.Match
 
         public IReadOnlyList<ItemSnapshot> Items => _itemSnapshots ??= Array.AsReadOnly(_registry.Items.Select(item => item.Snapshot).ToArray());
         public IReadOnlyList<MessageEntry> ActiveMessages => _proposals.Messages;
+        public (EWorkerType Speaker, string Text)? CurrentSpeech
+        {
+            get
+            {
+                if (MatchState != EMatchState.Running || !_orcHelp.HasValue || _hasSubmittedOrcHelp
+                    || _talkingWith is EWorkerType.Orc or EWorkerType.Goblin) { return null; }
+                var help = _orcHelp.Value;
+                if (ElapsedTime - help.StartedAt < SecondsPerSpeech)
+                {
+                    return (EWorkerType.Orc, $"{ZoneDisplayName.GetFullName(help.Zone)}에서 정리할 걸 봤다. 좀 도와줄래?");
+                }
+                return (EWorkerType.Goblin, "응, 대장한테 물어볼게!");
+            }
+        }
 
         public IReadOnlyList<MinionStatus> Minions
         {
@@ -146,6 +163,7 @@ namespace UnityGameJam.Match
             TickHellhound();
             if (_talkingWith != EWorkerType.Slime) { _digestion.Tick(step); }
             foreach (MinionBrain minion in _minions.Values) { minion.Tick(step); }
+            SubmitOrcHelp();
             _proposals.Tick(ElapsedTime);
             if (RemainingTime == 0f) { FinishMatch(); }
         }
@@ -175,6 +193,16 @@ namespace UnityGameJam.Match
             _talkingWith = null;
             _proposals.Cancel(minion);
             _minions[minion].Assign(zone);
+            if (_orcHelp.HasValue && minion is EWorkerType.Orc or EWorkerType.Goblin)
+            {
+                bool areMopsUnavailable = _orcHelp.Value.AreMopsUnavailable;
+                ClearOrcHelp();
+                if (minion == EWorkerType.Orc)
+                {
+                    _proposals.Cancel(EWorkerType.Goblin);
+                    RequestRegularProposal(_minions[EWorkerType.Goblin], areMopsUnavailable);
+                }
+            }
             return true;
         }
 
@@ -302,22 +330,60 @@ namespace UnityGameJam.Match
 
         private void OnProposalNeeded(MinionBrain minion, bool areMopsUnavailable)
         {
-            var candidate = ProposalCandidateFinder.Find(minion, _setup.Layout, _capability, _minions.Values);
-            if (candidate.HasValue)
+            if (RemainingTime <= 0f) { return; }
+            var (zones, reason) = ProposalCandidateFinder.Find(minion, _setup.Layout, _capability, _minions.Values);
+            if (minion.Worker == EWorkerType.Goblin && _minions.TryGetValue(EWorkerType.Orc, out MinionBrain orc)
+                && orc.CanSpeakTo(minion))
             {
-                var (zone, reason) = candidate.Value;
-                _proposals.Request(minion.Worker, minion.AssignmentId, zone, reason, areMopsUnavailable, ElapsedTime);
+                foreach (EZoneId zone in zones.OrderBy(zone => zone != orc.AssignedZone))
+                {
+                    if (!orc.Memory.HasKnownWork(zone, minion.Worker, _capability, !areMopsUnavailable)) { continue; }
+                    _orcHelp = (zone, reason, areMopsUnavailable, ElapsedTime);
+                    return;
+                }
             }
-            else
+            RequestRegularProposal(minion, areMopsUnavailable);
+        }
+
+        private void RequestRegularProposal(MinionBrain minion, bool areMopsUnavailable)
+        {
+            var (zones, reason) = ProposalCandidateFinder.Find(minion, _setup.Layout, _capability, _minions.Values);
+            if (zones.Length == 0)
             {
                 _proposals.AddNotice(minion.Worker, "더 갈 방을 찾지 못했어. 1층 로비로 돌아갈게.", ElapsedTime);
                 minion.ReturnToLobby();
+                return;
             }
+            _proposals.Request(minion.Worker, minion.AssignmentId, zones[0], reason, areMopsUnavailable, ElapsedTime, zones);
+        }
+
+        private void SubmitOrcHelp()
+        {
+            if (!_orcHelp.HasValue || _hasSubmittedOrcHelp || RemainingTime <= 0f) { return; }
+            var help = _orcHelp.Value;
+            if (ElapsedTime - help.StartedAt < SecondsPerSpeech * 2f) { return; }
+            _hasSubmittedOrcHelp = true;
+            MinionBrain goblin = _minions[EWorkerType.Goblin];
+            _proposals.Request(goblin.Worker, goblin.AssignmentId, help.Zone, help.Reason,
+                help.AreMopsUnavailable, ElapsedTime, isOrcHelp: true);
+        }
+
+        private void ClearOrcHelp()
+        {
+            _orcHelp = null;
+            _hasSubmittedOrcHelp = false;
         }
 
         private void OnProposalAnswered(ProposalRequest request, bool isApproved)
         {
+            if (request.IsOrcHelp) { ClearOrcHelp(); }
             _minions[request.Worker].AnswerProposal(request.AssignmentId, request.Zone, isApproved);
+        }
+
+        public void Dispose()
+        {
+            ClearOrcHelp();
+            _proposals.Close();
         }
 
         private void FinishMatch()
@@ -325,7 +391,7 @@ namespace UnityGameJam.Match
             SetState(EMatchState.DemonKingArrived);
             _talkingWith = null;
             CancelWork();
-            _proposals.Close();
+            Dispose();
             foreach (MinionBrain minion in _minions.Values) { minion.StopForEnd(); }
             _hellhound?.Stop();
             var bodies = _setup.MinionBodies.ToDictionary(entry => entry.Key, entry => (IWorkerBody)entry.Value);

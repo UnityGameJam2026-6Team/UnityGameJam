@@ -59,11 +59,12 @@ namespace UnityGameJam.Minion
             return _observations.TryGetValue(zone, out RoomObservation room) && room.IsScouted && room.Items.Count == 0;
         }
 
-        public bool HasKnownWork(EZoneId zone, EWorkerType worker, WorkerCapability capability)
+        public bool HasKnownWork(EZoneId zone, EWorkerType worker, WorkerCapability capability, bool canBorrowMop = true)
         {
             return _observations.TryGetValue(zone, out RoomObservation room)
-                && room.Items.Values.Any(item => item.State == EItemState.InDischargeArea
-                    ? capability.CanDigest(worker, item.Type) : capability.CanHandle(worker, item.Type));
+                && room.Items.Values.Any(item => (canBorrowMop || item.Type != EContaminationType.FloorStain)
+                    && (item.State == EItemState.InDischargeArea
+                        ? capability.CanDigest(worker, item.Type) : capability.CanHandle(worker, item.Type)));
         }
 
         internal static bool IsVisible(Vector3 target, Vector3 origin, float radius)

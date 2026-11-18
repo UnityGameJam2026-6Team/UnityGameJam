@@ -13,6 +13,7 @@
 /[Bb]uilds/
 /[Ll]ogs/
 /[Uu]ser[Ss]ettings/
+/.openai-api-key
 *.log
 
 # Memory Profiler generated files

@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityGameJam.Cleaning;
 using UnityGameJam.Contract;
 using UnityGameJam.Data;
+using UnityGameJam.Proposal;
 
 namespace UnityGameJam.Match
 {
@@ -23,7 +24,11 @@ namespace UnityGameJam.Match
         {
             if (setup == null) { throw new System.ArgumentNullException(nameof(setup)); }
 
-            return new MatchSimulation(setup, _rules, _types, _workerStats, Spawn(setup.Layout, setup.Seed));
+            IProposalDialogueProvider dialogue = null;
+#if UNITY_EDITOR
+            if (_rules != null) { dialogue = OpenAiProposalDialogueProvider.Create(_rules.ApiTimeoutSeconds); }
+#endif
+            return new MatchSimulation(setup, _rules, _types, _workerStats, Spawn(setup.Layout, setup.Seed), dialogue);
         }
 
         private IReadOnlyList<ContaminationItem> Spawn(FacilityLayout layout, int seed)

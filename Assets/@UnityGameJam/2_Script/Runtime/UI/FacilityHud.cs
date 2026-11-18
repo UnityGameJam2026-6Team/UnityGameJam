@@ -32,6 +32,7 @@ namespace UnityGameJam.UI
         private RectTransform _assignmentPanel;
         private RectTransform _dialogueCard;
         private RectTransform _dialogueArea;
+        private MinionSpeechBubble _speechBubble;
         private EWorkerType? _talking;
         private readonly List<InputAction> _suspendedActions = new List<InputAction>();
         private static readonly EZoneId[] Zones = (EZoneId[])Enum.GetValues(typeof(EZoneId));
@@ -131,10 +132,14 @@ namespace UnityGameJam.UI
             }
             _proposalStack.Show(session, _bootstrap.MatchDuration - session.RemainingTime,
                 _assignmentPanel, wasTalking || talking.HasValue);
+            var speech = (session as IMinionSpeechSource)?.CurrentSpeech;
+            if (speech.HasValue && _speechBubble == null) { _speechBubble = new MinionSpeechBubble(_zone); }
+            _speechBubble?.Show(_bootstrap, talking.HasValue ? null : speech);
         }
 
         private void OnDisable()
         {
+            _speechBubble?.Hide();
             if (_talking.HasValue)
             {
                 CloseAssignmentPanel();
@@ -196,6 +201,7 @@ namespace UnityGameJam.UI
 
         private void OnDestroy()
         {
+            _speechBubble?.Destroy();
             RestorePlayerInput();
         }
 

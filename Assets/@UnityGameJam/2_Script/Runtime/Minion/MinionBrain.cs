@@ -40,6 +40,7 @@ namespace UnityGameJam.Minion
         private Vector3 _destination;
 
         public EWorkerType Worker => _stats.Worker;
+        public EZoneId? CurrentZone => _zoneMap.FindZone(_body.Position, _body.Floor);
         public EZoneId? AssignedZone { get; private set; }
         public int AssignmentId { get; private set; }
         public MinionMemory Memory { get; } = new MinionMemory();
@@ -67,6 +68,12 @@ namespace UnityGameJam.Minion
         {
             return AssignedZone == zone && (_step is EStep.Patrolling or EStep.Approaching or EStep.Mopping
                 or EStep.Carrying or EStep.Digesting or EStep.BorrowingMop);
+        }
+
+        public bool CanSpeakTo(MinionBrain other)
+        {
+            return !_isTalking && !other._isTalking && _body.Floor == other._body.Floor
+                && MinionMemory.IsVisible(other._body.Position, _body.Position, _rules.InteractionDistance);
         }
 
         public void BeginTalk()
