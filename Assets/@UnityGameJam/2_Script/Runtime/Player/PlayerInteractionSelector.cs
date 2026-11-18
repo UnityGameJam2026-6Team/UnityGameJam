@@ -14,6 +14,7 @@ namespace UnityGameJam.Player
         TalkToMinion,
         StartMop,
         PickUp,
+        Drop,
     }
 
     public readonly struct InteractionChoice
@@ -91,6 +92,11 @@ namespace UnityGameJam.Player
                 }
             }
 
+            if (isCarrying)
+            {
+                return new InteractionChoice(EInteractionKind.Drop, context.CarriedItem.Value.ItemId, default, context.PlayerFloor, player);
+            }
+
             // 2. 화장실: 걸레 반납 또는 대여 (물건을 들고 있으면 대여하지 않는다)
             foreach (ToiletStation toilet in _layout.Toilets)
             {
@@ -100,7 +106,12 @@ namespace UnityGameJam.Player
                     if (context.BorrowedMopFloor != toilet.Floor) { continue; }
                     return new InteractionChoice(EInteractionKind.ReturnMop, -1, default, toilet.Floor, toilet.MopPickupPosition);
                 }
-                if (!isCarrying) { return new InteractionChoice(EInteractionKind.BorrowMop, -1, default, toilet.Floor, toilet.MopPickupPosition); }
+                return new InteractionChoice(EInteractionKind.BorrowMop, -1, default, toilet.Floor, toilet.MopPickupPosition);
+            }
+
+            if (context.IsHoldingMop && TryNearestItem(items, player, radius, i => i.Type == EContaminationType.FloorStain, out ItemSnapshot stain))
+            {
+                return new InteractionChoice(EInteractionKind.StartMop, stain.ItemId, default, default, stain.Position);
             }
 
             // 3. 헬하운드
@@ -115,14 +126,8 @@ namespace UnityGameJam.Player
                 return new InteractionChoice(EInteractionKind.TalkToMinion, -1, minion.Minion, default, minion.Position);
             }
 
-            // 5. 걸레를 들고 얼룩 옆
-            if (context.IsHoldingMop && TryNearestItem(items, player, radius, i => i.Type == EContaminationType.FloorStain, out ItemSnapshot stain))
-            {
-                return new InteractionChoice(EInteractionKind.StartMop, stain.ItemId, default, default, stain.Position);
-            }
-
-            // 6. 빈손으로 주울 수 있는 개체 옆
-            if (!isCarrying && !context.IsHoldingMop && TryNearestItem(items, player, radius, i => i.Type != EContaminationType.FloorStain, out ItemSnapshot item))
+            // 빈손으로 주울 수 있는 개체 옆
+            if (!context.IsHoldingMop && TryNearestItem(items, player, radius, i => i.Type != EContaminationType.FloorStain, out ItemSnapshot item))
             {
                 return new InteractionChoice(EInteractionKind.PickUp, item.ItemId, default, default, item.Position);
             }

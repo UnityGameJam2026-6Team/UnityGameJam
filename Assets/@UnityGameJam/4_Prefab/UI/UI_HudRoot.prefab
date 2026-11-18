@@ -130,6 +130,8 @@ MonoBehaviour:
   _choices: {fileID: 7929369331757693043}
   _assignmentTitle: {fileID: 3209059385082329804}
   _assignmentRoom: {fileID: 8096890268467916427}
+  _assignmentDialogue: {fileID: 3635346049173401046}
+  _dialogueSpeaker: {fileID: 4723089636620391912}
   _rooms:
   - {fileID: 2610358971519152739}
   - {fileID: 3802296008320708013}
@@ -168,6 +170,7 @@ MonoBehaviour:
   - {fileID: 9167882698743578430}
   - {fileID: 4476033774796654080}
   _arrivalSeconds: 1
+  _walkSeconds: 0.72
   _arrivalOffset: {x: 1.8, y: 0, z: 1.4}
 --- !u!1001 &133729798200353278
 PrefabInstance:
@@ -782,7 +785,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2924873370879990314, guid: a03bb912db12814498a5c2e2864a3d28, type: 3}
       propertyPath: m_Pivot.y
-      value: 0
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 2924873370879990314, guid: a03bb912db12814498a5c2e2864a3d28, type: 3}
       propertyPath: m_AnchorMax.x
@@ -790,7 +793,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2924873370879990314, guid: a03bb912db12814498a5c2e2864a3d28, type: 3}
       propertyPath: m_AnchorMax.y
-      value: 0
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 2924873370879990314, guid: a03bb912db12814498a5c2e2864a3d28, type: 3}
       propertyPath: m_AnchorMin.x
@@ -798,15 +801,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2924873370879990314, guid: a03bb912db12814498a5c2e2864a3d28, type: 3}
       propertyPath: m_AnchorMin.y
-      value: 0
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 2924873370879990314, guid: a03bb912db12814498a5c2e2864a3d28, type: 3}
       propertyPath: m_SizeDelta.x
-      value: 418
+      value: 496
       objectReference: {fileID: 0}
     - target: {fileID: 2924873370879990314, guid: a03bb912db12814498a5c2e2864a3d28, type: 3}
       propertyPath: m_SizeDelta.y
-      value: 280
+      value: 374
       objectReference: {fileID: 0}
     - target: {fileID: 2924873370879990314, guid: a03bb912db12814498a5c2e2864a3d28, type: 3}
       propertyPath: m_LocalPosition.x
@@ -842,7 +845,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2924873370879990314, guid: a03bb912db12814498a5c2e2864a3d28, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: 24
+      value: 15
       objectReference: {fileID: 0}
     - target: {fileID: 2924873370879990314, guid: a03bb912db12814498a5c2e2864a3d28, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -913,6 +916,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
+--- !u!114 &3635346049173401046 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6994077160718302692, guid: a03bb912db12814498a5c2e2864a3d28, type: 3}
+  m_PrefabInstance: {fileID: 6015863417222516786}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
 --- !u!114 &3802296008320708013 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 7473965428713700767, guid: a03bb912db12814498a5c2e2864a3d28, type: 3}
@@ -935,6 +949,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
+--- !u!114 &4723089636620391912 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1366678555282802138, guid: a03bb912db12814498a5c2e2864a3d28, type: 3}
+  m_PrefabInstance: {fileID: 6015863417222516786}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
 --- !u!114 &5001680280800565834 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 1591224569415420536, guid: a03bb912db12814498a5c2e2864a3d28, type: 3}

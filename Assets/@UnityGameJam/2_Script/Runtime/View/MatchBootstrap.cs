@@ -41,6 +41,18 @@ namespace UnityGameJam.View
         public PlayerBody Player { get; private set; }
         public IReadOnlyList<MinionAgent> Minions => _minions;
 
+        public void FocusConversation(EWorkerType? worker)
+        {
+            if (_camera == null) { return; }
+            foreach (MinionAgent minion in _minions)
+            {
+                if (minion.Worker != worker) { continue; }
+                _camera.SetConversationPartner(minion.transform);
+                return;
+            }
+            _camera.SetConversationPartner(null);
+        }
+
         /// <summary>판이 만들어지고 시작된 직후. HUD 등 보기 전용 컴포넌트가 구독한다.</summary>
         public event Action<MatchBootstrap> MatchStarted;
 
@@ -79,7 +91,7 @@ namespace UnityGameJam.View
             SpawnMinions(setup, stairs);
             Session = _factory.Create(setup);
 
-            Player.GetComponent<PlayerController>().Initialize(Session, stairs, _viewSettings);
+            Player.GetComponent<PlayerController>().Initialize(Session, stairs, _viewSettings, _camera);
             var interactor = Player.GetComponent<PlayerInteractor>();
             interactor.Initialize(Session, Layout, _viewSettings);
             foreach (MinionAgent minion in _minions)

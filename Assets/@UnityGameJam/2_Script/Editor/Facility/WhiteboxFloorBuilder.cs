@@ -39,6 +39,7 @@ namespace UnityGameJam.Editor.Facility
             public RectInt Rect; // x, y(=z), width, height (m)
             public ESide DoorSide;
             public int DoorFrom;
+            public bool StairGoesUp;
             public ECorner[] Curves = Array.Empty<ECorner>();
             public (string Prefab, float X, float Z, float RotY)[] Furniture = Array.Empty<(string, float, float, float)>();
         }
@@ -101,7 +102,7 @@ namespace UnityGameJam.Editor.Facility
                 Curves = new[] { ECorner.TopRight, ECorner.BottomRight },
                 Furniture = new[] { ("PR_Shelf", 14f, -4.5f, 0f), ("PR_Shelf", 14f, -1.5f, 0f) },
             });
-            floor1.Rooms.Add(new Room { Kind = ERoomKind.Stairs, Rect = StairsRect });
+            floor1.Rooms.Add(new Room { Kind = ERoomKind.Stairs, Rect = StairsRect, StairGoesUp = true });
 
             var floor2 = new FloorPlan { Floor = EFloor.Floor2, Lobby = EZoneId.Floor2Lobby };
             floor2.Rooms.Add(new Room
@@ -116,6 +117,7 @@ namespace UnityGameJam.Editor.Facility
                 Furniture = new[] { ("PR_Desk", 9f, -10f, 0f), ("PR_Desk", 12f, -10f, 0f), ("PR_Desk", 15f, -10f, 0f), ("PR_Desk", 12f, -6.5f, 0f) },
             });
             floor2.Rooms.Add(new Room { Kind = ERoomKind.Stairs, Rect = StairsRect });
+            floor2.Rooms.Add(new Room { Kind = ERoomKind.Stairs, Rect = R(6, 8, 10, 14), StairGoesUp = true });
 
             var floor3 = new FloorPlan { Floor = EFloor.Floor3, Lobby = EZoneId.Floor3Lobby };
             floor3.Rooms.Add(new Room
@@ -216,7 +218,8 @@ namespace UnityGameJam.Editor.Facility
                         break;
                     case ERoomKind.Stairs:
                         Place("Environment/ENV_Stairs", props, new Vector3(r.xMin, 0f, r.yMin), 0f);
-                        Place("Marker/MK_Stair", markers, new Vector3(r.center.x, 0f, r.yMin + 1.5f), 0f);
+                        Transform stair = Place("Marker/MK_Stair", markers, new Vector3(r.center.x, 0f, r.yMin + 1.5f), 0f);
+                        ConfigureStair(stair.GetComponent<StairAuthoring>(), plan.Floor, room.StairGoesUp);
                         break;
                 }
             }
@@ -593,6 +596,32 @@ namespace UnityGameJam.Editor.Facility
         }
 
         // ---------- NavMesh ----------
+
+        public static void ConfigureStair(StairAuthoring stair, EFloor floor, bool goesUp)
+        {
+            var serialized = new SerializedObject(stair);
+            serialized.FindProperty("_goesUp").boolValue = goesUp;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            int target = (int)floor + (goesUp ? 2 : 0);
+            stair.name = $"MK_Stair_To{target}F";
+            Transform sign = stair.transform.Find("Destination");
+            if (sign == null)
+            {
+                sign = new GameObject("Destination").transform;
+                sign.SetParent(stair.transform, false);
+            }
+            sign.localPosition = new Vector3(0f, 1.7f, 1.2f);
+            sign.localRotation = Quaternion.Euler(42f, 0f, 0f);
+            if (!sign.TryGetComponent(out TextMesh text)) { text = sign.gameObject.AddComponent<TextMesh>(); }
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.GetComponent<MeshRenderer>().sharedMaterial = text.font.material;
+            text.text = $"{target}F";
+            text.anchor = TextAnchor.MiddleCenter;
+            text.alignment = TextAlignment.Center;
+            text.fontSize = 64;
+            text.characterSize = 0.1f;
+            text.color = Color.white;
+        }
 
         public static void BakeAll()
         {

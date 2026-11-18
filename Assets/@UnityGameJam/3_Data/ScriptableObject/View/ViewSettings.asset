@@ -17,7 +17,10 @@ MonoBehaviour:
   _cameraBackDistance: 12
   _cameraPitch: 56
   _cameraSmoothTime: 0.15
+  _conversationCameraPitch: 24
+  _conversationFrameHeight: 0.67
   _stairTransitSeconds: 2
+  _stairApproachRadius: 0.85
   _heavyDebrisPrefabs:
   - {fileID: 4186143294500295247, guid: 4f7d33610a324f944a7bd54d50ec2969, type: 3}
   _trashPrefabs:
@@ -36,3 +39,19 @@ MonoBehaviour:
   _mopPrefab: {fileID: 5323776537816255515, guid: 6f6a254e7c2ee3b4ea3e98036f96e6df, type: 3}
   _carryOffset: 0.2
   _mopOffset: {x: 0.45, y: 0, z: 0}
+  _playerMotion:
+    _walkRate: 0
+    _runRate: 0
+    _carryRate: 0
+    _heavyCarryRate: 0
+    _mopWalkRate: 0
+    _pickupRate: 0
+    _dropRate: 0
+  _goblinMotion:
+    _walkRate: 0
+    _runRate: 0
+    _carryRate: 0
+    _heavyCarryRate: 0
+    _mopWalkRate: 0
+    _pickupRate: 0
+    _dropRate: 0

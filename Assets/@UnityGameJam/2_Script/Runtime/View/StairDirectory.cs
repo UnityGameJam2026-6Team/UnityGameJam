@@ -4,10 +4,10 @@ using UnityGameJam.Contract;
 
 namespace UnityGameJam.View
 {
-    /// <summary>층 → 계단 출입 지점. 층 프리팹 안의 StairAuthoring에서 만든다(B 레인 전용, 규칙은 모른다).</summary>
+    /// <summary>각 층에서 인접 층으로 이어지는 출입 지점을 연결한다.</summary>
     public sealed class StairDirectory
     {
-        private readonly Dictionary<EFloor, Vector3> _entries = new Dictionary<EFloor, Vector3>();
+        private readonly Dictionary<(EFloor From, EFloor To), Vector3> _entries = new();
 
         public static StairDirectory FromFloors(IEnumerable<FloorAuthoring> floors)
         {
@@ -15,15 +15,36 @@ namespace UnityGameJam.View
             foreach (FloorAuthoring floor in floors)
             {
                 if (floor == null) { continue; }
-                StairAuthoring stair = floor.GetComponentInChildren<StairAuthoring>(true);
-                if (stair != null) { directory._entries[floor.Floor] = stair.EntryPosition; }
+                foreach (StairAuthoring stair in floor.GetComponentsInChildren<StairAuthoring>(true))
+                {
+                    EFloor target = floor.Floor + (stair.GoesUp ? 1 : -1);
+                    directory._entries[(floor.Floor, target)] = stair.EntryPosition;
+                }
             }
             return directory;
         }
 
-        public bool TryGet(EFloor floor, out Vector3 entry)
+        public bool TryGet(EFloor from, EFloor to, out Vector3 entry)
         {
-            return _entries.TryGetValue(floor, out entry);
+            return _entries.TryGetValue((from, to), out entry);
+        }
+
+        public bool TryFindExit(EFloor floor, Vector3 position, float radius, out Vector3 exit)
+        {
+            float nearest = radius * radius;
+            bool found = false;
+            exit = default;
+            foreach (var link in _entries)
+            {
+                if (link.Key.From != floor || !TryGet(link.Key.To, floor, out Vector3 arrival)) { continue; }
+                Vector3 offset = position - link.Value;
+                offset.y = 0f;
+                if (offset.sqrMagnitude > nearest) { continue; }
+                nearest = offset.sqrMagnitude;
+                exit = arrival;
+                found = true;
+            }
+            return found;
         }
     }
 }

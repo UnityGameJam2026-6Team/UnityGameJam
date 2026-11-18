@@ -144,7 +144,7 @@ namespace UnityGameJam.Match
             TickPlayerMop(step);
             _discharge.Tick(step);
             TickHellhound();
-            _digestion.Tick(step);
+            if (_talkingWith != EWorkerType.Slime) { _digestion.Tick(step); }
             foreach (MinionBrain minion in _minions.Values) { minion.Tick(step); }
             _proposals.Tick(ElapsedTime);
             if (RemainingTime == 0f) { FinishMatch(); }

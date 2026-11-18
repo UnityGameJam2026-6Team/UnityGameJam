@@ -939,11 +939,11 @@ PlayerSettings:
   captureStartupLogs: {}
   activeInputHandler: 1
   windowsGamepadBackendHint: 0
-  cloudProjectId: 38f838ea-e4ec-45a6-b035-3e3baaef3fac
+  cloudProjectId: e2d0ff25-79c8-4a08-b77b-557366547ee9
   framebufferDepthMemorylessMode: 0
   qualitySettingsNames: []
-  projectName: UnityGameJam2026 (2)
-  organizationId: bodlee
+  projectName: UnityGameJam2026
+  organizationId: unity_484b31945a52fd78f81c
   cloudEnabled: 0
   legacyClampBlendShapeWeights: 0
   hmiLoadingImage: {fileID: 0}

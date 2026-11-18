@@ -16,10 +16,6 @@ namespace UnityGameJam.Player
 
         [Header("입력")]
         [SerializeField] private InputActionReference _moveAction;
-        [Tooltip("계단에서 아래층 (U208 임시: 1)")]
-        [SerializeField] private InputActionReference _floorDownAction;
-        [Tooltip("계단에서 위층 (U208 임시: 2)")]
-        [SerializeField] private InputActionReference _floorUpAction;
 
         [Header("회전")]
         [Tooltip("이동 방향으로 도는 속도(도/초)")]
@@ -38,14 +34,15 @@ namespace UnityGameJam.Player
         private Transform _talkPartner;
         private StairDirectory _stairs;
         private ViewSettingsSO _settings;
+        private FloorCameraFollow _camera;
         private float _transitTimer;
-        private EFloor _transitTarget;
+        private Vector3 _transitTarget;
+        private Vector3? _landing;
 
         public bool IsInStairTransit { get; private set; }
+        public bool IsInConversation => _talkPartner != null;
         public bool IsHandling => _animatorDriver != null && _animatorDriver.IsHandling;
 
-        public bool IsNearStair => _stairs != null && _settings != null && _stairs.TryGet(_body.Floor, out Vector3 entry)
-            && PlayerInteractionSelector.DistanceXZ(entry, transform.position) <= _settings.InteractRadius;
 
         private void Awake()
         {
@@ -58,11 +55,9 @@ namespace UnityGameJam.Player
         {
             if (_moveAction != null) { _moveAction.action.Enable(); }
             _sprint?.Enable();
-            if (_floorDownAction != null) { _floorDownAction.action.Enable(); }
-            if (_floorUpAction != null) { _floorUpAction.action.Enable(); }
         }
 
-        public void Initialize(IMatchSession session, StairDirectory stairs, ViewSettingsSO settings)
+        public void Initialize(IMatchSession session, StairDirectory stairs, ViewSettingsSO settings, FloorCameraFollow camera = null)
         {
             _session = session;
             _baseSpeed = session.PlayerMoveSpeed;
@@ -71,6 +66,7 @@ namespace UnityGameJam.Player
             _session.MatchStateChanged += OnMatchStateChanged;
             _stairs = stairs;
             _settings = settings;
+            _camera = camera;
         }
 
         private void Update()
@@ -89,7 +85,6 @@ namespace UnityGameJam.Player
                 UpdateStairTransit();
                 return;
             }
-            if (TryStartStairTransit()) { return; }
 
             Vector2 input = _moveAction.action.ReadValue<Vector2>();
             bool hasInput = input.sqrMagnitude > InputDeadZone;
@@ -112,22 +107,20 @@ namespace UnityGameJam.Player
             if (hasInput)
             {
                 Face(transform, direction);
+                if (TryStartStairTransit()) { return; }
             }
             UpdatePose(new Vector3(_controller.velocity.x, 0f, _controller.velocity.z).magnitude, running);
         }
 
         private bool TryStartStairTransit()
         {
-            int direction = 0;
-            if (_floorUpAction != null && _floorUpAction.action.WasPressedThisFrame()) { direction = 1; }
-            else if (_floorDownAction != null && _floorDownAction.action.WasPressedThisFrame()) { direction = -1; }
-            if (direction == 0 || !IsNearStair) { return false; }
-
-            var target = (EFloor)((int)_body.Floor + direction);
-            if (!_stairs.TryGet(target, out _)) { return false; } // 맨 아래층·맨 위층
-
-            if (_session.IsPlayerWorking) { _session.CancelWork(); }
-            _transitTarget = target;
+            float radius = _settings.StairApproachRadius;
+            if (_landing.HasValue)
+            {
+                if (PlayerInteractionSelector.DistanceXZ(_landing.Value, transform.position) <= radius) { return false; }
+                _landing = null;
+            }
+            if (!_stairs.TryFindExit(_body.Floor, transform.position, radius, out _transitTarget)) { return false; }
             _transitTimer = _settings.StairTransitSeconds;
             IsInStairTransit = true;
             UpdatePose(0f);
@@ -139,10 +132,11 @@ namespace UnityGameJam.Player
             _transitTimer -= Time.deltaTime;
             if (_transitTimer > 0f) { return; }
 
-            _stairs.TryGet(_transitTarget, out Vector3 entry);
             _controller.enabled = false; // CharacterController는 꺼야 위치를 직접 옮길 수 있다
-            transform.position = entry;
+            transform.position = _transitTarget;
+            _landing = _transitTarget;
             _controller.enabled = true;
+            _camera?.SnapToTarget();
             IsInStairTransit = false;
         }
 
@@ -167,7 +161,7 @@ namespace UnityGameJam.Player
                 Face(transform, direction);
                 Face(_talkPartner, -direction);
                 _controller.SimpleMove(Vector3.zero);
-                UpdatePose(0f);
+                _animatorDriver?.SetPose(EPose.Talk, holdingMop: _carry.IsHoldingMop);
                 return true;
             }
             _talkPartner = null;

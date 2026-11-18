@@ -8,6 +8,8 @@ namespace UnityGameJam.View
     /// </summary>
     public sealed class StairAuthoring : MonoBehaviour
     {
+        [SerializeField] private bool _goesUp;
+        public bool GoesUp => _goesUp;
         public Vector3 EntryPosition => transform.position;
 
         private void OnDrawGizmos()

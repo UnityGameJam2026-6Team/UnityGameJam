@@ -16,7 +16,6 @@ namespace UnityGameJam.Player
     {
         [Header("입력")]
         [SerializeField] private InputActionReference _interactAction;
-        [SerializeField] private InputActionReference _dropAction;
 
         [Header("표시")]
         [Tooltip("고른 대상 위에 띄우는 표시")]
@@ -38,7 +37,6 @@ namespace UnityGameJam.Player
         private void OnEnable()
         {
             if (_interactAction != null) { _interactAction.action.Enable(); }
-            if (_dropAction != null) { _dropAction.action.Enable(); }
         }
 
         public void Initialize(IMatchSession session, FacilityLayout layout, ViewSettingsSO settings)
@@ -61,7 +59,8 @@ namespace UnityGameJam.Player
 
         private void Update()
         {
-            if (_session == null || _session.MatchState != EMatchState.Running || _playerController.IsHandling || _playerController.IsInStairTransit)
+            if (_session == null || _session.MatchState != EMatchState.Running || _playerController.IsHandling
+                || _playerController.IsInStairTransit || _playerController.IsInConversation)
             {
                 CurrentChoice = InteractionChoice.None;
                 SetMarker(CurrentChoice);
@@ -72,7 +71,6 @@ namespace UnityGameJam.Player
             SetMarker(CurrentChoice);
 
             if (_interactAction != null && _interactAction.action.WasPressedThisFrame()) { Execute(CurrentChoice); }
-            if (!_playerController.IsHandling && _dropAction != null && _dropAction.action.WasPressedThisFrame()) { _session.TryDrop(); }
         }
 
         private void OnDestroy()
@@ -106,7 +104,7 @@ namespace UnityGameJam.Player
             foreach (KeyValuePair<EWorkerType, Transform> pair in _minions)
             {
                 if (pair.Key == EWorkerType.Hellhound || pair.Value == null) { continue; }
-                if (pair.Value.TryGetComponent(out MinionAgent minion) && minion.IsHandling) { continue; }
+                if (pair.Value.TryGetComponent(out MinionAgent minion) && (minion.IsHandling || minion.IsInStairTransit)) { continue; }
                 _minionPositions.Add((pair.Key, pair.Value.position));
             }
             return _minionPositions;
@@ -140,6 +138,7 @@ namespace UnityGameJam.Player
                     break;
                 case EInteractionKind.StartMop: _session.TryStartMop(choice.ItemId); break;
                 case EInteractionKind.PickUp: _session.TryPickUp(choice.ItemId); break;
+                case EInteractionKind.Drop: _session.TryDrop(); break;
             }
         }
 

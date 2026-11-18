@@ -13,6 +13,16 @@ namespace UnityGameJam.UI
         [SerializeField] private float _spacing = 8f;
 
         private readonly List<ProposalCard> _cards = new List<ProposalCard>();
+        private RectTransform _rect;
+        private RectTransform _parent;
+        private Vector2 _defaultOrigin;
+
+        private void Awake()
+        {
+            _rect = (RectTransform)transform;
+            _parent = _rect.parent as RectTransform;
+            _defaultOrigin = _rect.anchoredPosition;
+        }
 
         private void OnEnable()
         {
@@ -32,9 +42,14 @@ namespace UnityGameJam.UI
             IReadOnlyList<MessageEntry> messages = session.ActiveMessages;
             int count = isRunning ? messages.Count : 0;
             bool canRespond = false;
-            Vector2 origin = choices.anchoredPosition;
-            if (isTalking) { origin.y += choices.rect.height + _spacing; }
-            ((RectTransform)transform).anchoredPosition = origin;
+            Vector2 origin = _defaultOrigin;
+            if (isTalking && _parent != null)
+            {
+                Vector3 top = choices.TransformPoint(0f, choices.rect.yMax, 0f);
+                float anchor = _parent.rect.yMin + _parent.rect.height * _rect.anchorMin.y;
+                origin.y = _parent.InverseTransformPoint(top).y - anchor + _spacing;
+            }
+            _rect.anchoredPosition = origin;
 
             // 최신 메시지를 아래에 두고, 이전 메시지를 실제 카드 높이만큼 위로 민다.
             float bottom = 0f;

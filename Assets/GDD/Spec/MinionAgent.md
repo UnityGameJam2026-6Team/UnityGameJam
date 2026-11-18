@@ -14,7 +14,7 @@
 |---|---|---|
 | 입력 | `IMinionBody.MoveTo(층, 위치)`, `Stop()`, `SetMoveSpeed(속도)` | 규칙이 내리는 명령 |
 | 입력 | `IMatchReadModel.Minions`(MinionStatus), `Items` | 자세 결정, 헬하운드 숨김 |
-| 입력 | `Player/Previous`(1), `Player/Next`(2) | 플레이어 계단 이동(아래층·위층) |
+| 입력 | `StairAuthoring` 출입 지점과 방향 | 플레이어와 졸개가 쓸 인접 층 연결 |
 | 출력 | `IMinionBody.Position`, `Floor`, `HasArrived` | 규칙이 읽는 몸 상태 |
 | 출력 | 자세, 실제 속도, 운반 상태 | 캐릭터별 FBX 클립과 재생 속도 선택 |
 
@@ -32,19 +32,19 @@
    - "움직이는 중"은 속도가 0.1m/s를 넘을 때다.
    - 고블린·오크·스켈레톤이 빈손일 때 남은 경로가 0.6m를 넘으면 달리고, 그 이내면 걷는다. 물건과 걸레를 든 동안에는 전용 운반 보행을 쓴다. 보행 속도는 모델 크기와 발의 이동량에 맞추고 규칙상 운반 보정을 적용한다.
 7. 헬하운드는 배출을 시작하면 적치물을 제거하고 `dog_run`으로 왕복한다. 배출 목적지에 먼저 도착하면 남은 출발 구간 동안 모습을 숨긴다. 현관 대기 위치로 달려 돌아온 뒤에는 `dog_idle`을 쓴다.
-8. 플레이어는 계단 출입 지점 반경(`InteractRadius`) 안에서 1을 누르면 아래층, 2를 누르면 위층으로 간다(U208 임시). 계단 시간 동안 움직이지 않고, 끝나면 도착 층 계단 출입 지점으로 옮긴다. 작업 중이면 먼저 작업을 멈춘다.
+8. 플레이어가 계단 출입 지점 반경(`StairApproachRadius`)으로 걸어 들어가면 자동으로 표시된 층에 간다. 도착한 계단은 반경을 벗어났다가 다시 접근해야 사용할 수 있다. 2층의 두 계단 사이에서는 졸개도 직접 걸어 이동한다.
 
 ## 예외 처리
 - 목적지가 NavMesh 밖이면 1m 안의 가장 가까운 NavMesh 지점으로 간다. 그마저 없으면 경고를 남기고 멈춘다(`HasArrived` 참).
 - 계단 이동 중에 새 `MoveTo`가 오면 진행 중인 계단 대기를 마친 뒤 새 목적지로 경로를 다시 짠다.
-- 맨 아래층에서 1, 맨 위층에서 2를 누르면 아무 일도 없다.
+- 출발점과 도착점이 모두 연결된 계단만 이용한다.
 
 ## 설계
 | 파일 | 역할 |
 |---|---|
 | `Runtime/View/StairRoutePlanner.cs` | 순수. 규칙 3 (테스트 대상) |
 | `Runtime/View/MinionPoseResolver.cs` | 순수. 규칙 6. `EPose` enum 포함 (테스트 대상) |
-| `Runtime/View/StairDirectory.cs` | 층 → 계단 출입 지점. 층 프리팹의 `StairAuthoring`에서 만든다 |
+| `Runtime/View/StairDirectory.cs` | 출발층·도착층 쌍 → 계단 출입 지점. 층 프리팹의 `StairAuthoring`에서 만든다 |
 | `Runtime/View/MinionAgent.cs` | `IMinionBody` 구현(규칙 1~5). NavMeshAgent 사용, 계단은 대기 후 `Warp` |
 | `Runtime/View/CharacterAnimatorDriver.cs` | 유닛별 FBX 클립, 집기 구간과 역재생, 운반 자세 및 실제 이동 속도에 맞춘 보행 재생 |
 | `Runtime/View/MinionStatusPresenter.cs` | MinionStatus와 Items로 자세를 정해 드라이버에 넘기고(규칙 6), 헬하운드 숨김(규칙 7) |
@@ -59,13 +59,13 @@
 
 ## 미정·보류
 - U201 캐릭터 애니메이터 상태: **결정** (규칙 6)
-- U208 플레이어 계단 키: 임시 (1 아래층, 2 위층)
+- U208 플레이어 계단 접근 시 자동 이동
 - U19 계단 시간: 임시 2초 (`ViewSettingsSO`)
 
 ## 참조 테이블
 | 테이블 | 컬럼 | 용도 |
 |---|---|---|
-| (B) `ViewSettingsSO` | StairTransitSeconds, InteractRadius | 계단 시간, 플레이어 계단 반경 |
+| (B) `ViewSettingsSO` | StairTransitSeconds, StairApproachRadius | 계단 시간, 플레이어 계단 반경 |
 | (B) `FakeMatchSessionFactorySO` | MinionMoveSpeed, HellhoundAwaySeconds | 가짜 판 졸개 이동 |
 
 ## 미결 질문
@@ -81,7 +81,7 @@
 | 6-3 | 무거운 잔해를 들고 이동 / 쓰레기를 들고 이동 / 빈손 이동 / 배출 이동 | 자세 | CarryHeavy / Carry / Walk / Dispatch | `무거운_잔해를_들고_움직이면_CarryHeavy다`, `물건을_들고_움직이면_Carry다`, `빈손으로_움직이면_Walk이다`, `배출하러_움직이면_Dispatch다` |
 | 6-4 | 작업 중 걸레 들고 멈춤 / 대기 | 자세 | Mop / Idle | `작업_중에_걸레를_들고_멈추면_Mop이다`, `할_일_없이_멈춰_있으면_Idle이다` |
 | 1·2·5 | 가짜 판에서 고블린을 2층 회의실에 배정 | 플레이 | 계단을 거쳐 2층에 도착, Floor=2층 | (플레이 모드 확인) |
-| 8 | 플레이어가 1층 계단에서 2 | 플레이 | 2층 계단으로 이동 | (플레이 모드 확인) |
+| 8 | 플레이어가 계단을 향해 걷기 | 플레이 | 1↔2층, 2↔3층 이동. 도착 직후 자동 역이동 방지 | (플레이 모드 확인) |
 
 ### FBX 보행 속도 적용 전 확인한 층간 배정
 

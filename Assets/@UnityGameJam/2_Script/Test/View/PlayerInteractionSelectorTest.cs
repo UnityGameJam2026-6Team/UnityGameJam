@@ -45,7 +45,7 @@ namespace UnityGameJam.Test.View
         {
             InteractionChoice choice = Select(Slot + Vector3.left * 2f, EContaminationType.ClutterItem, false, homeSlotId);
 
-            Assert.AreEqual(EInteractionKind.None, choice.Kind);
+            Assert.AreEqual(EInteractionKind.Drop, choice.Kind);
         }
 
         [Test]
@@ -72,13 +72,13 @@ namespace UnityGameJam.Test.View
         [Test]
         public void 좌표가_같아도_다른_층의_제자리에_정리를_표시하지_않는다()
         {
-            Assert.AreEqual(EInteractionKind.None, Select(Slot, EContaminationType.ClutterItem, false, 7, EFloor.Floor2).Kind);
+            Assert.AreEqual(EInteractionKind.Drop, Select(Slot, EContaminationType.ClutterItem, false, 7, EFloor.Floor2).Kind);
         }
 
         [Test]
         public void 물건을_들고_화장실_옆이면_걸레를_빌리지_않는다()
         {
-            Assert.AreEqual(EInteractionKind.None, Select(Toilet, EContaminationType.Trash, false, floor: EFloor.Floor2).Kind);
+            Assert.AreEqual(EInteractionKind.Drop, Select(Toilet, EContaminationType.Trash, false, floor: EFloor.Floor2).Kind);
         }
 
         [Test]
@@ -135,7 +135,7 @@ namespace UnityGameJam.Test.View
         {
             _items.Add(Item(1, EContaminationType.Trash, new Vector3(50.5f, 0f, 0f)));
 
-            Assert.AreEqual(EInteractionKind.None, Select(new Vector3(50f, 0f, 0f), EContaminationType.Trash, false).Kind);
+            Assert.AreEqual(EInteractionKind.Drop, Select(new Vector3(50f, 0f, 0f), EContaminationType.Trash, false).Kind);
         }
 
         [Test]

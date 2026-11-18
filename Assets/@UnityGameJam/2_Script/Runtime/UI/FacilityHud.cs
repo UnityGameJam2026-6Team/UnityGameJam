@@ -20,6 +20,8 @@ namespace UnityGameJam.UI
         [SerializeField] private GameObject _choices;
         [SerializeField] private TMP_Text _assignmentTitle;
         [SerializeField] private TMP_Text _assignmentRoom;
+        [SerializeField] private TMP_Text _assignmentDialogue;
+        [SerializeField] private TMP_Text _dialogueSpeaker;
         [SerializeField] private Button[] _rooms;
         [SerializeField] private Button _cancel;
         [SerializeField] private MinionStatusPanel _minionPanel;
@@ -27,22 +29,57 @@ namespace UnityGameJam.UI
         [SerializeField] private GameObject _workGauge;
         [SerializeField] private RectTransform _workFill;
         private MatchBootstrap _bootstrap;
+        private RectTransform _assignmentPanel;
+        private RectTransform _dialogueCard;
+        private RectTransform _dialogueArea;
         private EWorkerType? _talking;
         private readonly List<InputAction> _suspendedActions = new List<InputAction>();
+        private static readonly EZoneId[] Zones = (EZoneId[])Enum.GetValues(typeof(EZoneId));
         private int _lastSecond = -1;
 
         private void Awake()
         {
             _bootstrap = FindFirstObjectByType<MatchBootstrap>();
+            _assignmentPanel = (RectTransform)_choices.transform;
+            _dialogueArea = _assignmentPanel.parent as RectTransform;
+            if (_assignmentDialogue != null) { _dialogueCard = _assignmentDialogue.rectTransform.parent as RectTransform; }
+            _assignmentTitle.text = "작업 지시";
             _choices.SetActive(false);
-            EZoneId[] zones = (EZoneId[])Enum.GetValues(typeof(EZoneId));
             for (int i = 0; i < _rooms.Length; i++)
             {
-                EZoneId zone = zones[i];
+                EZoneId zone = Zones[i];
                 _rooms[i].onClick.AddListener(() => Assign(zone));
             }
             _cancel.onClick.AddListener(Cancel);
+            ConfigureRoomNavigation();
         }
+
+        private void ConfigureRoomNavigation()
+        {
+            var rows = new List<Button>[(int)EFloor.Floor3 + 1];
+            for (int i = 0; i < rows.Length; i++) { rows[i] = new List<Button>(); }
+            for (int i = 0; i < _rooms.Length; i++) { rows[(int)ZoneDisplayName.GetFloor(Zones[i])].Add(_rooms[i]); }
+
+            for (int floor = 0; floor < rows.Length; floor++)
+            {
+                List<Button> rooms = rows[floor];
+                for (int room = 0; room < rooms.Count; room++)
+                {
+                    rooms[room].navigation = new Navigation
+                    {
+                        mode = Navigation.Mode.Explicit,
+                        selectOnUp = floor > 0 ? RoomAt(rows[floor - 1], room) : null,
+                        selectOnDown = floor + 1 < rows.Length ? RoomAt(rows[floor + 1], room) : _cancel,
+                        selectOnLeft = room > 0 ? rooms[room - 1] : null,
+                        selectOnRight = room + 1 < rooms.Count ? rooms[room + 1] : null
+                    };
+                }
+            }
+            _cancel.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnUp = _rooms[_rooms.Length - 1] };
+        }
+
+        private static Button RoomAt(List<Button> rooms, int column) =>
+            rooms.Count > 0 ? rooms[Mathf.Min(rooms.Count - 1, column)] : null;
 
         private void LateUpdate()
         {
@@ -58,6 +95,7 @@ namespace UnityGameJam.UI
             _workGauge.SetActive(session.IsPlayerWorking);
             _workFill.anchorMax = new Vector2(Mathf.Clamp01(session.PlayerWorkProgress / 100f), 1f);
 
+            bool wasTalking = _talking.HasValue;
             MinionStatus? talking = null;
             if (session.MatchState == EMatchState.Running)
             {
@@ -71,18 +109,28 @@ namespace UnityGameJam.UI
                 if (talking.HasValue)
                 {
                     MinionStatus minion = talking.Value;
-                    _assignmentTitle.text = $"{MinionStatusPanel.WorkerName(minion.Minion)}에게 맡길 곳";
+                    if (_dialogueSpeaker != null) { _dialogueSpeaker.text = MinionStatusPanel.WorkerName(minion.Minion); }
                     _assignmentRoom.text = $"현재 담당 방  {MinionStatusPanel.RoomName(minion.AssignedZone)}";
-                    if (!_talking.HasValue) { OpenAssignmentPanel(); }
+                    if (_assignmentDialogue != null)
+                    {
+                        _assignmentDialogue.text = minion.AssignedZone.HasValue ? "어느 방으로 옮길까요?" : "어느 방부터 청소할까요?";
+                    }
+                    if (!_talking.HasValue) { OpenAssignmentPanel(minion.AssignedZone); }
                 }
                 else { CloseAssignmentPanel(); }
                 _talking = talking?.Minion;
+                _bootstrap.FocusConversation(_talking);
             }
             if (_talking.HasValue && EventSystem.current != null &&
                 EventSystem.current.currentInputModule is InputSystemUIInputModule input &&
                 input.cancel?.action?.WasPressedThisFrame() == true) { Cancel(); }
+            if (talking.HasValue && _dialogueCard != null && _dialogueArea != null)
+            {
+                float x = _dialogueArea.rect.xMin - _assignmentPanel.anchoredPosition.x;
+                _dialogueCard.position = _dialogueArea.TransformPoint(x, _dialogueArea.rect.center.y + 24f, 0f);
+            }
             _proposalStack.Show(session, _bootstrap.InitialMatchTime - session.RemainingTime,
-                (RectTransform)_choices.transform, talking.HasValue);
+                _assignmentPanel, wasTalking || talking.HasValue);
         }
 
         private void OnDisable()
@@ -94,11 +142,13 @@ namespace UnityGameJam.UI
             }
         }
 
-        private void OpenAssignmentPanel()
+        private void OpenAssignmentPanel(EZoneId? assigned)
         {
             SuspendPlayerInput();
             _choices.SetActive(true);
-            _rooms[0].Select();
+            int focus = Array.FindIndex(Zones, zone => zone == assigned ||
+                (!assigned.HasValue && ZoneDisplayName.GetFloor(zone) == _bootstrap.Player.Floor && ZoneDisplayName.IsLobby(zone)));
+            _rooms[Mathf.Clamp(focus, 0, _rooms.Length - 1)].Select();
         }
 
         private void SuspendPlayerInput()
@@ -113,7 +163,14 @@ namespace UnityGameJam.UI
 
         private void CloseAssignmentPanel()
         {
+            EventSystem events = EventSystem.current;
+            if (events != null && events.currentSelectedGameObject != null
+                && events.currentSelectedGameObject.transform.IsChildOf(_choices.transform))
+            {
+                events.SetSelectedGameObject(null);
+            }
             _choices.SetActive(false);
+            _bootstrap?.FocusConversation(null);
             RestorePlayerInput();
         }
 
@@ -130,6 +187,7 @@ namespace UnityGameJam.UI
             if (!_talking.HasValue) { SuspendPlayerInput(); }
             _talking = null;
             _choices.SetActive(false);
+            _bootstrap.FocusConversation(null);
             _minionPanel.gameObject.SetActive(false);
             _proposalStack.gameObject.SetActive(false);
             _workGauge.SetActive(false);

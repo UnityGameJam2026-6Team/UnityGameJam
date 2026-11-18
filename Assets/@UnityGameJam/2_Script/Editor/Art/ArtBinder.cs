@@ -275,13 +275,26 @@ namespace UnityGameJam.Editor.Art
             AnimatorOverrideController overrideController = ArtAnimationBinder.BuildOverride(item.ArtKey, Path.GetDirectoryName(item.SourcePath).Replace('\\', '/'));
             if (slot.Model == null) { return false; }
             bool embedded = EmbeddedCharacterAnimationBinder.Supports(item) || slot.AnimationSet != null;
-            if (!embedded && overrideController == null) { return false; }
+            if (!embedded && overrideController == null && slot.FitMode != EArtFitMode.MatchPlaceholderSize) { return false; }
 
             GameObject root = PrefabUtility.LoadPrefabContents(item.PrefabPath);
             try
             {
                 ArtSlot editable = root.GetComponentInChildren<ArtSlot>(true);
                 bool changed = EmbeddedCharacterAnimationBinder.Bind(editable, editable.Model, item);
+                if (editable.FitMode == EArtFitMode.MatchPlaceholderSize)
+                {
+                    var source = AssetDatabase.LoadAssetAtPath<GameObject>(item.SourcePath);
+                    if (source != null)
+                    {
+                        Transform model = editable.Model.transform;
+                        Vector3 position = model.localPosition;
+                        Vector3 scale = model.localScale;
+                        Quaternion rotation = model.localRotation;
+                        FitModel(editable, editable.Model, source.transform);
+                        changed |= position != model.localPosition || scale != model.localScale || rotation != model.localRotation;
+                    }
+                }
                 if (overrideController != null) { changed |= ArtAnimationBinder.AssignToModel(editable.Model, overrideController); }
                 if (!changed) { return false; }
                 PrefabUtility.SaveAsPrefabAsset(root, item.PrefabPath);
@@ -308,12 +321,29 @@ namespace UnityGameJam.Editor.Art
             return isRemoved;
         }
 
-        private static void FitModel(ArtSlot slot, GameObject model, Transform source)
+        public static void FitModel(ArtSlot slot, GameObject model, Transform source)
         {
             Transform modelTransform = model.transform;
             modelTransform.localPosition = slot.ModelOffset;
             modelTransform.localRotation = Quaternion.Euler(slot.ModelEuler) * source.localRotation;
             modelTransform.localScale = source.localScale;
+
+            if (slot.FitMode == EArtFitMode.MatchPlaceholderSize && slot.Placeholder != null)
+            {
+                modelTransform.localPosition = Vector3.zero;
+                Bounds target = CalculateLocalBounds(slot.Placeholder, slot.transform);
+                Bounds current = CalculateLocalBounds(model, slot.transform);
+                var ratios = new Vector3(AxisRatio(target.size.x, current.size.x), AxisRatio(target.size.y, current.size.y),
+                    AxisRatio(target.size.z, current.size.z));
+                Quaternion orientation = modelTransform.localRotation;
+                var localRatios = new Vector3(AxisScale(ratios, orientation * Vector3.right),
+                    AxisScale(ratios, orientation * Vector3.up), AxisScale(ratios, orientation * Vector3.forward));
+                modelTransform.localScale = Vector3.Scale(source.localScale, localRatios) * slot.ModelScale;
+                Bounds fitted = CalculateLocalBounds(model, slot.transform);
+                var offset = new Vector3(target.center.x - fitted.center.x, target.min.y - fitted.min.y, target.center.z - fitted.center.z);
+                modelTransform.localPosition = offset + slot.ModelOffset;
+                return;
+            }
 
             float factor = 1f;
             if (slot.FitMode != EArtFitMode.None && slot.Placeholder != null)
@@ -335,6 +365,36 @@ namespace UnityGameJam.Editor.Art
                 }
             }
             modelTransform.localScale = source.localScale * (factor * slot.ModelScale);
+        }
+
+        private static float AxisRatio(float target, float current) => current > Mathf.Epsilon && target > Mathf.Epsilon ? target / current : 1f;
+
+        private static float AxisScale(Vector3 ratios, Vector3 axis) =>
+            Vector3.Dot(ratios, new Vector3(Mathf.Abs(axis.x), Mathf.Abs(axis.y), Mathf.Abs(axis.z)));
+
+        private static Bounds CalculateLocalBounds(GameObject target, Transform space)
+        {
+            Bounds result = default;
+            bool initialized = false;
+            foreach (Renderer renderer in target.GetComponentsInChildren<Renderer>(true))
+            {
+                Bounds bounds = renderer.localBounds;
+                Matrix4x4 transform = space.worldToLocalMatrix * renderer.localToWorldMatrix;
+                for (int corner = 0; corner < 8; corner++)
+                {
+                    var point = new Vector3((corner & 1) == 0 ? bounds.min.x : bounds.max.x,
+                        (corner & 2) == 0 ? bounds.min.y : bounds.max.y,
+                        (corner & 4) == 0 ? bounds.min.z : bounds.max.z);
+                    Vector3 localPoint = transform.MultiplyPoint3x4(point);
+                    if (!initialized)
+                    {
+                        result = new Bounds(localPoint, Vector3.zero);
+                        initialized = true;
+                    }
+                    else { result.Encapsulate(localPoint); }
+                }
+            }
+            return result;
         }
 
         private static float MinRatio(Vector3 target, Vector3 current)

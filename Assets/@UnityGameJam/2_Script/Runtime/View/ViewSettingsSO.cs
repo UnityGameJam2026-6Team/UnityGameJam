@@ -24,10 +24,13 @@ namespace UnityGameJam.View
         [SerializeField] private float _cameraPitch = 56f;
         [Tooltip("추적 부드러움(초). 작을수록 빠르게 따라간다")]
         [SerializeField] private float _cameraSmoothTime = 0.15f;
+        [SerializeField, Range(10f, 55f)] private float _conversationCameraPitch = 24f;
+        [SerializeField, Range(0.35f, 0.75f)] private float _conversationFrameHeight = 0.67f;
 
         [Header("계단 (B3)")]
         [Tooltip("계단으로 층을 옮길 때 걸리는 시간(초). 임시값")]
         [SerializeField] private float _stairTransitSeconds = 2f;
+        [SerializeField, Min(0.1f)] private float _stairApproachRadius = 0.85f;
 
         [Serializable]
         private struct ClutterEntry
@@ -86,6 +89,9 @@ namespace UnityGameJam.View
         public float CameraBackDistance => _cameraBackDistance;
         public float CameraPitch => _cameraPitch;
         public float CameraSmoothTime => _cameraSmoothTime;
+        public float ConversationCameraPitch => _conversationCameraPitch;
+        public float ConversationFrameHeight => _conversationFrameHeight;
         public float StairTransitSeconds => _stairTransitSeconds;
+        public float StairApproachRadius => _stairApproachRadius;
     }
 }

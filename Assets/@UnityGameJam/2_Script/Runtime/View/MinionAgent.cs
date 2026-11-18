@@ -141,7 +141,10 @@ namespace UnityGameJam.View
             if (_pausedForHandling)
             {
                 _pausedForHandling = false;
-                if (_agent.isOnNavMesh && _phase != EPhase.InTransit) { _agent.isStopped = false; }
+                if (_agent.isOnNavMesh && (_phase == EPhase.WalkingToDestination || _phase == EPhase.WalkingToStair))
+                {
+                    _agent.isStopped = false;
+                }
             }
             UpdateStrideSpeed();
             switch (_phase)
@@ -171,25 +174,35 @@ namespace UnityGameJam.View
                 GoToDestination();
                 return;
             }
-            if (_stairs == null || !_stairs.TryGet(_floor, out Vector3 stair))
+            GoToStair();
+        }
+
+        private void GoToStair()
+        {
+            if (_stairs == null || !_stairs.TryGet(_floor, _floorsToPass.Peek(), out Vector3 stair)
+                || !NavMesh.SamplePosition(stair, out NavMeshHit hit, SampleRadius, NavMesh.AllAreas))
             {
                 Debug.LogWarning($"[MinionAgent] {_worker}: {_floor} 계단이 없어 층을 옮길 수 없습니다.", this);
                 ClearRoute();
                 return;
             }
             _agent.isStopped = IsHandling;
-            _agent.SetDestination(stair);
+            _agent.SetDestination(hit.position);
             _phase = EPhase.WalkingToStair;
         }
 
         private void CrossStair()
         {
             EFloor next = _floorsToPass.Dequeue();
-            if (_stairs.TryGet(next, out Vector3 entry))
+            if (!_stairs.TryGet(next, _floor, out Vector3 entry)
+                || !NavMesh.SamplePosition(entry, out NavMeshHit hit, SampleRadius, NavMesh.AllAreas)
+                || !_agent.Warp(hit.position))
             {
-                _agent.Warp(entry);
-                _floor = next;
+                Debug.LogWarning($"[MinionAgent] {_worker}: {next} 계단에 도착할 수 없습니다.", this);
+                ClearRoute();
+                return;
             }
+            _floor = next;
 
             if (_isStopRequested)
             {
@@ -205,7 +218,7 @@ namespace UnityGameJam.View
             }
             if (_floorsToPass.Count > 0)
             {
-                _transitTimer = _stairSeconds; // 중간 층 계단에서 이어서 오른다(내려간다)
+                GoToStair();
                 return;
             }
             GoToDestination();
@@ -231,7 +244,8 @@ namespace UnityGameJam.View
             if (_agent.isOnNavMesh)
             {
                 _agent.ResetPath();
-                _agent.isStopped = IsHandling;
+                _agent.isStopped = true;
+                _agent.velocity = Vector3.zero;
             }
             _phase = EPhase.Idle;
         }

@@ -12,7 +12,7 @@
 ## 입력 / 출력
 | 구분 | 이름 | 설명 |
 |---|---|---|
-| 입력 | `Player/Move`(WASD), `Player/Sprint`(왼쪽 Shift), `Player/Interact`(J, Press), `Player/Drop`(Q) | Project-wide Input Actions |
+| 입력 | `Player/Move`(WASD), `Player/Sprint`(왼쪽 Shift), `Player/Interact`(J) | Project-wide Input Actions |
 | 입력 | `IMatchReadModel` | 이동 속도, 운반 중인 개체, 걸레 보유, 작업 진행도, 개체 목록, 판 상태 |
 | 입력 | `FacilityLayout` | 화장실, 제자리 슬롯, 헬하운드 위치(시작점), 층 범위 |
 | 출력 | `IMatchCommands` 호출 | `TryPickUp`, `TryDrop`, `TryPlaceAtHome`, `TryStartMop`, `CancelWork`, `TryBorrowMop`, `TryReturnMop`, `DispatchHellhound`, `BeginTalk` |
@@ -29,7 +29,7 @@
    4. 졸개가 반경 안 → 대화(`BeginTalk`). B2에서는 졸개 몸이 없으므로 대상이 생기지 않는다(B3에서 연결)
    5. 걸레를 들고 있고 바닥 얼룩이 반경 안 → 물걸레질 시작(`TryStartMop`)
    6. 아무것도 들지 않았고 걸레도 없으며 주울 수 있는 개체(무거운 잔해, 일반 쓰레기, 작은 물건. 상태가 바닥 또는 배출 구역)가 반경 안 → 줍기(`TryPickUp`)
-5. 들고 있는 물건은 Drop(Q)으로 그 자리에 내려놓는다(`TryDrop`).
+5. 물건을 들고 J를 누르면 맞는 제자리를 우선 사용하고, 그 밖에서는 그 자리에 내려놓는다(`TryDrop`). 걸레를 들고 있으면 빌린 걸레걸이에서 반납하거나 가까운 얼룩에서 닦는다.
    - 줍기, 내려놓기, 제자리 정리, 배출 구역 적치, 걸레 대여·반납이 성공하면 해당 클립 구간이 끝날 때까지 이동·계단·다른 상호작용을 멈춘다. 내려놓기와 반납은 집기 구간을 역재생한다. 종료 후 계속 누르고 있는 이동 키로 즉시 움직인다.
    - 졸개와 대화를 시작하면 두 유닛이 제자리에서 서로를 향해 회전한다.
 6. 고른 대상 위에 표시(TargetMarker)를 띄운다. 대상이 없으면 숨긴다.
@@ -47,7 +47,7 @@
 | `Runtime/Player/PlayerInteractionSelector.cs` | **순수 클래스**. 규칙 4의 우선순위로 행동 하나를 고른다(테스트 대상) |
 | `Runtime/Player/PlayerBody.cs` | `IWorkerBody` 구현. 위치와 층(규칙 8) |
 | `Runtime/Player/PlayerController.cs` | CharacterController 이동(규칙 1~3), 이동 방향으로 회전 |
-| `Runtime/Player/PlayerInteractor.cs` | 매 프레임 대상 고르기 → 표시(규칙 6), J·Q 입력 → 명령(규칙 4·5) |
+| `Runtime/Player/PlayerInteractor.cs` | 매 프레임 대상 고르기 → 표시(규칙 6), J 입력 → 명령(규칙 4·5) |
 | `Runtime/Player/FloorCameraFollow.cs` | 카메라 추적(규칙 7). SYS_MainCamera에 붙인다 |
 | `Runtime/View/MatchBootstrap.cs` | 층 3개 → `FacilityLayoutBuilder` → 팩토리로 판 생성 → 플레이어 생성(시작점) → 카메라·입력 연결 → 매 프레임 `Tick` |
 | `Runtime/View/Debug/FakeMatchSession.cs` | 가짜 판. 생성 지점 일부에 개체를 놓고 줍기·내려놓기·제자리·걸레·물걸레질(진행도 0→100)·배출을 흉내 낸다. 운반 감속 50%, 청결도 계산(가중치 4/3/2/1) |

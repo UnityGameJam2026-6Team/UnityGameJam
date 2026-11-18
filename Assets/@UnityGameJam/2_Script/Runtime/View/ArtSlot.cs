@@ -7,6 +7,7 @@ namespace UnityGameJam.View
         None,                   // 모델 크기 그대로
         MatchPlaceholderHeight, // Placeholder 높이에 맞춤
         MatchPlaceholderBounds, // Placeholder 상자 안에 들어가게 맞춤
+        MatchPlaceholderSize,   // 가구의 폭·높이·깊이와 바닥 높이를 Placeholder에 맞춤
     }
 
     /// <summary>
