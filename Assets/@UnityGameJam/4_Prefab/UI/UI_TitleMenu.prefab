@@ -907,7 +907,7 @@ MonoBehaviour:
   _loadingLabel: {fileID: 8493976256058475457}
   _leaderboardOverlay: {fileID: 5790244146463300263}
   _leaderboard: {fileID: 4813185549653024933}
-  _nameInput: {fileID: 5772328276018985844}
+  _nameInput: {fileID: 1958422226753959877}
   _fadeSeconds: 0.45
 --- !u!1 &5790244146463300263
 GameObject:
@@ -1573,8 +1573,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\uB9AC\uB354 \uBCF4\uB4DC"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 5fbd08c4dee94e04d9e46c43d534930e, type: 2}
-  m_sharedMaterial: {fileID: 7704682153653520981, guid: 5fbd08c4dee94e04d9e46c43d534930e, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 8d621e252c7546c43a5286ef64e3a49c, type: 2}
+  m_sharedMaterial: {fileID: -7809994917407294371, guid: 8d621e252c7546c43a5286ef64e3a49c, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -2013,23 +2013,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 5332251958169884003, guid: aab1ac3bbc3682144a3e54fb25b5f02e, type: 3}
-      propertyPath: m_text
-      value: "\u200B"
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: aab1ac3bbc3682144a3e54fb25b5f02e, type: 3}
---- !u!224 &3048116502159606791 stripped
-RectTransform:
-  m_CorrespondingSourceObject: {fileID: 2685544895130680173, guid: aab1ac3bbc3682144a3e54fb25b5f02e, type: 3}
-  m_PrefabInstance: {fileID: 1083657861413371754}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &5772328276018985844 stripped
+--- !u!114 &1958422226753959877 stripped
 MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 6850679746038563870, guid: aab1ac3bbc3682144a3e54fb25b5f02e, type: 3}
+  m_CorrespondingSourceObject: {fileID: 1451385820492351663, guid: aab1ac3bbc3682144a3e54fb25b5f02e, type: 3}
   m_PrefabInstance: {fileID: 1083657861413371754}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
@@ -2038,6 +2029,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 584cb3f43dec26a408e82448548f7ecb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.UI.NameInputPanel
+--- !u!224 &3048116502159606791 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 2685544895130680173, guid: aab1ac3bbc3682144a3e54fb25b5f02e, type: 3}
+  m_PrefabInstance: {fileID: 1083657861413371754}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1270310703743546838
 PrefabInstance:
   m_ObjectHideFlags: 0
