@@ -1,0 +1,13 @@
+{
+  "plateWidth": 1467, "plateHeight": 446,
+  "parts": [
+    {"name":"wing_L","file":"wing.png","flip":false,"x":-650,"y":40,"scale":0.43,"pivotX":0.98,"pivotY":0.48,"w":1533,"h":986},
+    {"name":"wing_R","file":"wing.png","flip":true,"x":650,"y":40,"scale":0.43,"pivotX":0.02,"pivotY":0.48,"w":1533,"h":986},
+    {"name":"horn_L","file":"horn.png","flip":false,"x":-505,"y":160,"scale":0.27,"pivotX":0.45,"pivotY":0.08,"w":915,"h":970},
+    {"name":"horn_R","file":"horn.png","flip":true,"x":505,"y":160,"scale":0.27,"pivotX":0.55,"pivotY":0.08,"w":915,"h":970},
+    {"name":"plate","file":"plate.png","flip":false,"x":0,"y":0,"scale":1,"pivotX":0.5,"pivotY":0.5,"w":1467,"h":446},
+    {"name":"crest","file":"crest.png","flip":false,"x":0,"y":158,"scale":0.28,"pivotX":0.5,"pivotY":0.1,"w":970,"h":637}
+  ],
+  "hourglass": {"neckY":0.4963918,"topY":0.7706186,"bottomY":0.1716495,"centerX":0.5,"halfWidth":0.331216},
+  "textSlot": [0.13,0.287,0.87,0.713]
+}
