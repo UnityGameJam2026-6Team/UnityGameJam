@@ -26,6 +26,8 @@
 
 `MinionBrain`이 상태 전이, 목적지, 배정 ID를 관리한다. `MinionMemory`는 방별 관찰 기록만 보관하고 `ProposalCandidateFinder`가 후보를 고른다. 몸과 툴은 기존 계약과 서비스로 호출한다.
 
+폐기물 운반 목적지는 1층 배출 구역의 바닥 중앙(X/Z는 Bounds.center, Y는 Bounds.min.y)이다. Facility에서 창고에 배정한 오크가 일반 쓰레기를 주워 배출 구역 안에 내려놓고 담당 방으로 복귀하는 것을 확인했다.
+
 ## 미결 질문
 
 없음.

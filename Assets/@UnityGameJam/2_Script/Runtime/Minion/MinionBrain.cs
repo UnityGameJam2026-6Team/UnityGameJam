@@ -252,7 +252,9 @@ namespace UnityGameJam.Minion
                 }
                 else
                 {
-                    Move(EStep.Carrying, EFloor.Floor1, _layout.DischargeArea.center);
+                    // 판정 볼륨의 중심은 바닥보다 높아 NavMesh 탐색 반경 밖일 수 있다.
+                    Bounds area = _layout.DischargeArea;
+                    Move(EStep.Carrying, EFloor.Floor1, new Vector3(area.center.x, area.min.y, area.center.z));
                 }
             }
             else
