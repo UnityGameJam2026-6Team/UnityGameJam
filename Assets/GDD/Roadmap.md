@@ -13,12 +13,12 @@
 
 ## A 레인 (규칙·시뮬레이션) · 김보경 · Codex · `docs/team/lane-a.md`
 - [x] A1 청결도·오염 모델 (Spec `Cleaning.md`)
-- [ ] A2 데이터와 생성 (Spec `ContaminationSpawn.md`)
-- [ ] A3 작업 선택과 능력 (Spec `TaskSelection.md`)
-- [ ] A4 도구·배출·소화 (Spec `ToolAndDischarge.md`)
-- [ ] A5 졸개 두뇌와 기억 (Spec `MinionBrain.md`)
-- [ ] A6 제안 대기열과 대사 (Spec `Proposal.md`)
-- [ ] A7 판 흐름과 마감 (Spec `MatchFlow.md`)
+- [x] A2 데이터와 생성 (Spec `ContaminationSpawn.md`)
+- [x] A3 작업 선택과 능력 (Spec `TaskSelection.md`)
+- [x] A4 도구·배출·소화 (Spec `ToolAndDischarge.md`)
+- [x] A5 졸개 두뇌와 기억 (Spec `MinionBrain.md`)
+- [x] A6 제안 대기열과 대사 (Spec `Proposal.md`)
+- [x] A7 판 흐름과 마감 (Spec `MatchFlow.md`)
 
 ## B 레인 (월드·표현) · 심지섭 · Unity AI · `docs/team/lane-b.md`
 - [x] B0 프리팹·아트 기반(Spec `ArtPipeline.md`, 규칙 `docs/rules/prefab.md`·`art-asset.md`)
