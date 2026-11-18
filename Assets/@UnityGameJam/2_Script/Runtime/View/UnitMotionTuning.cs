@@ -64,13 +64,12 @@ namespace UnityGameJam.View
             return speed * ruleMultiplier * NormalizeRate(rate) * NormalizeRate(_globalMoveRate);
         }
 
-        public UnitHandlingTiming ResolveHandling(CharacterAnimationSet clips, bool pickingUp, bool heavy)
+        internal UnitHandlingTiming ResolveHandling(CharacterAnimationSet measurements, float clipLength, bool pickingUp, bool heavy)
         {
-            AnimationClip clip = heavy ? clips.PickUpHeavy : clips.PickUp;
-            if (clip == null) { return default; }
-            float measuredEnd = heavy ? clips.PickUpHeavyEnd : clips.PickUpEnd;
-            float measuredContact = heavy ? clips.PickUpHeavyContact : clips.PickUpContact;
-            float end = Mathf.Min(clip.length, PositiveOr(measuredEnd, clip.length));
+            if (clipLength <= 0f) { return default; }
+            float measuredEnd = heavy ? measurements.PickUpHeavyEnd : measurements.PickUpEnd;
+            float measuredContact = heavy ? measurements.PickUpHeavyContact : measurements.PickUpContact;
+            float end = Mathf.Min(clipLength, PositiveOr(measuredEnd, clipLength));
             float contact = PositiveOr(measuredContact, end * 0.5f);
             return new UnitHandlingTiming(end, contact, GetAnimationRate(pickingUp ? _pickupRate : _dropRate), pickingUp);
         }

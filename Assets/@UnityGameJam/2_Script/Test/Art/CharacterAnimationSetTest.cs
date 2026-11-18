@@ -1,6 +1,7 @@
 using System.IO;
 using NUnit.Framework;
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEngine;
 using UnityGameJam.Editor.Art;
 using UnityGameJam.View;
@@ -24,13 +25,15 @@ namespace UnityGameJam.Test.Art
             Assert.NotNull(set);
             Assert.NotNull(prefab.GetComponent<CharacterAnimatorDriver>());
             Assert.NotNull(slot.Animator);
+            var controller = slot.Animator.runtimeAnimatorController as AnimatorController;
+            Assert.NotNull(controller);
+            Assert.AreEqual($"AC_{role}", controller.name);
             string source = ArtBinder.GetAppliedSourcePath(slot);
             Assert.AreEqual(".fbx", Path.GetExtension(source));
-            Assert.AreEqual(idle, set.Idle.name);
-            Assert.AreEqual(walk, set.Walk.name);
-            Assert.AreEqual(pickup, set.PickUp != null ? set.PickUp.name : null);
-            foreach (AnimationClip clip in new[] { set.Idle, set.Walk, set.Run, set.PickUp, set.PickUpHeavy,
-                set.Carry, set.CarryHeavy, set.MopWalk, set.Mop, set.Eat, set.Dispatch })
+            Assert.AreEqual(idle, EmbeddedCharacterAnimationBinder.GetMotion(controller, ECharacterAnimation.Idle)?.name);
+            Assert.AreEqual(walk, EmbeddedCharacterAnimationBinder.GetMotion(controller, ECharacterAnimation.Walk)?.name);
+            Assert.AreEqual(pickup, EmbeddedCharacterAnimationBinder.GetMotion(controller, ECharacterAnimation.PickUp)?.name);
+            foreach (AnimationClip clip in controller.animationClips)
             {
                 if (clip != null) { Assert.AreEqual(source, AssetDatabase.GetAssetPath(clip), clip.name); }
             }
@@ -43,20 +46,23 @@ namespace UnityGameJam.Test.Art
         public void 청소_유닛은_지정된_걸레와_운반_클립_및_집기_구간을_쓴다(string role, string heavyPickUp, bool leftHand)
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(ArtBinder.DefaultPrefabRoot + "/Character/" + role + ".prefab");
-            CharacterAnimationSet set = prefab.GetComponentInChildren<ArtSlot>().AnimationSet;
-            Assert.AreEqual("Running", set.Run.name);
-            Assert.AreEqual(role == "CH_Skeleton" ? "_01a1ed96_6620_7713_9bb7_f6a44c873f65" : "_01a1ed95_d307_7701_a839_04051b7ec198", set.MopWalk.name);
-            Assert.AreEqual("_01a1ed94_4b92_72e8_bf78_42f661410eaf", set.Mop.name);
-            Assert.AreEqual(heavyPickUp, set.PickUpHeavy != null ? set.PickUpHeavy.name : null);
+            ArtSlot slot = prefab.GetComponentInChildren<ArtSlot>();
+            CharacterAnimationSet set = slot.AnimationSet;
+            AnimationClip GetMotion(ECharacterAnimation state) =>
+                EmbeddedCharacterAnimationBinder.GetMotion(slot.Animator.runtimeAnimatorController, state);
+            Assert.AreEqual("Running", GetMotion(ECharacterAnimation.Run)?.name);
+            Assert.AreEqual(role == "CH_Skeleton" ? "_01a1ed96_6620_7713_9bb7_f6a44c873f65" : "_01a1ed95_d307_7701_a839_04051b7ec198", GetMotion(ECharacterAnimation.MopWalk)?.name);
+            Assert.AreEqual("_01a1ed94_4b92_72e8_bf78_42f661410eaf", GetMotion(ECharacterAnimation.Mop)?.name);
+            Assert.AreEqual(heavyPickUp, GetMotion(ECharacterAnimation.PickUpHeavy)?.name);
             Assert.AreEqual(leftHand, set.LeftHandCarry);
-            if (role != "CH_Skeleton") { Assert.AreEqual("Spear_Walk", set.Carry.name); }
+            if (role != "CH_Skeleton") { Assert.AreEqual("Spear_Walk", GetMotion(ECharacterAnimation.Carry)?.name); }
             if (heavyPickUp != null)
             {
-                Assert.AreEqual("Carry_Heavy_Object_Walk_inplace", set.CarryHeavy.name);
+                Assert.AreEqual("Carry_Heavy_Object_Walk_inplace", GetMotion(ECharacterAnimation.CarryHeavy)?.name);
                 Assert.Greater(set.PickUpHeavyEnd, set.PickUpHeavyContact);
             }
             Assert.Greater(set.PickUpEnd, set.PickUpContact);
-            Assert.LessOrEqual(set.PickUpEnd, set.PickUp.length);
+            Assert.LessOrEqual(set.PickUpEnd, GetMotion(ECharacterAnimation.PickUp).length);
             Assert.Greater(set.WalkSpeed, 0f);
             Assert.Greater(set.RunSpeed, 0f);
         }
@@ -66,8 +72,9 @@ namespace UnityGameJam.Test.Art
         public void 특수_졸개의_먹기와_배출에_전용_클립이_연결된다(string role, string clipName)
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(ArtBinder.DefaultPrefabRoot + "/Character/" + role + ".prefab");
-            CharacterAnimationSet set = prefab.GetComponentInChildren<ArtSlot>().AnimationSet;
-            Assert.AreEqual(clipName, (role == "CH_Slime" ? set.Eat : set.Dispatch).name);
+            var controller = prefab.GetComponentInChildren<ArtSlot>().Animator.runtimeAnimatorController;
+            ECharacterAnimation state = role == "CH_Slime" ? ECharacterAnimation.Eat : ECharacterAnimation.Dispatch;
+            Assert.AreEqual(clipName, EmbeddedCharacterAnimationBinder.GetMotion(controller, state)?.name);
         }
     }
 }

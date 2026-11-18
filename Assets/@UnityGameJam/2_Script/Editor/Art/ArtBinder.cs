@@ -234,7 +234,8 @@ namespace UnityGameJam.Editor.Art
             FitModel(slot, model, source.transform);
             EmbeddedCharacterAnimationBinder.Bind(slot, model, item);
 
-            AnimatorOverrideController overrideController = ArtAnimationBinder.BuildOverride(item.ArtKey, Path.GetDirectoryName(item.SourcePath).Replace('\\', '/'));
+            AnimatorOverrideController overrideController = EmbeddedCharacterAnimationBinder.Supports(item) ? null
+                : ArtAnimationBinder.BuildOverride(item.ArtKey, Path.GetDirectoryName(item.SourcePath).Replace('\\', '/'));
             if (overrideController != null) { ArtAnimationBinder.AssignToModel(model, overrideController); }
 
             var serialized = new SerializedObject(slot);
@@ -272,7 +273,8 @@ namespace UnityGameJam.Editor.Art
             }
 
             ArtMaterialBuilder.BuildForModel(item.SourcePath, item.ArtKey);
-            AnimatorOverrideController overrideController = ArtAnimationBinder.BuildOverride(item.ArtKey, Path.GetDirectoryName(item.SourcePath).Replace('\\', '/'));
+            AnimatorOverrideController overrideController = EmbeddedCharacterAnimationBinder.Supports(item) ? null
+                : ArtAnimationBinder.BuildOverride(item.ArtKey, Path.GetDirectoryName(item.SourcePath).Replace('\\', '/'));
             if (slot.Model == null) { return false; }
             bool embedded = EmbeddedCharacterAnimationBinder.Supports(item) || slot.AnimationSet != null;
             if (!embedded && overrideController == null && slot.FitMode != EArtFitMode.MatchPlaceholderSize) { return false; }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEngine;
 using UnityGameJam.View;
 
@@ -80,30 +81,18 @@ namespace UnityGameJam.Editor.Art
         {
             if (!Supports(item)) { return Remove(slot); }
             ClipNames names = _bySource[item.ArtKey];
-            var clips = AssetDatabase.LoadAllAssetsAtPath(item.SourcePath).OfType<AnimationClip>()
-                .Where(clip => !clip.name.StartsWith("__preview__", StringComparison.Ordinal))
-                .ToDictionary(clip => clip.name, StringComparer.Ordinal);
+            AnimatorController controller = GetOrCreateController(item, names);
 
             CharacterAnimationSet set = slot.AnimationSet;
             bool changed = set == null;
             if (set == null) { set = slot.gameObject.AddComponent<CharacterAnimationSet>(); }
             var settings = new SerializedObject(set);
             var speeds = new Dictionary<AnimationClip, float>();
-            AnimationClip SetClip(string property, string name)
+            void SetSpeed(string property, ECharacterAnimation state)
             {
-                AnimationClip clip = null;
-                if (name != null && !clips.TryGetValue(name, out clip))
-                {
-                    throw new InvalidOperationException($"[Art] {item.SourcePath}에서 행동 클립 {name}을 찾을 수 없습니다.");
-                }
-                SerializedProperty field = settings.FindProperty(property);
-                if (field.objectReferenceValue != clip) { field.objectReferenceValue = clip; }
-                return clip;
-            }
-            void SetSpeed(string property, AnimationClip clip)
-            {
+                AnimationClip clip = GetMotion(controller, state);
                 float speed = 0f;
-                if (clip != null && clip.name != names.Idle && !speeds.TryGetValue(clip, out speed))
+                if (clip != null && clip != GetMotion(controller, ECharacterAnimation.Idle) && !speeds.TryGetValue(clip, out speed))
                 {
                     speed = ClipStrideMeasurement.Measure(model, clip);
                     speeds.Add(clip, speed);
@@ -116,11 +105,10 @@ namespace UnityGameJam.Editor.Art
                 if (!Mathf.Approximately(field.floatValue, value)) { field.floatValue = value; }
             }
 
-            SetClip("_idle", names.Idle);
-            SetSpeed("_walkSpeed", SetClip("_walk", names.Walk));
-            SetSpeed("_runSpeed", SetClip("_run", names.Run));
-            AnimationClip pickup = SetClip("_pickUp", names.PickUp);
-            AnimationClip pickupHeavy = SetClip("_pickUpHeavy", names.PickUpHeavy);
+            SetSpeed("_walkSpeed", ECharacterAnimation.Walk);
+            SetSpeed("_runSpeed", ECharacterAnimation.Run);
+            AnimationClip pickup = GetMotion(controller, ECharacterAnimation.PickUp);
+            AnimationClip pickupHeavy = GetMotion(controller, ECharacterAnimation.PickUpHeavy);
             Vector2 lightTimes = pickup != null ? ClipStrideMeasurement.MeasureHandling(model, pickup, names.LeftHandCarry) : Vector2.zero;
             Vector2 heavyTimes = lightTimes;
             if (pickupHeavy != pickup)
@@ -131,12 +119,9 @@ namespace UnityGameJam.Editor.Art
             SetFloat("_pickUpEnd", lightTimes.y);
             SetFloat("_pickUpHeavyContact", heavyTimes.x);
             SetFloat("_pickUpHeavyEnd", heavyTimes.y);
-            SetSpeed("_carrySpeed", SetClip("_carry", names.Carry));
-            SetSpeed("_carryHeavySpeed", SetClip("_carryHeavy", names.CarryHeavy));
-            SetSpeed("_mopWalkSpeed", SetClip("_mopWalk", names.MopWalk));
-            SetClip("_mop", names.Mop);
-            SetClip("_eat", names.Eat);
-            SetClip("_dispatch", names.Dispatch);
+            SetSpeed("_carrySpeed", ECharacterAnimation.Carry);
+            SetSpeed("_carryHeavySpeed", ECharacterAnimation.CarryHeavy);
+            SetSpeed("_mopWalkSpeed", ECharacterAnimation.MopWalk);
             SerializedProperty hand = settings.FindProperty("_leftHandCarry");
             if (hand.boolValue != names.LeftHandCarry) { hand.boolValue = names.LeftHandCarry; }
             changed |= settings.ApplyModifiedPropertiesWithoutUndo();
@@ -153,13 +138,74 @@ namespace UnityGameJam.Editor.Art
             }
             var animator = model.GetComponent<Animator>();
             if (animator == null) { animator = model.AddComponent<Animator>(); changed = true; }
-            if (animator.applyRootMotion)
+            if (animator.runtimeAnimatorController != controller || animator.applyRootMotion)
             {
-                animator.applyRootMotion = false;
+                using var animatorData = new SerializedObject(animator);
+                animatorData.FindProperty("m_Controller").objectReferenceValue = controller;
+                animatorData.FindProperty("m_ApplyRootMotion").boolValue = false;
+                animatorData.ApplyModifiedPropertiesWithoutUndo();
                 PrefabUtility.RecordPrefabInstancePropertyModifications(animator);
                 changed = true;
             }
             return changed;
+        }
+
+        internal static AnimationClip GetMotion(RuntimeAnimatorController controller, ECharacterAnimation state)
+        {
+            if (controller is not AnimatorController asset || asset.layers.Length == 0) { return null; }
+            return FindState(asset.layers[0].stateMachine, state)?.motion as AnimationClip;
+        }
+
+        private static AnimatorController GetOrCreateController(ArtBindingItem item, ClipNames names)
+        {
+            string folder = Path.GetDirectoryName(item.SourcePath).Replace('\\', '/');
+            string role = Path.GetFileNameWithoutExtension(item.PrefabPath);
+            string path = $"{folder}/AC_{role}.controller";
+            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(path);
+            if (controller != null) { return controller; }
+
+            var clips = AssetDatabase.LoadAllAssetsAtPath(item.SourcePath).OfType<AnimationClip>()
+                .Where(clip => !clip.name.StartsWith("__preview__", StringComparison.Ordinal))
+                .ToDictionary(clip => clip.name, StringComparer.Ordinal);
+            var roles = new (ECharacterAnimation State, string Name)[]
+            {
+                (ECharacterAnimation.Idle, names.Idle), (ECharacterAnimation.Walk, names.Walk),
+                (ECharacterAnimation.Run, names.Run), (ECharacterAnimation.PickUp, names.PickUp),
+                (ECharacterAnimation.PickUpHeavy, names.PickUpHeavy), (ECharacterAnimation.Carry, names.Carry),
+                (ECharacterAnimation.CarryHeavy, names.CarryHeavy), (ECharacterAnimation.MopWalk, names.MopWalk),
+                (ECharacterAnimation.Mop, names.Mop), (ECharacterAnimation.Eat, names.Eat),
+                (ECharacterAnimation.Dispatch, names.Dispatch)
+            };
+            foreach (var entry in roles)
+            {
+                if (entry.Name != null && !clips.ContainsKey(entry.Name))
+                {
+                    throw new InvalidOperationException($"[Art] {item.SourcePath}에서 행동 클립 {entry.Name}을 찾을 수 없습니다.");
+                }
+            }
+            controller = AnimatorController.CreateAnimatorControllerAtPath(path);
+            AnimatorStateMachine machine = controller.layers[0].stateMachine;
+            int index = 0;
+            foreach (var entry in roles)
+            {
+                if (entry.Name == null) { continue; }
+                AnimatorState state = machine.AddState(entry.State.ToString(),
+                    new Vector3(270f + 210f * (index % 3), 70f + 65f * (index / 3)));
+                state.motion = clips[entry.Name];
+                if (entry.State == ECharacterAnimation.Idle) { machine.defaultState = state; }
+                EditorUtility.SetDirty(state);
+                index++;
+            }
+            EditorUtility.SetDirty(machine);
+            EditorUtility.SetDirty(controller);
+            AssetDatabase.SaveAssetIfDirty(controller);
+            return controller;
+        }
+
+        private static AnimatorState FindState(AnimatorStateMachine machine, ECharacterAnimation state)
+        {
+            string name = state.ToString();
+            return machine.states.FirstOrDefault(entry => entry.state.name == name).state;
         }
 
         public static bool Remove(ArtSlot slot)
