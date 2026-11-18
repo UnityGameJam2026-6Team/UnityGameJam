@@ -177,16 +177,10 @@ namespace UnityGameJam.Editor.Facility
             surface.layerMask = ~(1 << IgnoreRaycastLayer);
             surface.minRegionArea = 4f; // 곡선 벽 뒤에 갇힌 작은 바닥 조각을 지운다
 
-            Transform tiles = Group(root, "Tiles");
+            Place("Floor/FL_FloorSurface", root.transform, Vector3.zero, 0f);
             Transform walls = Group(root, "Walls");
             Transform props = Group(root, "Props");
             Transform markers = Group(root, "Markers");
-
-            // 바닥
-            for (int x = -18; x < 18; x += 2)
-            {
-                for (int z = -14; z < 14; z += 2) { Place("Environment/ENV_FloorTile", tiles, new Vector3(x, 0f, z), 0f); }
-            }
 
             BuildWalls(plan, walls);
 
