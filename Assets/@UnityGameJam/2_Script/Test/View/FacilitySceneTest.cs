@@ -63,6 +63,28 @@ namespace UnityGameJam.Test.View
         }
 
         [Test]
+        public void 각_층_바닥은_한_평면에_판석을_2미터마다_반복한다()
+        {
+            foreach (FloorAuthoring floor in _floors)
+            {
+                Transform surface = floor.transform.Find("FL_FloorSurface");
+                Assert.That(surface, Is.Not.Null, floor.name);
+                Assert.That(floor.transform.Find("Tiles"), Is.Null, floor.name);
+                MeshRenderer renderer = surface.GetComponentsInChildren<MeshRenderer>().Single();
+                Assert.That(renderer.GetComponent<MeshFilter>().sharedMesh.GetIndexCount(0), Is.EqualTo(6));
+                Material material = renderer.sharedMaterial;
+                Assert.That(material.GetTextureScale("_BaseMap"), Is.EqualTo(new Vector2(18f, 14f)));
+                Assert.That(material.GetTexture("_BaseMap"), Is.Not.Null);
+                Assert.That(material.GetTexture("_BumpMap"), Is.Not.Null);
+                Assert.That(material.IsKeywordEnabled("_NORMALMAP"), Is.True);
+                BoxCollider ground = surface.GetComponentsInChildren<BoxCollider>().Single();
+                Assert.That(ground.size, Is.EqualTo(new Vector3(36f, 0.1f, 28f)));
+                Vector3 top = floor.transform.InverseTransformPoint(ground.bounds.center + Vector3.up * ground.bounds.extents.y);
+                Assert.That(top.magnitude, Is.LessThan(0.001f), floor.name);
+            }
+        }
+
+        [Test]
         public void 각_층의_걸레_대여와_반납_지점은_실제_걸레걸이와_일치한다()
         {
             foreach (FloorAuthoring floor in _floors)
