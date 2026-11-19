@@ -38,6 +38,7 @@ namespace UnityGameJam.View
         private float _transitElapsed;
         private bool _isRouteChanged;
         private bool _isStopRequested;
+        private float _actionRate = 1f;
 
         public EWorkerType Worker => _worker;
         public Vector3 Position => transform.position;
@@ -64,7 +65,8 @@ namespace UnityGameJam.View
                 if (IsHandling) { return false; }
                 if (_phase == EPhase.Idle) { return true; }
                 if (_phase != EPhase.WalkingToDestination) { return false; }
-                return !_agent.pathPending && _agent.remainingDistance <= _agent.stoppingDistance + ArrivalTolerance;
+                return !_agent.pathPending && (_agent.pathStatus == NavMeshPathStatus.PathInvalid
+                    || _agent.remainingDistance <= _agent.stoppingDistance + ArrivalTolerance);
             }
         }
 
@@ -74,6 +76,18 @@ namespace UnityGameJam.View
             _animatorDriver = GetComponent<CharacterAnimatorDriver>();
             _carry = new CarryAnimationState(_worker, BeginHandling);
             _ruleSpeed = _agent.speed;
+        }
+
+        private void OnEnable()
+        {
+            if (_carry != null) { return; }
+
+            // Play Mode에서 스크립트를 다시 불러오면 운반 상태와 계단 경로는 복구되지 않는다.
+            _agent = GetComponent<NavMeshAgent>();
+            _animatorDriver = GetComponent<CharacterAnimatorDriver>();
+            _carry = new CarryAnimationState(_worker, BeginHandling);
+            _pausedForHandling = false;
+            ClearRoute();
         }
 
         public void Initialize(StairDirectory stairs, IReadOnlyList<FloorArea> floors, float stairSeconds)
@@ -117,6 +131,14 @@ namespace UnityGameJam.View
 
         public void SetStairTransitSeconds(float seconds) => _stairSeconds = seconds;
 
+        public void SetActionRate(float rate)
+        {
+            if (Mathf.Approximately(rate, _actionRate)) { return; }
+            _actionRate = rate;
+            _animatorDriver?.SetActionRate(rate);
+            UpdateStrideSpeed();
+        }
+
         internal void ObserveItem(ItemSnapshot item) => _carry.Observe(item);
         internal void ObserveMop(bool holding) => _carry.ObserveMop(holding);
 
@@ -134,7 +156,7 @@ namespace UnityGameJam.View
         private void UpdateStrideSpeed()
         {
             float baseSpeed = _baseSpeed > 0f ? _baseSpeed : _ruleSpeed;
-            _agent.speed = _carry.GetMoveSpeed(_animatorDriver, baseSpeed, _ruleSpeed, IsRunning);
+            _agent.speed = _carry.GetMoveSpeed(_animatorDriver, baseSpeed, _ruleSpeed, IsRunning) * _actionRate;
         }
 
         private void Update()
@@ -160,7 +182,7 @@ namespace UnityGameJam.View
                     }
                     break;
                 case EPhase.InTransit:
-                    _transitElapsed += Time.deltaTime;
+                    _transitElapsed += Time.deltaTime * _actionRate;
                     if (_transitElapsed >= _stairSeconds) { CrossStair(); }
                     break;
             }
@@ -228,14 +250,18 @@ namespace UnityGameJam.View
 
         private void GoToDestination()
         {
-            if (!NavMesh.SamplePosition(_destination, out NavMeshHit hit, SampleRadius, NavMesh.AllAreas))
+            if (!_agent.isOnNavMesh || !NavMesh.SamplePosition(_destination, out NavMeshHit hit, SampleRadius, NavMesh.AllAreas))
             {
                 Debug.LogWarning($"[MinionAgent] {_worker}: 목적지 {_destination}이(가) NavMesh 밖이라 멈춥니다.", this);
                 ClearRoute();
                 return;
             }
             _agent.isStopped = IsHandling;
-            _agent.SetDestination(hit.position);
+            if (!_agent.SetDestination(hit.position))
+            {
+                ClearRoute();
+                return;
+            }
             _phase = EPhase.WalkingToDestination;
         }
 

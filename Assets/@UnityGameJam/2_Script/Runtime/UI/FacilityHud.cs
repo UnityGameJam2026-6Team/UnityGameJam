@@ -29,7 +29,13 @@ namespace UnityGameJam.UI
         [SerializeField] private GameObject _workGauge;
         [SerializeField] private RectTransform _workFill;
         private MatchBootstrap _bootstrap;
-        private Slider _facilityProgressSlider;
+        [SerializeField] private Slider _facilitySlider;
+        [SerializeField] private RectTransform _facilityGoalTrack;
+        [SerializeField] private RectTransform _facilitySurplusFill;
+        [SerializeField] private CanvasGroup _gameplayHud;
+        [SerializeField] private Image _openingNumber;
+        private int _lastOpeningNumber;
+        private float _facilityProgressVelocity;
         private RectTransform _dialoguePanel;
         private RectTransform _hudRect;
         private AssignmentPanelChoices _panelChoices;
@@ -45,9 +51,21 @@ namespace UnityGameJam.UI
         private void Awake()
         {
             _bootstrap = FindFirstObjectByType<MatchBootstrap>();
-            _facilityProgressSlider = _facilityProgress.GetComponentInParent<Slider>(true);
+            SetGameplayHudVisible(false);
             if (_countdown == null) { _countdown = GetComponentInChildren<DemonKing.UI.DemonKingCountdownHUD>(true); }
-            if (_countdown != null) { _countdown.PauseTimer(); }
+            if (_countdown != null)
+            {
+                _countdown.PauseTimer();
+                if (_countdown.plate != null && _facilitySlider != null)
+                {
+                    var bar = (RectTransform)_facilitySlider.transform;
+                    bar.SetParent(_countdown.plate, false);
+                    bar.anchorMin = bar.anchorMax = new Vector2(.5f, 0f);
+                    bar.pivot = new Vector2(.5f, 1f);
+                    bar.anchoredPosition = new Vector2(0f, 24f);
+                    bar.SetAsLastSibling();
+                }
+            }
             if (_assignmentDialogue != null) { _dialoguePanel = (RectTransform)_assignmentDialogue.transform.parent; }
             _hudRect = (RectTransform)transform;
             _workGaugeRect = (RectTransform)_workGauge.transform;
@@ -96,15 +114,15 @@ namespace UnityGameJam.UI
         {
             if (GameMenu.BlocksGameplayInput) { return; }
             IMatchSession session = _bootstrap != null ? _bootstrap.Session : null;
-            if (session == null) { return; }
+            ShowOpeningNumber();
+            if (session == null || session.MatchState == EMatchState.Ready) { _countdown?.PauseTimer(); return; }
+            SetGameplayHudVisible(true);
             ShowTime(session.RemainingTime);
             EZoneId? zone = session.PlayerZone;
             _zone.text = zone.HasValue ? ZoneDisplayName.GetFullName(zone.Value) : ZoneDisplayName.GetFloorLabel(_bootstrap.Player.Floor);
             _zoneProgress.gameObject.SetActive(zone.HasValue);
             if (zone.HasValue) { ShowProgress(_zoneProgress, session.GetZoneCleanliness(zone.Value), session.ZoneThreshold); }
-            float facilityCleanliness = session.FacilityCleanliness;
-            if (_facilityProgressSlider != null) { _facilityProgressSlider.SetValueWithoutNotify(facilityCleanliness); }
-            ShowProgress(_facilityProgress, facilityCleanliness, session.FacilityThreshold);
+            ShowFacilityProgress(session.FacilityCleanliness, session.FacilityThreshold, Time.unscaledDeltaTime);
             IReadOnlyList<MinionStatus> minions = session.Minions;
             _minionPanel.Show(minions);
             bool isWorking = session.IsPlayerWorking;
@@ -250,6 +268,56 @@ namespace UnityGameJam.UI
             RestorePlayerInput();
         }
 
+        private void ShowOpeningNumber()
+        {
+            if (_openingNumber == null || _bootstrap == null || _countdown == null) { return; }
+            int number = _bootstrap.OpeningNumber;
+            if (number != _lastOpeningNumber)
+            {
+                _lastOpeningNumber = number;
+                _openingNumber.gameObject.SetActive(number > 0);
+                if (number > 0) { _openingNumber.sprite = _countdown.digitSprites[number]; }
+            }
+            if (number <= 0) { return; }
+            float settle = Mathf.Clamp01(_bootstrap.OpeningBeatProgress / 0.2f);
+            _openingNumber.rectTransform.localScale = Vector3.one * Mathf.SmoothStep(1.17f, 1f, settle);
+        }
+
+        private void SetGameplayHudVisible(bool isVisible)
+        {
+            if (_gameplayHud == null || _gameplayHud.blocksRaycasts == isVisible) { return; }
+            _gameplayHud.alpha = isVisible ? 1f : 0f;
+            _gameplayHud.interactable = isVisible;
+            _gameplayHud.blocksRaycasts = isVisible;
+            _minionPanel.IsToggleBlocked = !isVisible;
+        }
+
+        private void ShowFacilityProgress(float cleanliness, float threshold, float deltaTime)
+        {
+            ShowProgress(_facilityProgress, cleanliness, threshold);
+            if (_facilitySlider == null) { return; }
+
+            float target = Mathf.Clamp(cleanliness, _facilitySlider.minValue, _facilitySlider.maxValue);
+            float current = _facilitySlider.value;
+            float next = current < target && deltaTime > 0f
+                ? Mathf.SmoothDamp(current, target, ref _facilityProgressVelocity, 0.12f, Mathf.Infinity, deltaTime)
+                : target;
+            if (target - next < 0.05f)
+            {
+                next = target;
+                _facilityProgressVelocity = 0f;
+            }
+            _facilitySlider.SetValueWithoutNotify(next);
+
+            float goal = Mathf.InverseLerp(_facilitySlider.minValue, _facilitySlider.maxValue, threshold);
+            if (_facilityGoalTrack != null) { _facilityGoalTrack.anchorMax = new Vector2(goal, 1f); }
+            if (_facilitySurplusFill != null)
+            {
+                float fill = _facilitySlider.normalizedValue;
+                _facilitySurplusFill.anchorMin = new Vector2(fill > goal ? goal / fill : 1f, 0f);
+            }
+        }
+
         private void ShowTime(float remaining)
         {
             if (_countdown != null)
@@ -293,7 +361,7 @@ namespace UnityGameJam.UI
             if (_talking.HasValue)
             {
                 if (_talking == EWorkerType.Hellhound) { _bootstrap.PlayerController.EndHellhoundTalk(); }
-                else { _bootstrap.Session.CancelTalk(_talking.Value); }
+                _bootstrap.Session.CancelTalk(_talking.Value);
                 GameSfxPlayer.Play(ESfxCue.Cancel);
             }
         }

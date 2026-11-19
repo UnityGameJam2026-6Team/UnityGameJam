@@ -135,6 +135,26 @@
                     "interactions": "",
                     "initialStateCheck": false,
                     "priority": 0
+                },
+                {
+                    "name": "Shout",
+                    "type": "Button",
+                    "id": "85dcd6b5-d4be-43e2-aacb-38a0ca3d27cb",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
+                },
+                {
+                    "name": "Surge",
+                    "type": "Button",
+                    "id": "d9b09e76-2ed6-4d1b-b8bb-7dd87f8f2829",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
                 }
             ],
             "bindings": [
@@ -371,6 +391,39 @@
                 },
                 {
                     "name": "",
+                    "id": "0e462b6d-80d4-4389-b7cf-ae93b1530ec4",
+                    "path": "<Keyboard>/tab",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "ToggleMinionPanel",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "3b8cb585-d02b-44ae-9cc9-dcdd57056669",
+                    "path": "<Keyboard>/q",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "Shout",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "3f93cb86-b96e-4821-ac90-6371d70ea75f",
+                    "path": "<Keyboard>/e",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "Surge",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
                     "id": "92354e77-bb44-4448-9ef1-0f61af3c0964",
                     "path": "<Keyboard>/k",
                     "interactions": "",
@@ -388,17 +441,6 @@
                     "processors": "",
                     "groups": "Keyboard&Mouse",
                     "action": "Hold",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "0e462b6d-80d4-4389-b7cf-ae93b1530ec4",
-                    "path": "<Keyboard>/tab",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Keyboard&Mouse",
-                    "action": "ToggleMinionPanel",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

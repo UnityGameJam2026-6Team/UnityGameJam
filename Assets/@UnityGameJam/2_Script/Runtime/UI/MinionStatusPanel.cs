@@ -30,6 +30,8 @@ namespace UnityGameJam.UI
         private float _expandedHeight;
         private float _collapsedHeight;
 
+        public bool IsToggleBlocked { get; set; }
+
         internal RectTransform Rect { get; private set; }
         internal float HeightOffset => Rect.rect.height - _expandedHeight;
 
@@ -70,6 +72,7 @@ namespace UnityGameJam.UI
 
         private void OnToggle(InputAction.CallbackContext context)
         {
+            if (IsToggleBlocked || GameMenu.BlocksGameplayInput) { return; }
             bool isExpanded = !_body.gameObject.activeSelf;
             SetExpanded(isExpanded);
             GameSfxPlayer.Play(isExpanded ? ESfxCue.PanelOpen : ESfxCue.PanelClose);

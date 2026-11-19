@@ -9,6 +9,34 @@ namespace UnityGameJam.Contract
         void Tick(float deltaTime);
     }
 
+    public enum ECommandSkill { Shout, Surge }
+
+    public readonly struct CommandSkillCast
+    {
+        public ECommandSkill Skill { get; }
+        public UnityEngine.Vector3 Position { get; }
+        public EFloor Floor { get; }
+        public int Sequence { get; }
+
+        public CommandSkillCast(ECommandSkill skill, UnityEngine.Vector3 position, EFloor floor, int sequence)
+        {
+            Skill = skill;
+            Position = position;
+            Floor = floor;
+            Sequence = sequence;
+        }
+    }
+
+    public interface ICommandSkillSession
+    {
+        CommandSkillCast LastSkillCast { get; }
+        bool TryCastSkill(ECommandSkill skill);
+        float SkillCooldown(ECommandSkill skill);
+        float SkillCooldownRemaining(ECommandSkill skill);
+        float BoostDuration { get; }
+        float BoostRemaining(EWorkerType worker);
+    }
+
     /// <summary>판을 만들 때 B 레인이 넘기는 씬 쪽 정보. 수치 데이터는 팩토리(A 레인 SO)가 들고 있다.</summary>
     public sealed class MatchSetup
     {

@@ -38,6 +38,11 @@ namespace UnityGameJam.View
                     layout.Toilets.Add(new ToiletStation { Floor = floor.Floor, Area = toilet.GetWorldBounds(), MopPickupPosition = toilet.MopPickupPosition });
                 }
 
+                foreach (WasteBinAuthoring bin in floor.GetComponentsInChildren<WasteBinAuthoring>())
+                {
+                    layout.WasteBins.Add(new WasteBin { Floor = floor.Floor, Position = bin.UsePosition });
+                }
+
                 foreach (PatrolRouteAuthoring route in floor.GetComponentsInChildren<PatrolRouteAuthoring>(true))
                 {
                     var patrol = new PatrolRoute { Zone = route.Zone };

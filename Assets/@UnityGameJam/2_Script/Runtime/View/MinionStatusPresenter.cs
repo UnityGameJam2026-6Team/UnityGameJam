@@ -20,6 +20,7 @@ namespace UnityGameJam.View
 
         public EPose CurrentPose => _animatorDriver != null ? _animatorDriver.CurrentPose : EPose.Idle;
         public bool IsHidden => _visual != null && !_visual.activeSelf;
+        public bool IsAvailableForTalk { get; private set; } = true;
 
         private void Awake()
         {
@@ -51,6 +52,7 @@ namespace UnityGameJam.View
                 return;
             }
             if (!TryGetStatus(out MinionStatus status)) { return; }
+            IsAvailableForTalk = status.Activity == EMinionActivity.LobbyIdle && !IsHidden;
 
             _agent.ObserveMop(status.IsHoldingMop);
             bool isDigesting = false;

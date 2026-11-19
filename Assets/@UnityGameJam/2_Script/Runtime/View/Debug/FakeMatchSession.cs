@@ -218,7 +218,7 @@ namespace UnityGameJam.View
         public bool TryDrop()
         {
             if (!CanAct() || !_carriedItemId.HasValue) { return false; }
-            DropCarried();
+            DropCarried(useWasteBin: true);
             return true;
         }
 
@@ -282,13 +282,22 @@ namespace UnityGameJam.View
             }
         }
 
-        private void DropCarried()
+        private void DropCarried(bool useWasteBin = false)
         {
             FakeItem item = Find(_carriedItemId.Value);
             item.Carrier = null;
             item.Position = _player.Position;
             item.Zone = ResolveDropZone(_player.Position);
             _carriedItemId = null;
+            WasteBin bin = useWasteBin && item.Type == EContaminationType.Trash
+                ? _layout.FindNearestWasteBin(_player.Floor, item.Position, HomeSlotReach) : null;
+            if (bin != null)
+            {
+                item.Position = bin.Position;
+                item.Zone = ResolveDropZone(bin.Position);
+                SetItemState(item, EItemState.Resolved);
+                return;
+            }
             bool isInDischarge = FacilityLayoutValidator.ContainsXZ(_layout.DischargeArea, item.Position);
             SetItemState(item, isInDischarge ? EItemState.InDischargeArea : EItemState.OnFloor);
         }

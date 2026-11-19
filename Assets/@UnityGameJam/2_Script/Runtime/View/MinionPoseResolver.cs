@@ -26,7 +26,7 @@ namespace UnityGameJam.View
             bool isTalking = activity == EMinionActivity.Talking || activity == EMinionActivity.AwaitingResponse;
 
             if (isTalking && !isMoving) { return EPose.Talk; }
-            if (isDigesting) { return EPose.Eat; }
+            if (isDigesting && !(activity == EMinionActivity.Recalling && isMoving)) { return EPose.Eat; }
             if (isMoving)
             {
                 if (activity == EMinionActivity.Dispatching) { return EPose.Dispatch; }

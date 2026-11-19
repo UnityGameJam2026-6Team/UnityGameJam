@@ -15,148 +15,148 @@ MonoBehaviour:
   _ranges:
   - _zone: 0
     _type: 0
-    _minimum: 0
-    _maximum: 1
+    _minimum: 1
+    _maximum: 2
   - _zone: 0
     _type: 1
-    _minimum: 3
-    _maximum: 5
+    _minimum: 9
+    _maximum: 10
   - _zone: 0
     _type: 2
-    _minimum: 0
-    _maximum: 1
+    _minimum: 3
+    _maximum: 4
   - _zone: 0
     _type: 3
-    _minimum: 3
-    _maximum: 5
+    _minimum: 8
+    _maximum: 10
   - _zone: 3
     _type: 0
-    _minimum: 2
-    _maximum: 4
-  - _zone: 3
-    _type: 1
-    _minimum: 1
-    _maximum: 3
-  - _zone: 3
-    _type: 2
-    _minimum: 0
-    _maximum: 1
-  - _zone: 3
-    _type: 3
-    _minimum: 0
-    _maximum: 2
-  - _zone: 1
-    _type: 0
-    _minimum: 0
-    _maximum: 1
-  - _zone: 1
-    _type: 1
-    _minimum: 3
-    _maximum: 5
-  - _zone: 1
-    _type: 2
-    _minimum: 0
-    _maximum: 1
-  - _zone: 1
-    _type: 3
-    _minimum: 2
-    _maximum: 4
-  - _zone: 2
-    _type: 0
-    _minimum: 0
-    _maximum: 1
-  - _zone: 2
-    _type: 1
-    _minimum: 2
-    _maximum: 4
-  - _zone: 2
-    _type: 2
-    _minimum: 2
-    _maximum: 4
-  - _zone: 2
-    _type: 3
-    _minimum: 3
-    _maximum: 5
-  - _zone: 4
-    _type: 0
-    _minimum: 0
-    _maximum: 1
-  - _zone: 4
-    _type: 1
-    _minimum: 3
-    _maximum: 5
-  - _zone: 4
-    _type: 2
-    _minimum: 0
-    _maximum: 1
-  - _zone: 4
-    _type: 3
-    _minimum: 3
-    _maximum: 5
-  - _zone: 6
-    _type: 0
-    _minimum: 0
-    _maximum: 2
-  - _zone: 6
-    _type: 1
-    _minimum: 1
-    _maximum: 3
-  - _zone: 6
-    _type: 2
-    _minimum: 3
-    _maximum: 5
-  - _zone: 6
-    _type: 3
-    _minimum: 0
-    _maximum: 1
-  - _zone: 5
-    _type: 0
-    _minimum: 1
-    _maximum: 3
-  - _zone: 5
-    _type: 1
-    _minimum: 1
-    _maximum: 3
-  - _zone: 5
-    _type: 2
-    _minimum: 1
-    _maximum: 3
-  - _zone: 5
-    _type: 3
-    _minimum: 0
-    _maximum: 1
-  - _zone: 7
-    _type: 0
-    _minimum: 0
-    _maximum: 1
-  - _zone: 7
-    _type: 1
-    _minimum: 3
-    _maximum: 5
-  - _zone: 7
-    _type: 2
-    _minimum: 0
-    _maximum: 1
-  - _zone: 7
-    _type: 3
-    _minimum: 3
-    _maximum: 5
-  - _zone: 8
-    _type: 0
-    _minimum: 0
-    _maximum: 2
-  - _zone: 8
-    _type: 1
-    _minimum: 4
+    _minimum: 5
     _maximum: 6
-  - _zone: 8
+  - _zone: 3
+    _type: 1
+    _minimum: 5
+    _maximum: 6
+  - _zone: 3
     _type: 2
-    _minimum: 3
+    _minimum: 1
+    _maximum: 2
+  - _zone: 3
+    _type: 3
+    _minimum: 5
     _maximum: 5
-  - _zone: 8
+  - _zone: 1
+    _type: 0
+    _minimum: 0
+    _maximum: 2
+  - _zone: 1
+    _type: 1
+    _minimum: 9
+    _maximum: 10
+  - _zone: 1
+    _type: 2
+    _minimum: 2
+    _maximum: 2
+  - _zone: 1
+    _type: 3
+    _minimum: 7
+    _maximum: 7
+  - _zone: 2
+    _type: 0
+    _minimum: 1
+    _maximum: 2
+  - _zone: 2
+    _type: 1
+    _minimum: 7
+    _maximum: 8
+  - _zone: 2
+    _type: 2
+    _minimum: 5
+    _maximum: 6
+  - _zone: 2
+    _type: 3
+    _minimum: 8
+    _maximum: 9
+  - _zone: 4
+    _type: 0
+    _minimum: 1
+    _maximum: 2
+  - _zone: 4
+    _type: 1
+    _minimum: 9
+    _maximum: 10
+  - _zone: 4
+    _type: 2
+    _minimum: 2
+    _maximum: 2
+  - _zone: 4
+    _type: 3
+    _minimum: 8
+    _maximum: 9
+  - _zone: 6
+    _type: 0
+    _minimum: 2
+    _maximum: 3
+  - _zone: 6
+    _type: 1
+    _minimum: 6
+    _maximum: 6
+  - _zone: 6
+    _type: 2
+    _minimum: 7
+    _maximum: 8
+  - _zone: 6
+    _type: 3
+    _minimum: 4
+    _maximum: 5
+  - _zone: 5
+    _type: 0
+    _minimum: 3
+    _maximum: 4
+  - _zone: 5
+    _type: 1
+    _minimum: 6
+    _maximum: 6
+  - _zone: 5
+    _type: 2
+    _minimum: 4
+    _maximum: 5
+  - _zone: 5
     _type: 3
     _minimum: 3
-    _maximum: 5
-  _minimumFacilityWeight: 170
-  _maximumFacilityWeight: 200
+    _maximum: 4
+  - _zone: 7
+    _type: 0
+    _minimum: 1
+    _maximum: 2
+  - _zone: 7
+    _type: 1
+    _minimum: 9
+    _maximum: 10
+  - _zone: 7
+    _type: 2
+    _minimum: 2
+    _maximum: 2
+  - _zone: 7
+    _type: 3
+    _minimum: 9
+    _maximum: 10
+  - _zone: 8
+    _type: 0
+    _minimum: 2
+    _maximum: 3
+  - _zone: 8
+    _type: 1
+    _minimum: 10
+    _maximum: 11
+  - _zone: 8
+    _type: 2
+    _minimum: 7
+    _maximum: 8
+  - _zone: 8
+    _type: 3
+    _minimum: 8
+    _maximum: 8
+  _minimumFacilityWeight: 400
+  _maximumFacilityWeight: 480
   _maximumAttempts: 32

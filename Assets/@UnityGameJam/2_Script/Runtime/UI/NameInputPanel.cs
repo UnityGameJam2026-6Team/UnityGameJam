@@ -20,6 +20,9 @@ namespace UnityGameJam.UI
         private BaseInput _previousInput;
         private InputAction _submitAction;
         private InputAction _cancelAction;
+        private Vector2 _labelOrigin;
+        private string _displayedText;
+        private string _displayedComposition;
         private bool _cancelRequested;
         private bool _submitRequested;
         private bool _focusRequested;
@@ -29,6 +32,7 @@ namespace UnityGameJam.UI
 
         private void Awake()
         {
+            _labelOrigin = _input.textComponent.rectTransform.anchoredPosition;
             _checkButton.onClick.AddListener(Confirm);
             _input.onSubmit.AddListener(OnInputSubmit);
             _input.onEndEdit.AddListener(OnInputEndEdit);
@@ -45,7 +49,9 @@ namespace UnityGameJam.UI
             _inputModule = EventSystem.current.currentInputModule;
             _previousInput = _inputModule.inputOverride;
             _inputModule.inputOverride = _imeInput;
+            _input.textComponent.rectTransform.anchoredPosition = _labelOrigin;
             _input.SetTextWithoutNotify(PlayerNickname.Current);
+            RefreshInputLabel();
             _submitAction.Enable();
             _cancelAction.Enable();
             Focus();
@@ -98,6 +104,27 @@ namespace UnityGameJam.UI
                 _focusRequested = false;
                 Focus();
             }
+            if (IsOpen) { RefreshInputLabel(); }
+        }
+
+        private void RefreshInputLabel()
+        {
+            string text = _input.text;
+            string composition = _imeInput.compositionString;
+            if (_displayedText == text && _displayedComposition == composition) { return; }
+
+            TMP_Text label = _input.textComponent;
+            if (text.Length == 0 && composition.Length == 0)
+            {
+                label.rectTransform.anchoredPosition = _labelOrigin;
+            }
+
+            // 조합 취소처럼 키 입력 이벤트가 없는 변경도 이전 글자 메시를 지우고 다시 그린다.
+            label.ClearMesh();
+            _input.ForceLabelUpdate();
+            label.ForceMeshUpdate();
+            _displayedText = _input.text;
+            _displayedComposition = composition;
         }
 
         private void Confirm()
@@ -149,6 +176,8 @@ namespace UnityGameJam.UI
             _inputModule = null;
             _previousInput = null;
             _onRegistered = null;
+            _displayedText = null;
+            _displayedComposition = null;
             _cancelRequested = false;
             _submitRequested = false;
             _focusRequested = false;

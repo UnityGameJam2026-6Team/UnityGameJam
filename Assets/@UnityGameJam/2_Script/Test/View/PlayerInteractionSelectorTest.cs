@@ -17,6 +17,25 @@ namespace UnityGameJam.Test.View
         private PlayerInteractionSelector _selector;
         private List<ItemSnapshot> _items;
 
+        [TestCase(EContaminationType.Trash, EItemState.OnFloor, false, false, 1.5f, true)]
+        [TestCase(EContaminationType.HeavyDebris, EItemState.OnFloor, false, false, 1f, true)]
+        [TestCase(EContaminationType.ClutterItem, EItemState.OnFloor, false, false, 1f, true)]
+        [TestCase(EContaminationType.Trash, EItemState.OnFloor, false, true, 1f, false)]
+        [TestCase(EContaminationType.Trash, EItemState.OnFloor, false, false, 2f, false)]
+        [TestCase(EContaminationType.Trash, EItemState.InDischargeArea, false, false, 1f, false)]
+        [TestCase(EContaminationType.Trash, EItemState.Carried, false, false, 1f, false)]
+        [TestCase(EContaminationType.Trash, EItemState.Resolved, false, false, 1f, false)]
+        [TestCase(EContaminationType.FloorStain, EItemState.OnFloor, false, false, 1f, false)]
+        [TestCase(EContaminationType.FloorStain, EItemState.OnFloor, true, false, 1f, true)]
+        [TestCase(EContaminationType.HeavyDebris, EItemState.OnFloor, true, false, 1f, false)]
+        public void 손과_도구_상태에_맞는_반경_안의_바닥_작업만_강조한다(EContaminationType type, EItemState state,
+            bool holdsMop, bool carriesItem, float distance, bool expected)
+        {
+            ItemSnapshot? carried = carriesItem ? Item(2, EContaminationType.Trash, Vector3.zero, EItemState.Carried) : null;
+            var context = new PlayerInteractionContext(Vector3.zero, EFloor.Floor1, Radius, carried, holdsMop, null, null);
+            Assert.AreEqual(expected, PlayerInteractionSelector.CanHighlightItem(context, Item(1, type, Vector3.right * distance, state)));
+        }
+
         [SetUp]
         public void SetUp()
         {

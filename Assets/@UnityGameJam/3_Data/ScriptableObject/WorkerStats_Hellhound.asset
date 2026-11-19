@@ -18,7 +18,7 @@ MonoBehaviour:
   _clutterCarryMultiplier: 1
   _mopSeconds: 0
   _digestSeconds: 0
-  _dispatchSeconds: 5
+  _dispatchSeconds: 20
   _canCarryClutter: 0
   _canCarryTrash: 0
   _canCarryHeavyDebris: 0

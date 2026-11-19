@@ -15,7 +15,7 @@ MonoBehaviour:
   _worker: 1
   _moveSpeed: 4.5
   _heavyCarryMultiplier: 1
-  _clutterCarryMultiplier: 1.2
+  _clutterCarryMultiplier: 0.8
   _mopSeconds: 2.5
   _digestSeconds: 0
   _dispatchSeconds: 0

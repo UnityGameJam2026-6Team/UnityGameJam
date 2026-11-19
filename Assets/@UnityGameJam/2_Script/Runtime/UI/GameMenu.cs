@@ -30,6 +30,7 @@ namespace UnityGameJam.UI
         private readonly List<InputAction> _suspendedActions = new List<InputAction>();
         private MatchBootstrap _bootstrap;
         private ResultPanel _resultPanel;
+        private DemonKingArrivalView _arrivalView;
         private InputAction _pause;
         private GameObject _previousSelection;
         private float _previousTimeScale;
@@ -53,6 +54,7 @@ namespace UnityGameJam.UI
         {
             _bootstrap = FindFirstObjectByType<MatchBootstrap>();
             _resultPanel = FindFirstObjectByType<ResultPanel>(FindObjectsInactive.Include);
+            _arrivalView = GetComponentInParent<DemonKingArrivalView>();
             _pause = InputSystem.actions.FindAction("GameMenu/Pause", true);
             _overlay.SetActive(false);
             GameControlSettings.ApplySaved();
@@ -78,9 +80,10 @@ namespace UnityGameJam.UI
         public void Open()
         {
             if (IsOpen || _isLeaving || _bootstrap == null || _bootstrap.Session == null || _bootstrap.IsFastForwarding
-                || _bootstrap.Session.MatchState == EMatchState.DemonKingArrived) { return; }
+                || _bootstrap.Session.MatchState is EMatchState.Ready or EMatchState.DemonKingArrived) { return; }
             if (_bootstrap.Session.MatchState == EMatchState.Resolved
                 && (_resultPanel == null || !_resultPanel.gameObject.activeInHierarchy)) { return; }
+            if (_arrivalView != null && _arrivalView.IsPresenting) { return; }
             transform.SetAsLastSibling();
             IsOpen = true;
             _previousTimeScale = Time.timeScale;

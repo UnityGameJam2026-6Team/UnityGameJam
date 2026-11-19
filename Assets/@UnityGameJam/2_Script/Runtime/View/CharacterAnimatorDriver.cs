@@ -31,6 +31,7 @@ namespace UnityGameJam.View
         private ArmPose _supportArm;
         private bool _sprint;
         private bool _holdingMop;
+        private bool _useMopWalk;
         private EContaminationType? _carried;
         private float _speed;
         private float _eatStarted;
@@ -40,18 +41,22 @@ namespace UnityGameJam.View
         private bool _handlingHeavy;
         private float _handlingStart;
         private UnitHandlingTiming _handlingTiming;
+        private bool _isCinematicSampled;
+        private float _actionRate = 1f;
 
         public EPose CurrentPose { get; private set; }
         public AnimationClip CurrentClip { get; private set; }
         public float ClipTime { get; private set; }
         public bool IsPickingUp { get; private set; }
-        public bool IsHandling => _handling != null && Time.time - _handlingStart < _handlingTiming.Duration;
+        private float HandlingElapsed => (Time.time - _handlingStart) * _actionRate;
+        public bool IsHandling => _handling != null && HandlingElapsed < _handlingTiming.Duration;
         public float HandlingProgress => _handlingTiming.Duration > 0f
-            ? Mathf.Clamp01((Time.time - _handlingStart) / _handlingTiming.Duration) : 1f;
-        public bool GripHasItem => IsHandling && _handlingTiming.GripHasItem(Time.time - _handlingStart);
+            ? Mathf.Clamp01(HandlingElapsed / _handlingTiming.Duration) : 1f;
+        public bool GripHasItem => IsHandling && _handlingTiming.GripHasItem(HandlingElapsed);
 
         private void OnEnable()
         {
+            _useMopWalk = !TryGetComponent<MinionAgent>(out _);
             if (_artSlot == null) { _artSlot = GetComponentInChildren<ArtSlot>(true); }
             if (_artSlot == null) { return; }
             _set = _artSlot.AnimationSet;
@@ -84,6 +89,7 @@ namespace UnityGameJam.View
         {
             if (_hasController && _animator != null) { _animator.speed = _originalAnimatorSpeed; }
             _hasController = false;
+            _isCinematicSampled = false;
             _clips.Clear();
             CurrentClip = null;
             _handling = null;
@@ -99,7 +105,7 @@ namespace UnityGameJam.View
             {
                 float progress = HandlingProgress;
                 _handlingTiming = tuning.ResolveHandling(_set, _handling.length, IsPickingUp, _handlingHeavy);
-                _handlingStart = now - progress * _handlingTiming.Duration;
+                _handlingStart = now - progress * _handlingTiming.Duration / _actionRate;
             }
             if (CurrentPose == EPose.Eat)
             {
@@ -107,6 +113,14 @@ namespace UnityGameJam.View
                 _eatStarted = now - eatTime / tuning.EatAnimationRate;
             }
             _tuning = tuning;
+        }
+
+        internal void SetActionRate(float rate)
+        {
+            float now = Time.time;
+            if (_handling != null) { _handlingStart = now - HandlingElapsed / rate; }
+            if (CurrentPose == EPose.Eat) { _eatStarted = now - (now - _eatStarted) * _actionRate / rate; }
+            _actionRate = rate;
         }
 
         public void SetPose(EPose pose, float speed = 0f, bool running = false,
@@ -129,7 +143,7 @@ namespace UnityGameJam.View
         {
             if (_set == null) { return ruleSpeed; }
             float measured;
-            if (holdingMop) { measured = _set.MopWalkSpeed; }
+            if (holdingMop) { measured = _useMopWalk ? _set.MopWalkSpeed : _set.WalkSpeed; }
             else if (carried == EContaminationType.HeavyDebris) { measured = _set.CarryHeavySpeed; }
             else if (running && UnitMotionTuning.CanSprint(carried, holdingMop)) { measured = _set.RunSpeed; }
             else if (carried.HasValue) { measured = _set.CarrySpeed; }
@@ -186,12 +200,26 @@ namespace UnityGameJam.View
             return true;
         }
 
+        internal void SampleCinematicState(ECharacterAnimation state, float seconds)
+        {
+            if (!_hasController || GetClip(state) is not AnimationClip clip) { return; }
+            _isCinematicSampled = true;
+            Sample(state, clip, Mathf.Clamp(seconds, 0f, clip.length));
+        }
+
+        internal void SampleCinematicClip(AnimationClip clip, float seconds)
+        {
+            if (!_hasController || clip == null) { return; }
+            _isCinematicSampled = true;
+            clip.SampleAnimation(_animator.gameObject, Mathf.Clamp(seconds, 0f, clip.length));
+        }
+
         private void LateUpdate()
         {
-            if (!_hasController || !_animator.isActiveAndEnabled) { return; }
+            if (_isCinematicSampled || !_hasController || !_animator.isActiveAndEnabled) { return; }
             if (IsHandling)
             {
-                float time = _handlingTiming.ClipTime(Time.time - _handlingStart);
+                float time = _handlingTiming.ClipTime(HandlingElapsed);
                 Sample(_handlingState, _handling, time);
                 if (_handlingHeavy && _supportArm != null)
                 {
@@ -204,7 +232,7 @@ namespace UnityGameJam.View
 
             if (CurrentPose == EPose.Eat && GetClip(ECharacterAnimation.Eat) is AnimationClip eat)
             {
-                float eatTime = (Time.time - _eatStarted) * _tuning.EatAnimationRate;
+                float eatTime = (Time.time - _eatStarted) * _tuning.EatAnimationRate * _actionRate;
                 if (eatTime < eat.length)
                 {
                     _loop = null;
@@ -235,6 +263,7 @@ namespace UnityGameJam.View
                     float reference = GetLocomotionSpeed(_speed, _sprint || CurrentPose == EPose.Dispatch, _carried, _holdingMop);
                     animationRate *= _speed / reference;
                 }
+                else if (state == ECharacterAnimation.Mop) { animationRate *= _actionRate; }
                 _loopTime = Mathf.Repeat(_loopTime + Time.deltaTime * animationRate, Mathf.Max(0.001f, clip.length));
             }
             Sample(state, clip, _loopTime);
@@ -252,11 +281,11 @@ namespace UnityGameJam.View
             if (CurrentPose == EPose.Dispatch && HasState(ECharacterAnimation.Dispatch)) { return (ECharacterAnimation.Dispatch, _tuning.DispatchAnimationRate); }
             if (heavy && HasState(ECharacterAnimation.CarryHeavy)) { return (ECharacterAnimation.CarryHeavy, _tuning.HeavyCarryAnimationRate); }
             if (!moving) { return (ECharacterAnimation.Idle, _tuning.IdleAnimationRate); }
-            if (_holdingMop && HasState(ECharacterAnimation.MopWalk)) { return (ECharacterAnimation.MopWalk, _tuning.MopWalkAnimationRate); }
-            if (_sprint && UnitMotionTuning.CanSprint(_carried, _holdingMop) && HasState(ECharacterAnimation.Run))
+            if (_holdingMop && _useMopWalk && HasState(ECharacterAnimation.MopWalk))
             {
-                return (ECharacterAnimation.Run, _tuning.RunAnimationRate);
+                return (ECharacterAnimation.MopWalk, _tuning.MopWalkAnimationRate);
             }
+            if (_sprint && UnitMotionTuning.CanSprint(_carried, _holdingMop) && HasState(ECharacterAnimation.Run)) { return (ECharacterAnimation.Run, _tuning.RunAnimationRate); }
             if ((_carried.HasValue || CurrentPose == EPose.Carry) && HasState(ECharacterAnimation.Carry)) { return (ECharacterAnimation.Carry, _tuning.CarryAnimationRate); }
             return HasState(ECharacterAnimation.Walk) ? (ECharacterAnimation.Walk, _tuning.WalkAnimationRate)
                 : (ECharacterAnimation.Idle, _tuning.IdleAnimationRate);

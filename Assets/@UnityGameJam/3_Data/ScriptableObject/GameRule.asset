@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b16348dba229c504b9f24ef7d83959c2, type: 3}
   m_Name: GameRule
   m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.Data.GameRuleSO
-  _matchSeconds: 180
+  _matchSeconds: 240
   _zoneThreshold: 60
-  _facilityThreshold: 85
+  _facilityThreshold: 60
   _proposalSeconds: 7
   _noticeSeconds: 4
   _apiTimeoutSeconds: 2

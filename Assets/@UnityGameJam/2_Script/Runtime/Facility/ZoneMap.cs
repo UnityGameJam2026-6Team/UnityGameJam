@@ -44,6 +44,9 @@ namespace UnityGameJam.Facility
             return floor == EFloor.Floor1 && area.size.x > 0f && area.size.z > 0f && ContainsXZ(area, position);
         }
 
+        public WasteBin FindWasteBinInReach(IWorkerBody body, float reach) =>
+            _layout.FindNearestWasteBin(body.Floor, body.Position, reach);
+
         public HomeSlot FindHomeSlot(int slotId)
         {
             return _layout.HomeSlots.Find(slot => slot.SlotId == slotId);

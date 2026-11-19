@@ -19,6 +19,7 @@ namespace UnityGameJam.Proposal
             new ConcurrentQueue<(ProposalRequest, ProposalReply)>();
         private readonly List<(MessageEntry Message, ProposalRequest? Request, float Deadline)> _active =
             new List<(MessageEntry, ProposalRequest?, float)>();
+        private readonly Dictionary<(EWorkerType, EWorkerType), float> _roomReportUntil = new();
         private float _time;
         private int _nextId;
         private bool _isClosed;
@@ -46,21 +47,23 @@ namespace UnityGameJam.Proposal
                     bool isInputTarget = request.HasValue && !hasInputTarget;
                     hasInputTarget |= isInputTarget;
                     result[index] = new MessageEntry(message.MessageId, message.Kind, message.Minion, message.Text,
-                        message.ProposedZone, message.ShownAt, Math.Max(0f, deadline - _time), isInputTarget);
+                        message.ProposedZone, message.ShownAt, Math.Max(0f, deadline - _time), isInputTarget, message.ProposalKind);
                 }
                 return result;
             }
         }
 
-        public void Request(EWorkerType worker, int assignmentId, EZoneId zone, EProposalReason reason,
+        public bool Request(EWorkerType worker, int assignmentId, EZoneId zone, EProposalReason reason,
             bool areMopsUnavailable, float? requestedAt = null, IReadOnlyList<EZoneId> candidates = null,
-            bool isOrcHelp = false)
+            bool isOrcHelp = false, IReadOnlyDictionary<EZoneId, EWorkerType> coworkers = null,
+            IReadOnlyList<CollaborationPlan> plans = null, float? remainingSeconds = null, EContaminationType? preferredTask = null)
         {
             if (_isClosed || _pending.ContainsKey(worker)
-                || _active.Exists(entry => entry.Request?.Worker == worker)) { return; }
+                || _active.Exists(entry => entry.Request?.Worker == worker)) { return false; }
             var cancellation = new CancellationTokenSource();
             var request = new ProposalRequest(++_nextId, worker, assignmentId, zone, reason, areMopsUnavailable,
-                candidates, isOrcHelp, cancellation.Token);
+                candidates, isOrcHelp, cancellation.Token, coworkers, plans, remainingSeconds: remainingSeconds,
+                preferredTask: preferredTask);
             _pending.Add(worker, (request, (requestedAt ?? _time) + _replySeconds, cancellation));
             try
             {
@@ -70,15 +73,26 @@ namespace UnityGameJam.Proposal
             {
                 _replies.Enqueue((request, default));
             }
+            return true;
         }
 
-        public void AddNotice(EWorkerType worker, string text, float? shownAt = null)
+        public void AddNotice(EWorkerType worker, string text, float? shownAt = null, EProposalKind proposalKind = EProposalKind.Move)
         {
             if (_isClosed) { return; }
             float start = shownAt ?? _time;
-            var message = new MessageEntry(++_nextId, EMessageKind.Notice, worker, text, null, start, _noticeSeconds, false);
+            var message = new MessageEntry(++_nextId, EMessageKind.Notice, worker, text, null, start, _noticeSeconds, false, proposalKind);
             _active.Add((message, null, start + _noticeSeconds));
             Changed?.Invoke();
+        }
+
+        public void AddRoomReport(EWorkerType speaker, EWorkerType listener, float shownAt)
+        {
+            if (_isClosed) { return; }
+            var pair = (int)speaker < (int)listener ? (speaker, listener) : (listener, speaker);
+            if (_roomReportUntil.TryGetValue(pair, out float until) && shownAt < until) { return; }
+            _roomReportUntil[pair] = shownAt + _noticeSeconds;
+            string name = DefaultProposalDialogueProvider.WorkerName(listener);
+            AddNotice(speaker, $"{name}, 내가 둘러본 방 상황을 알려줄게.", shownAt);
         }
 
         public void Tick(float time)
@@ -120,15 +134,16 @@ namespace UnityGameJam.Proposal
             if (hasChanged) { Changed?.Invoke(); }
         }
 
-        public bool RespondOldest(bool isApproved)
+        public bool RespondOldest(bool isApproved, Predicate<ProposalRequest> tryApprove = null)
         {
             int index = _active.FindIndex(entry => entry.Request.HasValue);
             if (index < 0 || _isClosed) { return false; }
             ProposalRequest request = _active[index].Request.Value;
             _active.RemoveAt(index);
-            Answered?.Invoke(request, isApproved);
+            bool accepted = !isApproved || tryApprove == null || tryApprove(request);
+            if (accepted) { Answered?.Invoke(request, isApproved); }
             Changed?.Invoke();
-            return true;
+            return accepted;
         }
 
         public void Cancel(EWorkerType worker)
@@ -164,13 +179,15 @@ namespace UnityGameJam.Proposal
         private void Show(ProposalRequest request, ProposalReply reply)
         {
             CancelPending(request.Worker);
-            bool hasValidReply = !string.IsNullOrWhiteSpace(reply.Text) && request.Candidates.Contains(reply.Zone);
-            EZoneId zone = hasValidReply ? reply.Zone : request.Zone;
-            string text = hasValidReply ? reply.Text : DefaultProposalDialogueProvider.Format(request);
-            var shown = new ProposalRequest(request.Id, request.Worker, request.AssignmentId, zone,
-                request.Reason, request.AreMopsUnavailable, request.Candidates, request.IsOrcHelp);
-            var message = new MessageEntry(request.Id, EMessageKind.Proposal, request.Worker, text,
-                zone, _time, _proposalSeconds, false);
+            bool hasValidReply = !string.IsNullOrWhiteSpace(reply.Text) && (request.Plans.Count == 0
+                ? !reply.Plan.HasValue && request.Candidates.Contains(reply.Zone)
+                : reply.Plan is CollaborationPlan plan && reply.Zone == plan.OwnTask.Zone && request.Plans.Contains(plan));
+            if (!hasValidReply) { reply = DefaultProposalDialogueProvider.Fallback(request); }
+            var shown = new ProposalRequest(request.Id, request.Worker, request.AssignmentId, reply.Zone,
+                request.Reason, request.AreMopsUnavailable, request.Candidates, request.IsOrcHelp,
+                coworkers: request.Coworkers, selectedPlan: reply.Plan);
+            var message = new MessageEntry(request.Id, EMessageKind.Proposal, request.Worker, reply.Text,
+                reply.Zone, _time, _proposalSeconds, false, reply.Plan?.Kind ?? EProposalKind.Move);
             _active.Add((message, shown, _time + _proposalSeconds));
         }
 

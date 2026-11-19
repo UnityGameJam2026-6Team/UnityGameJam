@@ -22,6 +22,12 @@ namespace UnityGameJam.Data
         [SerializeField, Min(1)] private int _mopsPerToilet;
         [SerializeField, Min(0f)] private float _observationRadius;
 
+        [Header("지휘 기술")]
+        [SerializeField, Min(1f)] private float _shoutCooldown = 60f;
+        [SerializeField, Min(1f)] private float _surgeCooldown = 90f;
+        [SerializeField, Min(1f)] private float _surgeSeconds = 15f;
+        [SerializeField, Min(1f)] private float _surgeRate = 1.5f;
+
         public float MatchSeconds => _matchSeconds;
         public float ZoneThreshold => _zoneThreshold;
         public float FacilityThreshold => _facilityThreshold;
@@ -31,5 +37,9 @@ namespace UnityGameJam.Data
         public float InteractionDistance => _interactionDistance;
         public int MopsPerToilet => _mopsPerToilet;
         public float ObservationRadius => _observationRadius;
+        public float ShoutCooldown => _shoutCooldown;
+        public float SurgeCooldown => _surgeCooldown;
+        public float SurgeSeconds => _surgeSeconds;
+        public float SurgeRate => _surgeRate;
     }
 }

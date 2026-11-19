@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityGameJam.Cleaning;
@@ -13,7 +14,7 @@ namespace UnityGameJam.Minion
         private enum EStep
         {
             Lobby, Entering, Patrolling, Approaching, Carrying, BorrowingMop, ReturningMop, Mopping,
-            Digesting, AwaitingResponse, ReturningLobby
+            Digesting, AwaitingResponse, ReturningLobby, Recalling
         }
 
         private readonly IMinionBody _body;
@@ -28,6 +29,7 @@ namespace UnityGameJam.Minion
         private EStep _step;
         private PatrolRoute _patrol;
         private int _nextPoint;
+        private readonly Dictionary<int, Vector3> _unreachableTasks = new();
         private int? _workId;
         private int? _carriedId;
         private float _mopElapsed;
@@ -36,15 +38,26 @@ namespace UnityGameJam.Minion
         private bool _isMoving;
         private bool _isReassigningAfterReturn;
         private bool _areMopsUnavailable;
+        private bool _hasOfferedCollaboration;
+        private bool _isWaitingDuringWork;
         private EFloor _destinationFloor;
         private Vector3 _destination;
+        private int _observationRevision;
+        private Vector3 _recallTarget;
+        private Vector3 _recallLastPosition;
+        private float _recallStalled;
+        private bool _recallRetried;
 
         public EWorkerType Worker => _stats.Worker;
+        public EFloor Floor => _body.Floor;
         public EZoneId? CurrentZone => _zoneMap.FindZone(_body.Position, _body.Floor);
         public EZoneId? AssignedZone { get; private set; }
         public int AssignmentId { get; private set; }
+        public bool CanJoinCollaboration => !_isTalking && !_workId.HasValue && !_carriedId.HasValue
+            && (_step is EStep.AwaitingResponse or EStep.Patrolling or EStep.ReturningLobby or EStep.Lobby);
         public MinionMemory Memory { get; } = new MinionMemory();
         public event Action<MinionBrain, bool> NeedsProposal;
+        public event Func<MinionBrain, bool> TryOfferCollaboration;
 
         public MinionBrain(IMinionBody body, FacilityLayout layout, ZoneMap zoneMap, ContaminationRegistry registry,
             TaskSelector selector, MopStationService mops, SlimeDigestion digestion, WorkerStatsSO stats, GameRuleSO rules)
@@ -67,13 +80,19 @@ namespace UnityGameJam.Minion
         public bool IsWorkingIn(EZoneId zone)
         {
             return AssignedZone == zone && (_step is EStep.Patrolling or EStep.Approaching or EStep.Mopping
-                or EStep.Carrying or EStep.Digesting or EStep.BorrowingMop);
+                or EStep.Carrying or EStep.Digesting or EStep.BorrowingMop) && CurrentZone == zone;
         }
 
-        public bool CanSpeakTo(MinionBrain other)
+        public bool CanShareWith(MinionBrain other)
         {
-            return !_isTalking && !other._isTalking && _body.Floor == other._body.Floor
-                && MinionMemory.IsVisible(other._body.Position, _body.Position, _rules.InteractionDistance);
+            if (_isTalking || other._isTalking || Floor != other.Floor
+                || !MinionMemory.IsVisible(other._body.Position, _body.Position, _rules.InteractionDistance))
+            {
+                return false;
+            }
+
+            return !(CurrentZone is EZoneId zone && ZoneDisplayName.IsLobby(zone))
+                && !(other.CurrentZone is EZoneId otherZone && ZoneDisplayName.IsLobby(otherZone));
         }
 
         public void BeginTalk()
@@ -88,9 +107,11 @@ namespace UnityGameJam.Minion
             if (_isMoving) { _body.MoveTo(_destinationFloor, _destination); }
         }
 
-        public void Assign(EZoneId zone)
+        public void Assign(EZoneId zone, int? reservedItemId = null)
         {
             _isTalking = false;
+            _isWaitingDuringWork = false;
+            _hasOfferedCollaboration = reservedItemId.HasValue;
             ReleaseWork();
             if (_carriedId.HasValue)
             {
@@ -102,15 +123,52 @@ namespace UnityGameJam.Minion
 
             AssignmentId++;
             AssignedZone = zone;
-            if (TryReturnMop(true)) { return; }
+            Memory.BeginSurvey(zone);
+            _patrol = _layout.PatrolRoutes.Find(route => route.Zone == zone);
+            _nextPoint = 1;
+            _unreachableTasks.Clear();
+            _workId = reservedItemId;
+            bool needsMop = reservedItemId.HasValue && _registry.FindItem(reservedItemId.Value)?.Type == EContaminationType.FloorStain;
+            if (!needsMop && TryReturnMop(true)) { return; }
             EnterRoom();
         }
+
+        public void Recall(EFloor floor, Vector3 origin, Vector3 approach)
+        {
+            _isTalking = false;
+            _isWaitingDuringWork = false;
+            ReleaseWork();
+            if (_carriedId is int carriedId)
+            {
+                _carriedId = null;
+                _registry.TryDrop(carriedId, Worker, _body);
+                UpdateMoveSpeed();
+            }
+            _mops.Release(Worker);
+            AssignmentId++;
+            AssignedZone = null;
+            _recallTarget = origin;
+            _recallLastPosition = _body.Position;
+            _recallStalled = 0f;
+            _recallRetried = false;
+            Move(EStep.Recalling, floor, approach);
+        }
+
+        public void SetActionRate(float rate) => _body.SetActionRate(rate);
 
         public void AnswerProposal(int assignmentId, EZoneId zone, bool isApproved)
         {
             if (AssignmentId != assignmentId || _step != EStep.AwaitingResponse) { return; }
             if (isApproved) { Assign(zone); }
             else { ReturnToLobby(); }
+        }
+
+        public bool ResumeWorkAfterCollaboration()
+        {
+            if (!_isWaitingDuringWork) { return false; }
+            _isWaitingDuringWork = false;
+            ResumeAssignedRoom();
+            return true;
         }
 
         public void StopForEnd()
@@ -121,8 +179,9 @@ namespace UnityGameJam.Minion
             StopMoving();
         }
 
-        public void Tick(float deltaTime)
+        public void Tick(float deltaTime, int observationRevision, float workDelta = -1f)
         {
+            _observationRevision = observationRevision;
             UpdateMoveSpeed();
             if (_isTalking) { return; }
             switch (_step)
@@ -140,21 +199,17 @@ namespace UnityGameJam.Minion
                     if (HasArrived()) { Deliver(); }
                     break;
                 case EStep.BorrowingMop:
-                    if (HasArrived())
-                    {
-                        if (_mops.TryBorrow(Worker, _body)) { EnterRoom(); }
-                        else { BorrowMop(); }
-                    }
+                    CollectMop();
                     break;
                 case EStep.ReturningMop:
                     if (HasArrived() && _mops.TryReturn(Worker, _body))
                     {
-                        if (_isReassigningAfterReturn) { EnterRoom(); }
+                        if (_isReassigningAfterReturn) { ResumeAssignedRoom(); }
                         else { RequestProposal(); }
                     }
                     break;
                 case EStep.Mopping:
-                    Mop(deltaTime);
+                    Mop(workDelta >= 0f ? workDelta : deltaTime);
                     break;
                 case EStep.Digesting:
                     if (!_digestion.IsDigesting) { SearchRoom(); }
@@ -162,17 +217,50 @@ namespace UnityGameJam.Minion
                 case EStep.ReturningLobby:
                     if (HasArrived()) { StopMoving(); _step = EStep.Lobby; }
                     break;
+                case EStep.Recalling:
+                    TickRecall(deltaTime);
+                    break;
             }
+        }
+
+        private void TickRecall(float deltaTime)
+        {
+            bool arrived = HasArrived();
+            if (arrived && IsNear(_recallTarget))
+            {
+                StopMoving();
+                _step = EStep.Lobby;
+                return;
+            }
+            if ((_body.Position - _recallLastPosition).sqrMagnitude > .0025f)
+            {
+                _recallLastPosition = _body.Position;
+                _recallStalled = 0f;
+            }
+            if (!arrived && (_recallStalled += deltaTime) < 8f) { return; }
+            if (!_recallRetried)
+            {
+                _recallRetried = true;
+                _recallStalled = 0f;
+                Move(EStep.Recalling, _destinationFloor, _recallTarget);
+                return;
+            }
+            StopMoving();
+            _step = EStep.Lobby;
         }
 
         private void EnterRoom()
         {
             EZoneId zone = AssignedZone.Value;
-            _patrol = _layout.PatrolRoutes.Find(route => route.Zone == zone);
-            _nextPoint = 1;
             Vector3 entrance = _patrol != null && _patrol.Points.Count > 0
                 ? _patrol.Points[0] : _layout.Zones.Find(area => area.Zone == zone).Areas[0].center;
             Move(EStep.Entering, ZoneDisplayName.GetFloor(zone), entrance);
+        }
+
+        private void ResumeAssignedRoom()
+        {
+            if (CurrentZone == AssignedZone) { SearchRoom(); }
+            else { EnterRoom(); }
         }
 
         private void SearchRoom()
@@ -185,7 +273,7 @@ namespace UnityGameJam.Minion
         {
             EZoneId zone = AssignedZone.Value;
             if (_zoneMap.FindZone(_body.Position, _body.Floor) != zone) { return false; }
-            Memory.Observe(zone, _body.Position, _rules.ObservationRadius, _registry, _layout);
+            Memory.Observe(zone, _body.Position, _rules.ObservationRadius, _registry, _layout, _observationRevision);
             if (_digestion != null && _digestion.IsDigesting)
             {
                 StopMoving();
@@ -193,30 +281,74 @@ namespace UnityGameJam.Minion
                 return true;
             }
             bool hasMop = _mops.GetBorrowedFrom(Worker) != null;
-            ContaminationItem item = _selector.FindTask(Worker, zone, _body.Position, hasMop, _rules.ObservationRadius);
-            if (item == null) { return false; }
-            if (item.Type == EContaminationType.FloorStain && !hasMop)
+            ContaminationItem item = null;
+            if (_workId is int reservedId)
             {
-                BorrowMop();
+                item = _registry.FindItem(reservedId);
+                if (item == null || !_selector.IsCandidate(item, Worker, zone, hasMop))
+                {
+                    ReleaseWork();
+                    item = null;
+                }
+            }
+            if (item == null)
+            {
+                item = _selector.FindTask(Worker, zone, _body.Position, hasMop, _rules.ObservationRadius,
+                    Memory, _unreachableTasks, _mops.AvailableCount > 0);
+                if (!hasMop && item?.Type == EContaminationType.FloorStain && _registry.Items.Any(other =>
+                    other.Zone == zone && other.Type == EContaminationType.FloorStain && other.State == EItemState.OnFloor
+                    && other.ClaimedBy is EWorkerType coworker && coworker != Worker && coworker != EWorkerType.Player
+                    && (MinionMemory.IsVisible(other.Position, _body.Position, _rules.ObservationRadius)
+                        || Memory.HasObservedTask(other))))
+                {
+                    item = _selector.FindTask(Worker, zone, _body.Position, false, _rules.ObservationRadius,
+                        Memory, _unreachableTasks, canBorrowMop: false) ?? item;
+                }
+            }
+            if (item == null) { return false; }
+            if (!_workId.HasValue && !_hasOfferedCollaboration && TryOfferCollaboration?.Invoke(this) == true)
+            {
+                _hasOfferedCollaboration = true;
+                _isWaitingDuringWork = true;
+                StopMoving();
+                _step = EStep.AwaitingResponse;
                 return true;
             }
 
-            _workId = item.Id;
-            Move(EStep.Approaching, _body.Floor, item.Position);
+            if (!TryClaimWork(item)) { return false; }
+            if (item.Type == EContaminationType.FloorStain && !hasMop) { BorrowMop(); }
+            else { Move(EStep.Approaching, _body.Floor, item.Position); }
             return true;
         }
 
         private void ContinuePatrol()
         {
-            if (_patrol != null && _patrol.Points.Count > 0 && _nextPoint <= _patrol.Points.Count)
+            EZoneId zone = AssignedZone.Value;
+            while (!Memory.HasSurveyedDirectly(zone) && _patrol != null && _patrol.Points.Count > 0 && _nextPoint <= _patrol.Points.Count)
             {
                 Vector3 point = _patrol.Points[_nextPoint++ % _patrol.Points.Count];
-                Move(EStep.Patrolling, ZoneDisplayName.GetFloor(AssignedZone.Value), point);
+                if (!Memory.HasUnseenSpawnNear(zone, point, _rules.ObservationRadius, _layout)) { continue; }
+                Move(EStep.Patrolling, ZoneDisplayName.GetFloor(zone), point);
                 return;
             }
 
-            Memory.FinishPatrol(AssignedZone.Value, _layout);
-            FinishRoom(false);
+            if (Memory.TryFindUnseenPoint(zone, _body.Position, _layout, out Vector3 unseen))
+            {
+                Move(EStep.Patrolling, ZoneDisplayName.GetFloor(zone), unseen);
+                return;
+            }
+
+            Memory.FinishPatrol(zone, _layout, _observationRevision);
+            if (_mops.GetBorrowedFrom(Worker) != null)
+            {
+                ContaminationItem item = _selector.FindTask(Worker, zone, _body.Position, false,
+                    _rules.ObservationRadius, Memory, _unreachableTasks, canBorrowMop: false);
+                if (item != null && TryClaimWork(item) && TryReturnMop(true)) { return; }
+            }
+
+            bool needsMop = _stats.CanMop && _mops.AvailableCount == 0
+                && _mops.GetBorrowedFrom(Worker) == null && Memory.KnownTaskCount(zone, EContaminationType.FloorStain) > 0;
+            FinishRoom(needsMop);
         }
 
         private void Approach()
@@ -226,14 +358,15 @@ namespace UnityGameJam.Minion
             if (item == null || !_selector.IsCandidate(item, Worker, AssignedZone.Value, hasMop))
             {
                 ReleaseWork();
-                SearchRoom();
+                ResumeAssignedRoom();
                 return;
             }
             if (!HasArrived()) { return; }
             if (!IsNear(item.Position) || _body.Floor != ZoneDisplayName.GetFloor(item.Zone))
             {
+                _unreachableTasks[item.Id] = item.Position;
                 ReleaseWork();
-                SearchRoom();
+                ResumeAssignedRoom();
                 return;
             }
 
@@ -245,19 +378,27 @@ namespace UnityGameJam.Minion
             }
             else if (_digestion != null && _digestion.TryEat(item.Id))
             {
+                Memory.NoteRemoved(AssignedZone.Value, item.Id, _observationRevision);
                 ReleaseWork();
                 StopMoving();
                 _step = EStep.Digesting;
             }
             else if (_digestion == null && item.Type != EContaminationType.FloorStain && _registry.TryPickUp(item.Id, Worker))
             {
+                Memory.NoteRemoved(AssignedZone.Value, item.Id, _observationRevision);
                 _workId = null;
                 _carriedId = item.Id;
                 UpdateMoveSpeed();
                 HomeSlot home = item.HomeSlotId.HasValue ? _zoneMap.FindHomeSlot(item.HomeSlotId.Value) : null;
+                WasteBin bin = item.Type == EContaminationType.Trash
+                    ? _layout.FindNearestWasteBin(_body.Floor, _body.Position) : null;
                 if (home != null)
                 {
                     Move(EStep.Carrying, ZoneDisplayName.GetFloor(home.Zone), home.Position);
+                }
+                else if (bin != null)
+                {
+                    Move(EStep.Carrying, bin.Floor, bin.Position);
                 }
                 else
                 {
@@ -282,9 +423,12 @@ namespace UnityGameJam.Minion
             {
                 _registry.TryPlaceAtHome(id, Worker, item.HomeSlotId.Value);
             }
-            if (item.State == EItemState.Carried) { _registry.TryDrop(id, Worker, _body); }
+            if (item.State == EItemState.Carried && !_registry.TryDisposeTrash(id, Worker, _body, _rules.InteractionDistance))
+            {
+                _registry.TryDrop(id, Worker, _body);
+            }
             UpdateMoveSpeed();
-            EnterRoom();
+            ResumeAssignedRoom();
         }
 
         private void Mop(float deltaTime)
@@ -294,16 +438,42 @@ namespace UnityGameJam.Minion
             {
                 _mopElapsed += deltaTime;
                 if (_mopElapsed < _stats.MopSeconds) { return; }
-                _registry.TryCompleteMop(target.Id, Worker);
+                if (_registry.TryCompleteMop(target.Id, Worker))
+                {
+                    Memory.NoteRemoved(AssignedZone.Value, target.Id, _observationRevision);
+                }
             }
             ReleaseWork();
             SearchRoom();
         }
 
+        private void CollectMop()
+        {
+            ContaminationItem stain = _registry.FindItem(_workId.Value);
+            if (stain == null || stain.ClaimedBy != Worker || stain.State != EItemState.OnFloor)
+            {
+                ReleaseWork();
+                ResumeAssignedRoom();
+                return;
+            }
+
+            if (!HasArrived()) { return; }
+            if (_mops.TryBorrow(Worker, _body))
+            {
+                Move(EStep.Approaching, ZoneDisplayName.GetFloor(stain.Zone), stain.Position);
+            }
+            else { BorrowMop(); }
+        }
+
         private void BorrowMop()
         {
             ToiletStation station = _mops.FindAvailableStation(_body.Floor);
-            if (station == null) { FinishRoom(true); return; }
+            if (station == null)
+            {
+                ReleaseWork();
+                ResumeAssignedRoom();
+                return;
+            }
             Move(EStep.BorrowingMop, station.Floor, station.MopPickupPosition);
         }
 
@@ -356,6 +526,14 @@ namespace UnityGameJam.Minion
             _body.Stop();
         }
 
+        private bool TryClaimWork(ContaminationItem item)
+        {
+            if (!_registry.TryClaim(item.Id, Worker)) { return false; }
+            _workId = item.Id;
+            Memory.NoteClaimed(item.Zone, item.Id, _observationRevision);
+            return true;
+        }
+
         private void ReleaseWork()
         {
             if (_workId.HasValue) { _registry.TryRelease(_workId.Value, Worker); }
@@ -390,6 +568,7 @@ namespace UnityGameJam.Minion
                 EStep.Approaching or EStep.Mopping or EStep.Digesting => EMinionActivity.Working,
                 EStep.AwaitingResponse => EMinionActivity.AwaitingResponse,
                 EStep.ReturningLobby => EMinionActivity.ReturningToLobby,
+                EStep.Recalling => EMinionActivity.Recalling,
                 _ => EMinionActivity.LobbyIdle
             };
         }

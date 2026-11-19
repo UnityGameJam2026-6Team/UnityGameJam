@@ -11,7 +11,15 @@ namespace UnityGameJam.View
         [Tooltip("층 바깥 범위(m). X, Z 순서. 중심은 이 오브젝트 위치")]
         [SerializeField] private Vector2 _size = new Vector2(36f, 28f);
 
+        [Header("현관 연출")]
+        [SerializeField] private Transform _arrivalStage;
+        [SerializeField] private Transform _arrivalLeftDoor;
+        [SerializeField] private Transform _arrivalRightDoor;
+
         public EFloor Floor => _floor;
+        internal Transform ArrivalStage => _arrivalStage;
+        internal Transform ArrivalLeftDoor => _arrivalLeftDoor;
+        internal Transform ArrivalRightDoor => _arrivalRightDoor;
 
         public Bounds GetWorldBounds()
         {

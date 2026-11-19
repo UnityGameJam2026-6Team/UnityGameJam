@@ -33,12 +33,14 @@ namespace UnityGameJam.Player
         private ViewSettingsSO _settings;
         private FloorCameraFollow _camera;
         private float _transitElapsed;
+        private float _transitDuration;
         private Vector3 _transitTarget;
         private Vector3? _landing;
 
         public bool IsInStairTransit { get; private set; }
         public bool IsInConversation => _talkPartner != null;
         internal bool IsTalkingToHellhound => IsInConversation && _talkWorker == EWorkerType.Hellhound;
+        internal EContaminationType? CarriedType => _carry?.CarriedType;
         public bool IsHandling => _animatorDriver != null && _animatorDriver.IsHandling;
 
 
@@ -72,18 +74,18 @@ namespace UnityGameJam.Player
             if (GameMenu.BlocksGameplayInput) { return; }
             if (_session == null || _session.MatchState != EMatchState.Running || _moveAction == null) { return; }
             RefreshMop();
+            if (IsInStairTransit)
+            {
+                UpdateStairTransit(Time.deltaTime);
+                return;
+            }
+
             if (IsHandling)
             {
                 _controller.SimpleMove(Vector3.zero);
                 return;
             }
             if (UpdateTalk()) { return; }
-
-            if (IsInStairTransit)
-            {
-                UpdateStairTransit();
-                return;
-            }
 
             Vector2 input = _moveAction.action.ReadValue<Vector2>();
             bool hasInput = input.sqrMagnitude > InputDeadZone;
@@ -122,23 +124,59 @@ namespace UnityGameJam.Player
             }
             if (!_stairs.TryFindExit(_body.Floor, transform.position, radius, out _transitTarget)) { return false; }
             _transitElapsed = 0f;
+            _transitDuration = _settings.StairTransitSeconds;
             IsInStairTransit = true;
             UpdatePose(0f);
+            if (_transitDuration <= 0f)
+            {
+                CrossStair();
+                EndStairTransit();
+            }
             return true;
         }
 
-        private void UpdateStairTransit()
+        private void UpdateStairTransit(float deltaTime)
         {
-            _transitElapsed += Time.deltaTime;
-            if (_transitElapsed < _settings.StairTransitSeconds) { return; }
+            float previousElapsed = _transitElapsed;
+            _transitElapsed += deltaTime;
+            float halfway = _transitDuration * 0.5f;
+            if (previousElapsed < halfway && _transitElapsed >= halfway)
+            {
+                // 프레임이 길어져도 층이 바뀌는 화면은 검게 가린다.
+                _camera?.SetScreenFade(1f);
+                CrossStair();
+                return;
+            }
 
+            if (_transitElapsed >= _transitDuration)
+            {
+                EndStairTransit();
+                return;
+            }
+
+            float opacity = _transitElapsed < halfway
+                ? Mathf.SmoothStep(0f, 1f, _transitElapsed / halfway)
+                : Mathf.SmoothStep(1f, 0f, (_transitElapsed - halfway) / halfway);
+            _camera?.SetScreenFade(opacity);
+        }
+
+        private void CrossStair()
+        {
             _controller.enabled = false; // CharacterController는 꺼야 위치를 직접 옮길 수 있다
             transform.position = _transitTarget;
             _landing = _transitTarget;
             _controller.enabled = true;
             _camera?.SnapToTarget();
-            IsInStairTransit = false;
         }
+
+        private void EndStairTransit()
+        {
+            if (!IsInStairTransit) { return; }
+            IsInStairTransit = false;
+            _camera?.SetScreenFade(0f);
+        }
+
+        private void OnDisable() => EndStairTransit();
 
         public void RefreshMop()
         {
@@ -187,7 +225,9 @@ namespace UnityGameJam.Player
 
         private void OnMatchStateChanged(EMatchState state)
         {
-            if (state != EMatchState.Running) { _animatorDriver?.SetPose(EPose.Idle); }
+            if (state == EMatchState.Running) { return; }
+            EndStairTransit();
+            _animatorDriver?.SetPose(EPose.Idle);
         }
 
         private void UpdatePose(float speed, bool running = false)

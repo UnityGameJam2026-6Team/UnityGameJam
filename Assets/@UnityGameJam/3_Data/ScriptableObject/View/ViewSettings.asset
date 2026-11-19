@@ -15,15 +15,95 @@ MonoBehaviour:
   _completionCountdownSeconds: 2
   _interactRadius: 1.5
   _playerTurnSpeed: 720
-  _cameraHeight: 12
-  _cameraBackDistance: 8
+  _openingLineDistance: 3
+  _openingMinionSpacing: 2
+  _openingWide:
+    StartOffset: {x: -4.2, y: 13, z: -9}
+    EndOffset: {x: -4.2, y: 11.6, z: -9}
+    FocusOffset: {x: 0, y: 0.9, z: 0}
+  _openingShoulder:
+    StartOffset: {x: -2.2, y: 3.6, z: 8.8}
+    EndOffset: {x: -2, y: 3.35, z: 7.8}
+    FocusOffset: {x: 0, y: 0.95, z: -1.05}
+  _openingMinions:
+    StartOffset: {x: -1.65, y: 1.9, z: -0.9}
+    EndOffset: {x: -1.65, y: 1.9, z: -0.9}
+    FocusOffset: {x: -0.5, y: 1.25, z: 1.5}
+  _openingSide:
+    StartOffset: {x: -9.9, y: 4.6, z: -3.7}
+    EndOffset: {x: -8.85, y: 6, z: -6.8}
+    FocusOffset: {x: 0, y: 0.65, z: -0.7}
+  _ending:
+    DoorSeconds: 0.65
+    WalkSeconds: 2
+    FaceoffSeconds: 0.6
+    SuccessSeconds: 1.65
+    DogRunSeconds: 0.42
+    DogRunAt: 0.62
+    DoorAngle: 100
+    KingStart: {x: 0, y: 0, z: -0.75}
+    KingStop: {x: 0, y: 0, z: 2.05}
+    PlayerStart: {x: 1.4, y: 0, z: 5.1}
+    FailurePlayerStart: {x: 0, y: 0, z: 10.35}
+    FailureMinionOffsets:
+    - {x: -2, y: 0, z: -2.15}
+    - {x: 2.1, y: 0, z: -2.1}
+    - {x: -3.1, y: 0, z: -0.6}
+    - {x: 2.8, y: 0, z: -0.38}
+    DogStart: {x: -3.45, y: 0, z: 1.6}
+    DogStop: {x: -2.05, y: 0, z: 2.9}
+    SuccessStep: 0.55
+    SuccessStepSeconds: 0.45
+    DogGreeting: {fileID: -1783313220917843256, guid: 38cf6c5be6d41d9418dc42c5319e6194, type: 3}
+    ThrowTrash: {fileID: 3790823413081667067, guid: 4f85b656812d698449a9d6215c12ee22, type: 3}
+    ThrowLookSeconds: 1.2
+    ThrowLookAngle: 48
+    ThrowGripAt: 1
+    ThrowReleaseAt: 2.48
+    ThrowFlightSeconds: 0.82
+    ImpactHoldSeconds: 0.11
+    ImpactRecoverySeconds: 0.62
+    ThrowTargetHeight: 1.17
+    ThrowArcHeight: 1.5
+    ImpactRecoil: 0.2
+    Door:
+      StartPosition: {x: 1.15, y: 0.42, z: 3.55}
+      EndPosition: {x: 1.15, y: 0.42, z: 3.55}
+      StartFocus: {x: 0, y: 0.24, z: -0.8}
+      EndFocus: {x: 0, y: 0.24, z: -0.8}
+    Entrance:
+      StartPosition: {x: 1.15, y: 0.42, z: 3.55}
+      EndPosition: {x: 3, y: 2.9, z: 9.45}
+      StartFocus: {x: 0, y: 0.24, z: -0.8}
+      EndFocus: {x: -0.55, y: 1.16, z: 2.5}
+    Faceoff:
+      StartPosition: {x: 8.1, y: 3.35, z: 4.7}
+      EndPosition: {x: 8.1, y: 3.35, z: 4.7}
+      StartFocus: {x: 0.6, y: 1.02, z: 4}
+      EndFocus: {x: 0.6, y: 1.02, z: 4}
+    Success:
+      StartPosition: {x: 8.1, y: 3.35, z: 4.7}
+      EndPosition: {x: 9.2, y: 4, z: 5.1}
+      StartFocus: {x: 0.6, y: 1.02, z: 4}
+      EndFocus: {x: 0.5, y: 1.05, z: 4}
+    Throw:
+      StartPosition: {x: 12.6, y: 6.1, z: 7.7}
+      EndPosition: {x: 12.95, y: 6.25, z: 7.7}
+      StartFocus: {x: 0.1, y: 1.2, z: 6.5}
+      EndFocus: {x: 0.1, y: 1.2, z: 6.5}
+    Impact:
+      StartPosition: {x: 12.95, y: 6.25, z: 7.7}
+      EndPosition: {x: 13.2, y: 6.4, z: 7.7}
+      StartFocus: {x: 0.1, y: 1.2, z: 6.5}
+      EndFocus: {x: 0.1, y: 1.2, z: 6.5}
+  _cameraHeight: 13
+  _cameraBackDistance: 8.7
   _cameraPitch: 56
   _cameraSmoothTime: 0.15
-  _conversationCameraBlendSeconds: 0.55
-  _conversationCameraPitch: 40
+  _conversationCameraPitch: 24
   _conversationFrameHeight: 0.67
-  _stairTransitSeconds: 2
-  _stairApproachRadius: 0.85
+  _stairTransitSeconds: 0.25
+  _stairApproachRadius: 0.75
   _heavyDebrisPrefabs:
   - {fileID: 4186143294500295247, guid: 4f7d33610a324f944a7bd54d50ec2969, type: 3}
   _trashPrefabs:
@@ -42,74 +122,74 @@ MonoBehaviour:
   _mopPrefab: {fileID: 5323776537816255515, guid: 6f6a254e7c2ee3b4ea3e98036f96e6df, type: 3}
   _carryOffset: 0.2
   _mopOffset: {x: 0.45, y: 0, z: 0}
-  _globalMoveRate: 1
+  _globalMoveRate: 2.5
   _globalAnimationRate: 1
   _playerMotion:
     _walkRate: 1
     _runRate: 1
-    _carryRate: 1
-    _heavyCarryRate: 1
-    _mopWalkRate: 1
+    _carryRate: 2
+    _heavyCarryRate: 2
+    _mopWalkRate: 2
     _idleAnimationRate: 1
     _walkAnimationRate: 1
     _runAnimationRate: 1
     _carryAnimationRate: 1
     _heavyCarryAnimationRate: 1
     _mopWalkAnimationRate: 1
-    _mopAnimationRate: 1
-    _pickupRate: 1
-    _dropRate: 1
+    _mopAnimationRate: 2
+    _pickupRate: 3
+    _dropRate: 3
     _eatAnimationRate: 0
     _dispatchAnimationRate: 0
   _goblinMotion:
     _walkRate: 1
     _runRate: 1
-    _carryRate: 1
+    _carryRate: 2
     _heavyCarryRate: 1
-    _mopWalkRate: 1
+    _mopWalkRate: 2
     _idleAnimationRate: 1
     _walkAnimationRate: 1
     _runAnimationRate: 1
     _carryAnimationRate: 1
     _heavyCarryAnimationRate: 1
     _mopWalkAnimationRate: 1
-    _mopAnimationRate: 1
-    _pickupRate: 1
-    _dropRate: 1
+    _mopAnimationRate: 2
+    _pickupRate: 3
+    _dropRate: 3
     _eatAnimationRate: 0
     _dispatchAnimationRate: 0
   _orcMotion:
     _walkRate: 1
     _runRate: 1
-    _carryRate: 1
-    _heavyCarryRate: 1
-    _mopWalkRate: 1
+    _carryRate: 2
+    _heavyCarryRate: 2
+    _mopWalkRate: 2
     _idleAnimationRate: 1
     _walkAnimationRate: 1
     _runAnimationRate: 1
     _carryAnimationRate: 1
     _heavyCarryAnimationRate: 1
     _mopWalkAnimationRate: 1
-    _mopAnimationRate: 1
-    _pickupRate: 1
-    _dropRate: 1
+    _mopAnimationRate: 2
+    _pickupRate: 3
+    _dropRate: 3
     _eatAnimationRate: 1
     _dispatchAnimationRate: 1
   _skeletonMotion:
     _walkRate: 1
-    _runRate: 1
+    _runRate: 2
     _carryRate: 1
     _heavyCarryRate: 1
-    _mopWalkRate: 1
+    _mopWalkRate: 2
     _idleAnimationRate: 1
     _walkAnimationRate: 1
     _runAnimationRate: 1
     _carryAnimationRate: 1
     _heavyCarryAnimationRate: 1
     _mopWalkAnimationRate: 1
-    _mopAnimationRate: 1
-    _pickupRate: 1
-    _dropRate: 1
+    _mopAnimationRate: 2
+    _pickupRate: 3
+    _dropRate: 3
     _eatAnimationRate: 1
     _dispatchAnimationRate: 1
   _slimeMotion:
@@ -119,7 +199,7 @@ MonoBehaviour:
     _heavyCarryRate: 1
     _mopWalkRate: 1
     _idleAnimationRate: 1
-    _walkAnimationRate: 1
+    _walkAnimationRate: 3
     _runAnimationRate: 1
     _carryAnimationRate: 1
     _heavyCarryAnimationRate: 1
