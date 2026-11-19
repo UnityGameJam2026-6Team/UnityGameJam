@@ -104,8 +104,8 @@ Shader "UnityGameJam/Screen/Dream Haze"
                 float _WobbleSpeed;
             CBUFFER_END
 
-            #define SHAFT_STEPS 10
-            #define BLUR_TAPS 12
+            #define SHAFT_STEPS 4
+            #define BLUR_TAPS 6
 
             float DreamHash(float2 p)
             {

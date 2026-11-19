@@ -26,6 +26,9 @@ namespace UnityGameJam.UI
         private Vector3 _walkTo;
         private float _walkStartedAt;
         private bool _walking;
+        private int _kingStepPhase = -1;
+        private int _dogStepPhase = -1;
+        private int _playerStepPhase = -1;
         private MatchResult _pendingResult;
         private float _revealAt;
         private bool _hasShownResult;
@@ -116,9 +119,16 @@ namespace UnityGameJam.UI
 
         private void LateUpdate()
         {
-            if (_ending != null && !_hasShownResult) { UpdateEntrance(Time.unscaledTime - _endingStartedAt); }
+            if (_ending != null && !_hasShownResult)
+            {
+                PlayStep(_kingAnimator, ESfxCue.HeavyStep, ref _kingStepPhase);
+                PlayStep(_stageDog, ESfxCue.HoundStep, ref _dogStepPhase);
+                PlayStep(_stagePlayer, ESfxCue.LightStep, ref _playerStepPhase);
+                UpdateEntrance(Time.unscaledTime - _endingStartedAt);
+            }
             if (_walking)
             {
+                PlayStep(_kingAnimator, ESfxCue.HeavyStep, ref _kingStepPhase);
                 float progress = (Time.unscaledTime - _walkStartedAt) / _walkSeconds;
                 _demonKing.transform.position = Vector3.Lerp(_walkFrom, _walkTo, progress);
                 if (progress >= 1f)
@@ -134,6 +144,21 @@ namespace UnityGameJam.UI
             _resultPanel.Show(_pendingResult, _session.FacilityThreshold, _session.ZoneThreshold);
             _hasShownResult = true;
             _pendingResult = null;
+        }
+
+        private static void PlayStep(CharacterAnimatorDriver actor, ESfxCue cue, ref int previousPhase)
+        {
+            if (actor == null || actor.CurrentPose != EPose.Walk || actor.CurrentClip == null || actor.CurrentClip.length <= 0f)
+            {
+                previousPhase = -1;
+                return;
+            }
+
+            int phase = Mathf.FloorToInt(actor.ClipTime * 2f / actor.CurrentClip.length);
+            if (phase == previousPhase) { return; }
+            previousPhase = phase;
+            // 현관 컷의 관객 위치는 마감 직전 플레이어의 층과 무관하다.
+            GameSfxPlayer.Play(cue);
         }
 
         private bool BeginEntrance(bool isSuccess)

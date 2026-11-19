@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityGameJam.View;
@@ -135,8 +136,14 @@ namespace UnityGameJam.UI
             }
 
             _isReloading = true;
-            GameSfxPlayer.Restart();
             _restartButton.interactable = false;
+            StartCoroutine(ReloadAfterConfirmation(sceneIndex));
+        }
+
+        private static IEnumerator ReloadAfterConfirmation(int sceneIndex)
+        {
+            float duration = GameSfxPlayer.PlayRestartConfirmation();
+            if (duration > 0f) { yield return new WaitForSecondsRealtime(duration); }
             SceneManager.LoadSceneAsync(sceneIndex, LoadSceneMode.Single);
         }
     }

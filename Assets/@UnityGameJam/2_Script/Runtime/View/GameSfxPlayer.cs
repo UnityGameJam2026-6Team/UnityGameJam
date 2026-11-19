@@ -208,10 +208,12 @@ namespace UnityGameJam.View
             Play(isSuccess ? ESfxCue.Success : ESfxCue.Failure);
         }
 
-        public static void Restart()
+        internal static float PlayRestartConfirmation()
         {
-            _instance?.StopAll();
-            Play(ESfxCue.Confirm);
+            if (_instance == null) { return 0f; }
+            _instance.StopAll();
+            AudioSource source = _instance._global[0];
+            return _instance.PlaySource(source, ESfxCue.Confirm) ? source.clip.length : 0f;
         }
 
         private void StopAll()

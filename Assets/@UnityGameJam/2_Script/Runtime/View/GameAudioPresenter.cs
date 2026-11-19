@@ -48,8 +48,6 @@ namespace UnityGameJam.View
         private readonly HashSet<int> _visibleMessages = new();
         private int _previousSecond;
         private float _previousElapsed;
-        private int _quietHoundUntil = -1;
-        private Unit _king;
 
         private void Awake()
         {
@@ -104,22 +102,11 @@ namespace UnityGameJam.View
             if (state != EMatchState.DemonKingArrived) { return; }
             _contacts.Clear();
             _player.EndRound();
-            CharacterAnimatorDriver driver = _bootstrap.GetComponentInChildren<CharacterAnimatorDriver>();
-            if (driver != null)
-            {
-                _king = new Unit { Worker = EWorkerType.Orc, Transform = driver.transform, Driver = driver,
-                    LastPosition = driver.transform.position };
-            }
         }
 
         private void LateUpdate()
         {
-            if (_session == null) { return; }
-            if (_session.MatchState != EMatchState.Running)
-            {
-                if (_king != null) { UpdateStep(_king, _bootstrap.Player.Floor); }
-                return;
-            }
+            if (_session == null || _session.MatchState != EMatchState.Running) { return; }
             IReadOnlyList<MinionStatus> statuses = _session.Minions;
             UpdateMop(_units[EWorkerType.Player], _session.IsPlayerHoldingMop, _session.IsPlayerWorking);
             foreach (MinionStatus status in statuses)
@@ -134,7 +121,8 @@ namespace UnityGameJam.View
                     {
                         _player.PlayWorld(ESfxCue.HoundDispatch, unit.Transform.position, Floor(unit));
                     }
-                    else if (unit.Activity == EMinionActivity.Dispatching && status.Activity == EMinionActivity.LobbyIdle)
+                    else if (status.Activity == EMinionActivity.LobbyIdle &&
+                        unit.Activity is EMinionActivity.ReturningToLobby or EMinionActivity.Dispatching)
                     {
                         _player.PlayWorld(ESfxCue.HoundReturn, unit.Transform.position, Floor(unit));
                     }
@@ -306,9 +294,9 @@ namespace UnityGameJam.View
             }
         }
 
-        internal static void QuietHoundNotice()
+        internal static void QuietNotice(int messageId)
         {
-            if (_instance != null) { _instance._quietHoundUntil = Time.frameCount + 1; }
+            _instance?._heardMessages.Add(messageId);
         }
 
         private void UpdateMessages()
@@ -323,7 +311,7 @@ namespace UnityGameJam.View
                 _visibleMessages.Add(message.MessageId);
                 if (!_heardMessages.Add(message.MessageId)) { continue; }
                 if (message.Kind == EMessageKind.Proposal) { newProposal = true; }
-                else if (message.Minion != EWorkerType.Hellhound || Time.frameCount > _quietHoundUntil) { newNotice = true; }
+                else { newNotice = true; }
             }
             foreach (MessageEntry previous in _messages.Values)
             {

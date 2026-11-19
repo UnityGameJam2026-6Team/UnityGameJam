@@ -116,7 +116,8 @@ namespace UnityGameJam.Player
 
         private void Update()
         {
-            if (_session is ICommandSkillSession skills && !_playerController.IsInStairTransit && !_playerController.IsInConversation)
+            if (_session is ICommandSkillSession skills && _session.MatchState == EMatchState.Running
+                && !_playerController.IsInStairTransit && !_playerController.IsInConversation)
             {
                 if (_shoutAction?.WasPressedThisFrame() == true) { CastSkill(skills, ECommandSkill.Shout); }
                 else if (_surgeAction?.WasPressedThisFrame() == true) { CastSkill(skills, ECommandSkill.Surge); }
@@ -134,7 +135,10 @@ namespace UnityGameJam.Player
 
         private static void CastSkill(ICommandSkillSession skills, ECommandSkill skill)
         {
-            if (!skills.TryCastSkill(skill)) { GameSfxPlayer.Play(ESfxCue.Unavailable); }
+            if (skills.SkillCooldownRemaining(skill) <= 0f && !skills.TryCastSkill(skill))
+            {
+                GameSfxPlayer.Play(ESfxCue.Unavailable);
+            }
         }
 
         internal bool TryGetGroundWorkContext(out PlayerInteractionContext context)
