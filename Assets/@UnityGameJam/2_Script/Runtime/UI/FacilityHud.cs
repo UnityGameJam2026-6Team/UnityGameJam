@@ -34,6 +34,11 @@ namespace UnityGameJam.UI
         [SerializeField] private RectTransform _facilitySurplusFill;
         [SerializeField] private CanvasGroup _gameplayHud;
         [SerializeField] private Image _openingNumber;
+        [SerializeField] private RectTransform _skillSlots;
+        [SerializeField] private TMP_FontAsset _skillFont;
+        [SerializeField] private Sprite _shoutIcon;
+        [SerializeField] private Sprite _surgeIcon;
+        private CommandSkillHud _skillHud;
         private int _lastOpeningNumber;
         private float _facilityProgressVelocity;
         private RectTransform _dialoguePanel;
@@ -55,6 +60,11 @@ namespace UnityGameJam.UI
         private void Awake()
         {
             _bootstrap = FindFirstObjectByType<MatchBootstrap>();
+            if (_skillSlots != null)
+            {
+                _skillSlots.gameObject.SetActive(false);
+                _skillHud = new CommandSkillHud(_skillSlots, _skillFont, _shoutIcon, _surgeIcon);
+            }
             SetGameplayHudVisible(false);
             if (_countdown == null) { _countdown = GetComponentInChildren<DemonKing.UI.DemonKingCountdownHUD>(true); }
             if (_countdown != null)
@@ -123,6 +133,13 @@ namespace UnityGameJam.UI
             SetGameplayHudVisible(true);
             ShowTime(session.RemainingTime);
             UpdateCleanliness(session);
+            if (_skillHud != null)
+            {
+                var skills = session as ICommandSkillSession;
+                bool showSkills = skills != null && session.MatchState == EMatchState.Running;
+                if (_skillSlots.gameObject.activeSelf != showSkills) { _skillSlots.gameObject.SetActive(showSkills); }
+                if (showSkills) { _skillHud.Show(skills); }
+            }
             IReadOnlyList<MinionStatus> minions = session.Minions;
             _minionPanel.Show(minions);
             bool isWorking = session.IsPlayerWorking;
@@ -266,11 +283,13 @@ namespace UnityGameJam.UI
             _minionPanel.gameObject.SetActive(false);
             _proposalStack.gameObject.SetActive(false);
             _workGauge.SetActive(false);
+            if (_skillSlots != null) { _skillSlots.gameObject.SetActive(false); }
             enabled = false;
         }
 
         private void OnDestroy()
         {
+            _skillHud?.Release();
             _speechBubble?.Destroy();
             RestorePlayerInput();
         }

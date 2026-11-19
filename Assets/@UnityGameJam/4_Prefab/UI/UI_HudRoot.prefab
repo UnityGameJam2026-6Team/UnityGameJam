@@ -32,7 +32,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -24, y: -16}
+  m_AnchoredPosition: {x: -28, y: -92}
   m_SizeDelta: {x: 171, y: 119}
   m_Pivot: {x: 1, y: 1}
 --- !u!1 &869730384732023682
@@ -257,6 +257,10 @@ MonoBehaviour:
   _facilitySurplusFill: {fileID: 706748307129329839}
   _gameplayHud: {fileID: 6520317337583118629}
   _openingNumber: {fileID: 1330305909120040920}
+  _skillSlots: {fileID: 4082239150637728110}
+  _skillFont: {fileID: 11400000, guid: 8d621e252c7546c43a5286ef64e3a49c, type: 2}
+  _shoutIcon: {fileID: 21300000, guid: 3ded003b104788f4f80f57a59d6cfff5, type: 3}
+  _surgeIcon: {fileID: 21300000, guid: da179b41cea75684684e792493a47f23, type: 3}
   _countdown: {fileID: 4799853804593314961}
 --- !u!114 &3576964362297690069
 MonoBehaviour:
