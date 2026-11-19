@@ -151,7 +151,12 @@ namespace UnityGameJam.View
             UpdateSkillEffects();
 
             UpdateMop(EWorkerType.Player, _session.IsPlayerHoldingMop);
-            foreach (MinionStatus minion in _session.Minions) { UpdateMop(minion.Minion, minion.IsHoldingMop); }
+            IReadOnlyList<MinionStatus> minions = _bootstrap.PresentedMinions;
+            for (int i = 0; i < minions.Count; i++)
+            {
+                MinionStatus minion = minions[i];
+                UpdateMop(minion.Minion, minion.IsHoldingMop);
+            }
         }
 
         private void UpdateWorkGlows()

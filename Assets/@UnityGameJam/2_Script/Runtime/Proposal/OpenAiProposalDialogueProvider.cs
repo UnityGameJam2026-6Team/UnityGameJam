@@ -93,8 +93,8 @@ namespace UnityGameJam.Proposal
                         ["type"] = "choice",
                         ["name"] = "proposal",
                         ["instructions"] = request.Plans.Count > 0
-                            ? "승인 가능한 분업 계획 중 하나를 고른다. 남은 시간, 이동할 층 수, 각자 맡을 작업을 비교한다. "
-                                + "시간이 짧으면 가까이 있는 사람이 바로 처리할 수 있는 계획을 우선한다. 비슷하면 화자가 선호 작업을 맡는 계획을 고른다."
+                            ? "승인 가능한 분업 계획 중 하나를 고른다. 두 작업이 모두 점수에 반영되기까지의 예상 시간이 짧은 후보를 우선한다. "
+                                + "시간이 비슷하면 층 이동이 적거나 화자가 선호 작업을 맡는 계획을 고른다."
                             : "주어진 방과 대사 조합 중 하나를 고른다. 낮은 후보 순위가 게임의 우선 추천이다. "
                                 + "후보 순위에 확인된 작업량과 선호 작업을 반영한다. 조건이 비슷하면 화자의 성격에 맞는 대사를 고른다.",
                         ["choices"] = options
@@ -238,7 +238,8 @@ namespace UnityGameJam.Proposal
             options.Add(new JObject
             {
                 ["value"] = choices.Count.ToString(CultureInfo.InvariantCulture),
-                ["description"] = $"후보 순위 {index + 1}, {plan.Kind}, 두 작업자의 층 이동 합계 {plan.FloorChanges}회. {reply.Text}"
+                ["description"] = $"후보 순위 {index + 1}, {plan.Kind}, 점수 반영까지 약 {Math.Ceiling(plan.EstimatedSeconds)}초, "
+                    + $"두 작업자의 층 이동 합계 {plan.FloorChanges}회. {reply.Text}"
             });
             choices.Add(reply);
         }

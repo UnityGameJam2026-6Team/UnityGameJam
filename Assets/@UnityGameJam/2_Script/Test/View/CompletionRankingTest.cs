@@ -63,6 +63,38 @@ namespace UnityGameJam.Test.View
             public event Action<EMatchState> MatchStateChanged { add { } remove { } }
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void 원본이_없거나_손상되면_백업을_읽고_이어서_저장한다(bool isCorrupt)
+        {
+            string directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string path = Path.Combine(directory, "ranking.json");
+            const string broken = "{ broken";
+            try
+            {
+                var leaderboard = new LocalLeaderboard(path);
+                leaderboard.Add(new LocalLeaderboard.Entry { Nickname = "first", Progress = 90f, Seconds = 180f });
+                leaderboard.Add(new LocalLeaderboard.Entry { Nickname = "second", Progress = 95f, Seconds = 180f });
+                string backup = File.ReadAllText(path + ".bak");
+                if (isCorrupt) { File.WriteAllText(path, broken); }
+                else { File.Delete(path); }
+
+                Assert.That(leaderboard.Read().ConvertAll(entry => entry.Nickname), Is.EqualTo(new[] { "first" }));
+                leaderboard.Add(new LocalLeaderboard.Entry { Nickname = "third", Progress = 99f, Seconds = 180f });
+                Assert.That(leaderboard.Read().ConvertAll(entry => entry.Nickname), Is.EqualTo(new[] { "third", "first" }));
+                Assert.That(File.ReadAllText(path + ".bak"), Is.EqualTo(backup));
+                if (isCorrupt) { Assert.That(File.ReadAllText(path + ".corrupt"), Is.EqualTo(broken)); }
+            }
+            finally
+            {
+                foreach (string file in new[] { path, path + ".bak", path + ".tmp", path + ".corrupt" })
+                {
+                    if (File.Exists(file)) { File.Delete(file); }
+                }
+                if (Directory.Exists(directory)) { Directory.Delete(directory); }
+            }
+        }
+
         [Test]
         public void 저장한_기록은_다시_읽히고_같은_판은_한번만_등록된다()
         {

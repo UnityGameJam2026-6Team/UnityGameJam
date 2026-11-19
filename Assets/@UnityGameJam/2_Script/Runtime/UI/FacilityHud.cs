@@ -133,15 +133,15 @@ namespace UnityGameJam.UI
             SetGameplayHudVisible(true);
             ShowTime(session.RemainingTime);
             UpdateCleanliness(session);
+            var skills = session as ICommandSkillSession;
             if (_skillHud != null)
             {
-                var skills = session as ICommandSkillSession;
                 bool showSkills = skills != null && session.MatchState == EMatchState.Running;
                 if (_skillSlots.gameObject.activeSelf != showSkills) { _skillSlots.gameObject.SetActive(showSkills); }
-                if (showSkills) { _skillHud.Show(skills); }
+                if (showSkills) { _skillHud.Show(skills, _bootstrap.PlayerInteractor?.CooldownSkillPressedThisFrame); }
             }
-            IReadOnlyList<MinionStatus> minions = session.Minions;
-            _minionPanel.Show(minions);
+            IReadOnlyList<MinionStatus> minions = _bootstrap.PresentedMinions;
+            _minionPanel.Show(minions, skills);
             bool isWorking = session.IsPlayerWorking;
             if (_workGauge.activeSelf != isWorking) { _workGauge.SetActive(isWorking); }
             if (isWorking)
@@ -391,6 +391,7 @@ namespace UnityGameJam.UI
 
         private void Assign(EZoneId zone)
         {
+            if (GameMenu.BlocksGameplayInput) { return; }
             if (_talking.HasValue && _bootstrap.Session.AssignRoom(_talking.Value, zone))
             {
                 GameAudioPresenter.MarkWorkerHandled(_talking.Value);
@@ -425,6 +426,7 @@ namespace UnityGameJam.UI
 
         private void Cancel()
         {
+            if (GameMenu.BlocksGameplayInput) { return; }
             if (_talking.HasValue)
             {
                 if (_talking == EWorkerType.Hellhound) { _bootstrap.PlayerController.EndHellhoundTalk(); }

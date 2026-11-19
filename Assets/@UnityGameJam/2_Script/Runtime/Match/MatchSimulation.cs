@@ -28,6 +28,7 @@ namespace UnityGameJam.Match
         private readonly ContaminationRegistry _registry;
         private readonly CleanlinessCalculator _cleanliness;
         private readonly WorkerCapability _capability;
+        private readonly Dictionary<EWorkerType, WorkerStatsSO> _workerStats;
         private readonly WorkerStatsSO _playerStats;
         private readonly MopStationService _mops;
         private readonly DischargeService _discharge;
@@ -139,13 +140,13 @@ namespace UnityGameJam.Match
             _registry.ItemChanged += _ => _itemSnapshots = null;
             _cleanliness = new CleanlinessCalculator(_registry);
             _capability = new WorkerCapability(workerStats);
-            Dictionary<EWorkerType, WorkerStatsSO> stats = workerStats.ToDictionary(worker => worker.Worker);
-            _playerStats = stats[EWorkerType.Player];
+            _workerStats = workerStats.ToDictionary(worker => worker.Worker);
+            _playerStats = _workerStats[EWorkerType.Player];
             _mops = new MopStationService(setup.Layout, rules);
-            _discharge = new DischargeService(_registry, stats[EWorkerType.Hellhound]);
+            _discharge = new DischargeService(_registry, _workerStats[EWorkerType.Hellhound]);
             setup.MinionBodies.TryGetValue(EWorkerType.Hellhound, out _hellhound);
-            _hellhound?.SetMoveSpeed(stats[EWorkerType.Hellhound].MoveSpeed);
-            _digestion = new SlimeDigestion(_registry, stats[EWorkerType.Slime]);
+            _hellhound?.SetMoveSpeed(_workerStats[EWorkerType.Hellhound].MoveSpeed);
+            _digestion = new SlimeDigestion(_registry, _workerStats[EWorkerType.Slime]);
             _proposals = new ProposalQueue(rules.ProposalSeconds, rules.NoticeSeconds, rules.ApiTimeoutSeconds,
                 dialogue ?? new DefaultProposalDialogueProvider());
             _proposals.Answered += OnProposalAnswered;
@@ -156,11 +157,18 @@ namespace UnityGameJam.Match
             {
                 if (entry.Key is EWorkerType.Player or EWorkerType.Hellhound || entry.Value == null) { continue; }
                 var minion = new MinionBrain(entry.Value, setup.Layout, _zoneMap, _registry, _taskSelector, _mops,
-                    entry.Key == EWorkerType.Slime ? _digestion : null, stats[entry.Key], rules);
+                    entry.Key == EWorkerType.Slime ? _digestion : null, _workerStats[entry.Key], rules);
                 minion.NeedsProposal += OnProposalNeeded;
                 minion.TryOfferCollaboration += OfferCollaborationDuringWork;
+                minion.ShouldYieldTask += ShouldYieldTask;
                 _minions.Add(entry.Key, minion);
             }
+            _registry.FloorWorkBecameAvailable += InvalidateRoomMemories;
+        }
+
+        private void InvalidateRoomMemories(EZoneId zone)
+        {
+            foreach (MinionBrain minion in _minions.Values) { minion.InvalidateRoomMemory(zone); }
         }
 
         public float GetZoneCleanliness(EZoneId zone) => _cleanliness.GetZoneCleanliness(zone);
@@ -250,8 +258,7 @@ namespace UnityGameJam.Match
                 applied = true;
             }
             if (_hellhound != null && _hellhound.Floor == Player.Floor
-                && _zoneMap.FindZone(_hellhound.Position, _hellhound.Floor) == room
-                && (_hellhoundActivity != EMinionActivity.Dispatching || !_hellhound.HasArrived))
+                && _zoneMap.FindZone(_hellhound.Position, _hellhound.Floor) == room)
             {
                 Boost(EWorkerType.Hellhound);
                 _hellhound.SetActionRate(_rules.SurgeRate);
@@ -325,7 +332,7 @@ namespace UnityGameJam.Match
             return true;
         }
 
-        public bool ApproveOldestProposal() => CanAct && !_talkingWith.HasValue && _proposals.RespondOldest(true, ApproveCollaboration);
+        public bool ApproveOldestProposal() => CanAct && !_talkingWith.HasValue && _proposals.RespondOldest(true, TryApproveProposal);
         public bool HoldOldestProposal() => CanAct && !_talkingWith.HasValue && _proposals.RespondOldest(false);
 
         public bool DispatchHellhound()
@@ -360,7 +367,8 @@ namespace UnityGameJam.Match
                 _hellhoundActivity = EMinionActivity.ReturningToLobby;
                 _hellhound.MoveTo(EFloor.Floor1, _hellhoundPost);
             }
-            if (_hellhoundActivity == EMinionActivity.ReturningToLobby && !_discharge.IsDispatching && _hellhound.HasArrived)
+            if (_hellhoundActivity == EMinionActivity.ReturningToLobby && !_discharge.IsDispatching
+                && (_hellhound.HasArrived || _hellhound.HasMoveFailed))
             {
                 _hellhound.Stop();
                 _hellhoundActivity = EMinionActivity.LobbyIdle;
@@ -486,6 +494,18 @@ namespace UnityGameJam.Match
             QueueRegularProposal(minion, areMopsUnavailable, zones, reason, coworkers);
         }
 
+        private bool ShouldYieldTask(MinionBrain minion, ContaminationItem item)
+        {
+            float? ownTime = null;
+            foreach (MinionBrain other in _minions.Values)
+            {
+                if (other == minion || other.PeekAvailableTask(item.Zone) != item) { continue; }
+                ownTime ??= EstimateTaskSeconds(minion.Worker, item);
+                if (EstimateTaskSeconds(other.Worker, item) < ownTime.Value) { return true; }
+            }
+            return false;
+        }
+
         private bool OfferCollaborationDuringWork(MinionBrain minion) =>
             TryProposeCollaboration(minion, _mops.AvailableCount == 0, duringWork: true);
 
@@ -495,9 +515,30 @@ namespace UnityGameJam.Match
 
             MinionBrain[] nearby = _minions.Values.Where(other => other != minion && minion.CanShareWith(other)).ToArray();
             var knownTasks = minion.Memory.ObservedFloorTasks().Concat(nearby.SelectMany(other => other.Memory.ObservedFloorTasks()))
-                .Distinct().Where(task => !minion.Memory.IsKnownClean(task.Zone) && IsAvailableTask(task))
-                .GroupBy(task => (task.Zone, task.Type)).Select(group => group.OrderBy(task => task.ItemId).First()).ToArray();
+                .Distinct().Where(task => !minion.Memory.IsKnownClean(task.Zone) && IsAvailableTask(task)).ToArray();
             var plans = new List<CollaborationPlan>();
+            var estimates = new Dictionary<(EWorkerType Worker, int ItemId), float>();
+
+            float Estimate(EWorkerType worker, int itemId)
+            {
+                if (!estimates.TryGetValue((worker, itemId), out float seconds))
+                {
+                    seconds = EstimateTaskSeconds(worker, _registry.FindItem(itemId));
+                    estimates.Add((worker, itemId), seconds);
+                }
+                return seconds;
+            }
+
+            void AddPlan((EZoneId Zone, int ItemId, EContaminationType Type) own,
+                (EZoneId Zone, int ItemId, EContaminationType Type) other, EWorkerType partner, int assignmentId, int floors)
+            {
+                float seconds = Math.Max(Estimate(minion.Worker, own.ItemId), Estimate(partner, other.ItemId));
+                if (seconds <= RemainingTime)
+                {
+                    plans.Add(new CollaborationPlan(own, other, partner, assignmentId, floors, seconds));
+                }
+            }
+
             foreach (var own in knownTasks)
             {
                 if ((duringWork && own.Zone != minion.AssignedZone) || !CanTakeTask(minion.Worker, own)) { continue; }
@@ -512,32 +553,126 @@ namespace UnityGameJam.Match
                     {
                         continue;
                     }
-                    if ((!duringWork || PlayerZone == other.Zone) && ZoneDisplayName.GetFloor(other.Zone) == Player.Floor
-                        && CanTakeTask(EWorkerType.Player, other))
+                    if ((!duringWork || PlayerZone == other.Zone) && CanPlayerAssist(other))
                     {
-                        plans.Add(new CollaborationPlan(own, other, EWorkerType.Player, 0, FloorsTo(minion.Floor, own.Zone)));
+                        AddPlan(own, other, EWorkerType.Player, 0, FloorsTo(minion.Floor, own.Zone));
                     }
                     foreach (MinionBrain partner in nearby)
                     {
                         if (own.Zone != other.Zone || !partner.CanJoinCollaboration || !CanTakeTask(partner.Worker, other)) { continue; }
                         int floors = FloorsTo(minion.Floor, own.Zone) + FloorsTo(partner.Floor, other.Zone);
-                        plans.Add(new CollaborationPlan(own, other, partner.Worker, partner.AssignmentId, floors));
+                        AddPlan(own, other, partner.Worker, partner.AssignmentId, floors);
                     }
                 }
             }
 
             EContaminationType? preferredTask = _taskSelector.PreferredTask(minion.Worker);
-            CollaborationPlan[] candidates = plans.OrderBy(plan => plan.FloorChanges)
+            CollaborationPlan[] candidates = plans.OrderBy(plan => plan.EstimatedSeconds)
+                .ThenBy(plan => plan.FloorChanges)
                 .ThenByDescending(plan => plan.OwnTask.Type == preferredTask)
                 .ThenBy(plan => plan.OwnTask.Zone != plan.PartnerTask.Zone)
-                .ThenByDescending(plan => plan.PartnerTask.Type == EContaminationType.FloorStain && areMopsUnavailable)
                 .ThenBy(plan => plan.OwnTask.ItemId).ThenBy(plan => plan.PartnerTask.ItemId)
-                .GroupBy(plan => plan.Kind).SelectMany(group => group.Take(2)).ToArray();
+                .GroupBy(plan => plan.Kind).SelectMany(group => group.Take(2))
+                .OrderBy(plan => plan.EstimatedSeconds).ToArray();
             if (candidates.Length == 0) { return false; }
 
             return _proposals.Request(minion.Worker, minion.AssignmentId, candidates[0].OwnTask.Zone, EProposalReason.KnownWork,
                 areMopsUnavailable, ElapsedTime, plans: candidates, remainingSeconds: RemainingTime,
                 preferredTask: preferredTask);
+        }
+
+        private float EstimateTaskSeconds(EWorkerType worker, ContaminationItem item)
+        {
+            IWorkerBody body = worker == EWorkerType.Player ? Player : _setup.MinionBodies[worker];
+            WorkerStatsSO stats = _workerStats[worker];
+            float speed = stats.MoveSpeed;
+            Vector3 start = body.Position;
+            EFloor startFloor = body.Floor;
+            EFloor itemFloor = ZoneDisplayName.GetFloor(item.Zone);
+            float toolSeconds = 0f;
+            ToiletStation borrowedFrom = _mops.GetBorrowedFrom(worker);
+            ToiletStation toolStop = borrowedFrom;
+            if (item.Type == EContaminationType.FloorStain)
+            {
+                toolStop = null;
+                if (borrowedFrom == null)
+                {
+                    toolStop = worker == EWorkerType.Player
+                        ? _setup.Layout.Toilets.Find(toilet => toilet.Floor == body.Floor && _mops.GetAvailableCount(toilet.Floor) > 0)
+                        : _mops.FindAvailableStation(body.Floor);
+                    if (toolStop == null) { return float.PositiveInfinity; }
+                }
+            }
+            if (toolStop != null)
+            {
+                toolSeconds = TravelSeconds(startFloor, start, toolStop.Floor, toolStop.MopPickupPosition, speed);
+                startFloor = toolStop.Floor;
+                start = toolStop.MopPickupPosition;
+            }
+
+            float approach = toolSeconds + TravelSeconds(startFloor, start, itemFloor, item.Position, speed);
+            if (item.Type == EContaminationType.FloorStain)
+            {
+                return approach + (worker == EWorkerType.Player ? _types.PlayerMopSeconds : stats.MopSeconds);
+            }
+            if (_capability.CanDigest(worker, item.Type)) { return Math.Max(approach, _digestion.RemainingTime); }
+
+            if (item.Type == EContaminationType.ClutterItem)
+            {
+                HomeSlot slot = item.HomeSlotId is int id ? _zoneMap.FindHomeSlot(id) : null;
+                if (slot == null) { return float.PositiveInfinity; }
+                float carrySpeed = worker == EWorkerType.Player ? speed : speed * stats.ClutterCarryMultiplier;
+                return approach + TravelSeconds(itemFloor, item.Position, ZoneDisplayName.GetFloor(slot.Zone), slot.Position, carrySpeed);
+            }
+            if (item.Type == EContaminationType.Trash
+                && _setup.Layout.FindNearestWasteBin(itemFloor, item.Position) is WasteBin bin)
+            {
+                return approach + TravelSeconds(itemFloor, item.Position, bin.Floor, bin.Position, speed);
+            }
+
+            Bounds exit = _setup.Layout.DischargeArea;
+            if (_hellhound == null || exit.size.x <= 0f || exit.size.z <= 0f) { return float.PositiveInfinity; }
+            float wasteSpeed = item.Type == EContaminationType.HeavyDebris ? speed * stats.HeavyCarryMultiplier : speed;
+            float delivery = approach + TravelSeconds(itemFloor, item.Position, EFloor.Floor1, exit.center, wasteSpeed);
+            Vector3 post = _hellhoundActivity == EMinionActivity.LobbyIdle ? _hellhound.Position : _hellhoundPost;
+            float order = worker == EWorkerType.Player
+                ? delivery + TravelSeconds(EFloor.Floor1, exit.center, EFloor.Floor1, post, _playerStats.MoveSpeed)
+                : TravelSeconds(Player.Floor, Player.Position, EFloor.Floor1, post, _playerStats.MoveSpeed);
+            float houndReady = _discharge.RemainingTime;
+            if (_hellhoundActivity == EMinionActivity.ReturningToLobby)
+            {
+                float returnSeconds = TravelSeconds(_hellhound.Floor, _hellhound.Position, EFloor.Floor1, post,
+                    _workerStats[EWorkerType.Hellhound].MoveSpeed);
+                houndReady = Math.Max(houndReady, returnSeconds);
+            }
+            return Math.Max(Math.Max(delivery, order), houndReady);
+        }
+
+        private float TravelSeconds(EFloor floor, Vector3 start, EFloor destinationFloor, Vector3 destination, float speed)
+        {
+            // shortcut: 층별 직선 이동과 계단은 반영하되, 실제 경로 우회가 순위를 자주 바꾸면 NavMesh 경로 길이를 쓴다.
+            if (speed <= 0f) { return float.PositiveInfinity; }
+            float seconds = 0f;
+            while (floor != destinationFloor)
+            {
+                EFloor next = floor + (destinationFloor > floor ? 1 : -1);
+                if (_setup.StairEntries == null || !_setup.StairEntries.TryGetValue((floor, next), out Vector3 entry)
+                    || !_setup.StairEntries.TryGetValue((next, floor), out Vector3 exit))
+                {
+                    return float.PositiveInfinity;
+                }
+                seconds += PlanarDistance(start, entry) / speed + _setup.StairTransitSeconds;
+                start = exit;
+                floor = next;
+            }
+            return seconds + PlanarDistance(start, destination) / speed;
+        }
+
+        private static float PlanarDistance(Vector3 first, Vector3 second)
+        {
+            Vector3 offset = first - second;
+            offset.y = 0f;
+            return offset.magnitude;
         }
 
         private static int FloorsTo(EFloor from, EZoneId zone) => Math.Abs((int)from - (int)ZoneDisplayName.GetFloor(zone));
@@ -556,20 +691,41 @@ namespace UnityGameJam.Match
                 || _mops.GetBorrowedFrom(worker) != null || _mops.AvailableCount > 0;
         }
 
-        private bool ApproveCollaboration(ProposalRequest request)
+        private bool CanPlayerAssist((EZoneId Zone, int ItemId, EContaminationType Type) task)
         {
-            if (request.SelectedPlan is not CollaborationPlan plan) { return true; }
+            if (Player.Floor != ZoneDisplayName.GetFloor(task.Zone) || IsPlayerWorking || GetCarriedItem() != null) { return false; }
+            return task.Type == EContaminationType.FloorStain
+                ? IsPlayerHoldingMop || _mops.GetAvailableCount(Player.Floor) > 0
+                : !IsPlayerHoldingMop;
+        }
+
+        private bool TryApproveProposal(ProposalRequest request)
+        {
             MinionBrain minion = _minions[request.Worker];
+            if (minion.AssignmentId != request.AssignmentId || minion.Status.Activity != EMinionActivity.AwaitingResponse) { return false; }
+            if (request.SelectedPlan is not CollaborationPlan plan)
+            {
+                EZoneId zone = request.Zone;
+                bool hasWork = minion.Memory.HasKnownWork(zone, minion.Worker, _capability, _mops.AvailableCount > 0);
+                if (!minion.Memory.IsKnownClean(zone) && (hasWork || (!minion.Memory.HasCompletedSurvey(zone)
+                    && !ProposalCandidateFinder.HasOtherAssignment(minion, zone, _minions.Values)))) { return true; }
+
+                if (request.IsOrcHelp) { ClearOrcHelp(); }
+                RequestReplacementProposal(minion);
+                return false;
+            }
+
             bool playerAssists = plan.Partner == EWorkerType.Player;
             MinionBrain partner = playerAssists ? null : _minions[plan.Partner];
-            if (minion.AssignmentId != request.AssignmentId || minion.Status.Activity != EMinionActivity.AwaitingResponse) { return false; }
-            bool partnerReady = playerAssists ? Player.Floor == ZoneDisplayName.GetFloor(plan.PartnerTask.Zone)
+            bool partnerReady = playerAssists ? CanPlayerAssist(plan.PartnerTask)
                 : partner.AssignmentId == plan.PartnerAssignmentId && partner.CanJoinCollaboration;
             if (!partnerReady || !IsAvailableTask(plan.OwnTask) || !IsAvailableTask(plan.PartnerTask)
                 || !CanTakeTask(minion.Worker, plan.OwnTask) || !CanTakeTask(plan.Partner, plan.PartnerTask)
+                || EstimateTaskSeconds(minion.Worker, _registry.FindItem(plan.OwnTask.ItemId)) > RemainingTime
+                || EstimateTaskSeconds(plan.Partner, _registry.FindItem(plan.PartnerTask.ItemId)) > RemainingTime
                 || !_registry.TryClaim(plan.OwnTask.ItemId, minion.Worker))
             {
-                RequestReplacementProposal(minion, request.AreMopsUnavailable);
+                RequestReplacementProposal(minion);
                 return false;
             }
 
@@ -578,7 +734,7 @@ namespace UnityGameJam.Match
                 if (!_registry.TryClaim(plan.PartnerTask.ItemId, partner.Worker))
                 {
                     _registry.TryRelease(plan.OwnTask.ItemId, minion.Worker);
-                    RequestReplacementProposal(minion, request.AreMopsUnavailable);
+                    RequestReplacementProposal(minion);
                     return false;
                 }
                 _proposals.Cancel(partner.Worker);
@@ -594,10 +750,10 @@ namespace UnityGameJam.Match
             return true;
         }
 
-        private void RequestReplacementProposal(MinionBrain minion, bool areMopsUnavailable)
+        private void RequestReplacementProposal(MinionBrain minion)
         {
             _proposals.AddNotice(minion.Worker, "상황이 바뀌었어. 다른 일을 찾아볼게.", ElapsedTime);
-            if (!minion.ResumeWorkAfterCollaboration()) { RequestRegularProposal(minion, areMopsUnavailable); }
+            if (!minion.ResumeWorkAfterCollaboration()) { RequestRegularProposal(minion, _mops.AvailableCount == 0); }
         }
 
         private void RequestRegularProposal(MinionBrain minion, bool areMopsUnavailable)
@@ -660,11 +816,6 @@ namespace UnityGameJam.Match
             MinionBrain minion = _minions[request.Worker];
             if (minion.AssignmentId != request.AssignmentId) { return; }
             if (!isApproved && request.SelectedPlan.HasValue && minion.ResumeWorkAfterCollaboration()) { return; }
-            if (isApproved && minion.Memory.IsKnownClean(request.Zone))
-            {
-                RequestRegularProposal(minion, request.AreMopsUnavailable);
-                return;
-            }
             minion.AnswerProposal(request.AssignmentId, request.Zone, isApproved);
         }
 

@@ -15,7 +15,7 @@
 | 입력 | `IMinionBody.MoveTo(층, 위치)`, `Stop()`, `SetMoveSpeed(속도)` | 규칙이 내리는 명령 |
 | 입력 | `IMatchReadModel.Minions`(MinionStatus), `Items` | 자세 결정, 헬하운드 숨김 |
 | 입력 | `StairAuthoring` 출입 지점과 방향 | 플레이어와 졸개가 쓸 인접 층 연결 |
-| 출력 | `IMinionBody.Position`, `Floor`, `HasArrived` | 규칙이 읽는 몸 상태 |
+| 출력 | `IMinionBody.Position`, `Floor`, `HasArrived`, `HasMoveFailed` | 규칙이 읽는 몸 상태 |
 | 출력 | 자세, 실제 속도, 운반 상태 | 캐릭터별 FBX 클립과 재생 속도 선택 |
 
 ## 규칙
@@ -35,7 +35,7 @@
 8. 플레이어가 계단 출입 지점 반경(`StairApproachRadius`)으로 걸어 들어가면 자동으로 표시된 층에 간다. 도착한 계단은 반경을 벗어났다가 다시 접근해야 사용할 수 있다. 2층의 두 계단 사이에서는 졸개도 직접 걸어 이동한다.
 
 ## 예외 처리
-- 목적지가 NavMesh 밖이면 1m 안의 가장 가까운 NavMesh 지점으로 간다. 그마저 없으면 경고를 남기고 멈춘다(`HasArrived` 참).
+- 목적지가 NavMesh 밖이면 1m 안의 가장 가까운 NavMesh 지점으로 간다. 도착 가능한 경로가 없으면 멈추고 `HasMoveFailed`로 알린다. 이미 목표 지점에 닿은 경우는 도착으로 본다.
 - 계단 이동 중에 새 `MoveTo`가 오면 진행 중인 계단 대기를 마친 뒤 새 목적지로 경로를 다시 짠다.
 - 출발점과 도착점이 모두 연결된 계단만 이용한다.
 

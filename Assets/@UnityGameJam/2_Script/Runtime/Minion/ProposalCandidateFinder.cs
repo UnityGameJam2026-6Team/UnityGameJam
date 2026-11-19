@@ -25,18 +25,22 @@ namespace UnityGameJam.Minion
                 bool hasKnownWork = workCount > 0;
                 int preferredCount = preferredTask is EContaminationType type && (canBorrowMop || type != EContaminationType.FloorStain)
                     ? minion.Memory.KnownTaskCount(zone, type) : 0;
-                if (minion.Memory.HasCompletedSurvey(zone) && !hasKnownWork) { continue; }
+                if (!hasKnownWork && (minion.Memory.HasCompletedSurvey(zone) || HasOtherAssignment(minion, zone, others))) { continue; }
                 MinionBrain coworker = others.FirstOrDefault(other => other != minion && other.IsWorkingIn(zone));
                 if (coworker != null) { coworkers.Add(zone, coworker.Worker); }
                 int cost = Rank(minion.Floor, ZoneDisplayName.GetFloor(zone), hasKnownWork, coworker != null);
                 if (preferredCount > 0) { cost -= 3; }
-                candidates.Add((zone, cost, preferredCount, workCount, hasKnownWork ? EProposalReason.KnownWork
-                    : coworker != null ? EProposalReason.OtherWorker : EProposalReason.Explore));
+                EProposalReason reason = coworker != null ? EProposalReason.OtherWorker
+                    : hasKnownWork ? EProposalReason.KnownWork : EProposalReason.Explore;
+                candidates.Add((zone, cost, preferredCount, workCount, reason));
             }
             var sorted = candidates.OrderBy(candidate => candidate.Cost).ThenByDescending(candidate => candidate.PreferredCount)
                 .ThenByDescending(candidate => candidate.WorkCount).ThenBy(candidate => candidate.Zone).ToArray();
             return (sorted.Select(candidate => candidate.Zone).ToArray(), sorted.FirstOrDefault().Reason, coworkers);
         }
+
+        internal static bool HasOtherAssignment(MinionBrain minion, EZoneId zone, IEnumerable<MinionBrain> others) =>
+            others.Any(other => other != minion && other.AssignedZone == zone);
 
         internal static int Rank(EFloor current, EFloor destination, bool hasKnownWork, bool hasCoworker) =>
             3 * Math.Abs((int)current - (int)destination) - (hasKnownWork ? 12 : 0) - (hasCoworker ? 5 : 0);

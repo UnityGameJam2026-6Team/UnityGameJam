@@ -17,7 +17,7 @@ namespace UnityGameJam.View
         private const float SampleRadius = 1f;
         private const float RunDistance = 0.6f;
 
-        private enum EPhase { Idle, WalkingToStair, InTransit, WalkingToDestination }
+        private enum EPhase { Idle, WalkingToStair, InTransit, WalkingToDestination, Failed }
 
         [SerializeField] private EWorkerType _worker;
 
@@ -35,6 +35,7 @@ namespace UnityGameJam.View
         private EFloor _floor;
         private EFloor _targetFloor;
         private Vector3 _destination;
+        private Vector3 _walkTarget;
         private float _transitElapsed;
         private bool _isRouteChanged;
         private bool _isStopRequested;
@@ -58,17 +59,10 @@ namespace UnityGameJam.View
             }
         }
 
-        public bool HasArrived
-        {
-            get
-            {
-                if (IsHandling) { return false; }
-                if (_phase == EPhase.Idle) { return true; }
-                if (_phase != EPhase.WalkingToDestination) { return false; }
-                return !_agent.pathPending && (_agent.pathStatus == NavMeshPathStatus.PathInvalid
-                    || _agent.remainingDistance <= _agent.stoppingDistance + ArrivalTolerance);
-            }
-        }
+        public bool HasMoveFailed => _phase == EPhase.Failed;
+
+        public bool HasArrived => !IsHandling && (_phase == EPhase.Idle ||
+            (_phase == EPhase.WalkingToDestination && HasReachedWalkTarget(_agent.stoppingDistance + ArrivalTolerance)));
 
         private void Awake()
         {
@@ -174,12 +168,16 @@ namespace UnityGameJam.View
             switch (_phase)
             {
                 case EPhase.WalkingToStair:
-                    if (!_agent.pathPending && _agent.remainingDistance <= StairReachDistance)
+                    if (HasReachedWalkTarget(StairReachDistance))
                     {
                         _agent.isStopped = true;
                         _transitElapsed = 0f;
                         _phase = EPhase.InTransit;
                     }
+                    else if (IsWalkPathBlocked()) { ClearRoute(EPhase.Failed); }
+                    break;
+                case EPhase.WalkingToDestination:
+                    if (!HasArrived && IsWalkPathBlocked()) { ClearRoute(EPhase.Failed); }
                     break;
                 case EPhase.InTransit:
                     _transitElapsed += Time.deltaTime * _actionRate;
@@ -203,16 +201,13 @@ namespace UnityGameJam.View
 
         private void GoToStair()
         {
-            if (_stairs == null || !_stairs.TryGet(_floor, _floorsToPass.Peek(), out Vector3 stair)
-                || !NavMesh.SamplePosition(stair, out NavMeshHit hit, SampleRadius, NavMesh.AllAreas))
+            if (_stairs == null || !_stairs.TryGet(_floor, _floorsToPass.Peek(), out Vector3 stair))
             {
                 Debug.LogWarning($"[MinionAgent] {_worker}: {_floor} 계단이 없어 층을 옮길 수 없습니다.", this);
-                ClearRoute();
+                ClearRoute(EPhase.Failed);
                 return;
             }
-            _agent.isStopped = IsHandling;
-            _agent.SetDestination(hit.position);
-            _phase = EPhase.WalkingToStair;
+            WalkTo(stair, EPhase.WalkingToStair);
         }
 
         private void CrossStair()
@@ -223,7 +218,7 @@ namespace UnityGameJam.View
                 || !_agent.Warp(hit.position))
             {
                 Debug.LogWarning($"[MinionAgent] {_worker}: {next} 계단에 도착할 수 없습니다.", this);
-                ClearRoute();
+                ClearRoute(EPhase.Failed);
                 return;
             }
             _floor = next;
@@ -248,24 +243,41 @@ namespace UnityGameJam.View
             GoToDestination();
         }
 
-        private void GoToDestination()
+        private void GoToDestination() => WalkTo(_destination, EPhase.WalkingToDestination);
+
+        private void WalkTo(Vector3 destination, EPhase phase)
         {
-            if (!_agent.isOnNavMesh || !NavMesh.SamplePosition(_destination, out NavMeshHit hit, SampleRadius, NavMesh.AllAreas))
+            if (!_agent.isOnNavMesh || !NavMesh.SamplePosition(destination, out NavMeshHit hit, SampleRadius, NavMesh.AllAreas))
             {
-                Debug.LogWarning($"[MinionAgent] {_worker}: 목적지 {_destination}이(가) NavMesh 밖이라 멈춥니다.", this);
-                ClearRoute();
+                Debug.LogWarning($"[MinionAgent] {_worker}: 목적지 {destination}이(가) NavMesh 밖이라 멈춥니다.", this);
+                ClearRoute(EPhase.Failed);
                 return;
             }
             _agent.isStopped = IsHandling;
             if (!_agent.SetDestination(hit.position))
             {
-                ClearRoute();
+                ClearRoute(EPhase.Failed);
                 return;
             }
-            _phase = EPhase.WalkingToDestination;
+            _walkTarget = hit.position;
+            _phase = phase;
         }
 
-        private void ClearRoute()
+        private bool HasReachedWalkTarget(float distance)
+        {
+            if (!_agent.isOnNavMesh || _agent.pathPending) { return false; }
+            if (_agent.pathStatus == NavMeshPathStatus.PathComplete) { return _agent.remainingDistance <= distance; }
+
+            // 목적지 위에서 다시 이동을 요청하면 빈 경로가 나올 수 있다.
+            Vector3 offset = Position - _walkTarget;
+            offset.y = 0f;
+            return offset.sqrMagnitude <= distance * distance;
+        }
+
+        private bool IsWalkPathBlocked() => !_agent.isOnNavMesh ||
+            (!_agent.pathPending && _agent.pathStatus != NavMeshPathStatus.PathComplete);
+
+        private void ClearRoute(EPhase phase = EPhase.Idle)
         {
             _floorsToPass.Clear();
             _isRouteChanged = false;
@@ -275,7 +287,7 @@ namespace UnityGameJam.View
                 _agent.isStopped = true;
                 _agent.velocity = Vector3.zero;
             }
-            _phase = EPhase.Idle;
+            _phase = phase;
         }
 
         private EFloor FindFloor(Vector3 position)

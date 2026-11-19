@@ -14,6 +14,7 @@ namespace UnityGameJam.Cleaning
 
         public IReadOnlyCollection<ContaminationItem> Items => _items.Values;
         public event Action<ItemSnapshot> ItemChanged;
+        internal event Action<EZoneId> FloorWorkBecameAvailable;
 
         public ContaminationRegistry(ZoneMap zoneMap, IEnumerable<ContaminationItem> initialItems)
         {
@@ -54,6 +55,7 @@ namespace UnityGameJam.Cleaning
             if (item?.ClaimedBy != worker) { return false; }
 
             item.SetClaim(null);
+            if (item.State == EItemState.OnFloor) { FloorWorkBecameAvailable?.Invoke(item.Zone); }
             return true;
         }
 
@@ -76,6 +78,7 @@ namespace UnityGameJam.Cleaning
             (Vector3 position, EZoneId zone, EItemState state) = GetDropLocation(item, body);
             item.SetLocation(zone, position);
             item.SetState(state);
+            if (state == EItemState.OnFloor) { FloorWorkBecameAvailable?.Invoke(zone); }
             ItemChanged?.Invoke(item.Snapshot);
             return true;
         }

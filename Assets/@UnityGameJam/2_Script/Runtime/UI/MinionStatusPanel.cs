@@ -19,6 +19,7 @@ namespace UnityGameJam.UI
             internal bool HasStatus;
             internal EZoneId? LastZone;
             internal EMinionActivity LastActivity;
+            internal bool WasBoosted;
         }
 
         [SerializeField] private Slot[] _slots = System.Array.Empty<Slot>();
@@ -85,7 +86,7 @@ namespace UnityGameJam.UI
             _title.text = isExpanded ? "졸개 현황  ·  Tab 접기" : "졸개 현황  ·  Tab 펼치기";
         }
 
-        public void Show(IReadOnlyList<MinionStatus> minions)
+        public void Show(IReadOnlyList<MinionStatus> minions, ICommandSkillSession skills = null)
         {
             foreach (Slot slot in _slots)
             {
@@ -113,10 +114,13 @@ namespace UnityGameJam.UI
                     slot._room.text = RoomName(status.AssignedZone);
                     slot.LastZone = status.AssignedZone;
                 }
-                if (!slot.HasStatus || slot.LastActivity != status.Activity)
+                bool isBoosted = skills?.BoostRemaining(status.Minion) > 0f;
+                if (!slot.HasStatus || slot.LastActivity != status.Activity || slot.WasBoosted != isBoosted)
                 {
-                    slot._activity.text = ActivityName(status.Activity);
+                    string activity = ActivityName(status.Activity);
+                    slot._activity.text = isBoosted ? activity + " ↑" : activity;
                     slot.LastActivity = status.Activity;
+                    slot.WasBoosted = isBoosted;
                 }
                 slot.HasStatus = true;
             }
@@ -146,6 +150,7 @@ namespace UnityGameJam.UI
             EMinionActivity.AwaitingResponse => "응답 대기",
             EMinionActivity.ReturningToLobby => "로비 복귀",
             EMinionActivity.Dispatching => "배출 중",
+            EMinionActivity.Recalling => "집결 중",
             _ => "기타"
         };
     }

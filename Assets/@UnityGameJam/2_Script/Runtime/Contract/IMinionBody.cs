@@ -16,6 +16,7 @@ namespace UnityGameJam.Contract
     public interface IMinionBody : IWorkerBody
     {
         bool HasArrived { get; }
+        bool HasMoveFailed => false;
 
         void MoveTo(EFloor floor, Vector3 destination);
         void Stop();

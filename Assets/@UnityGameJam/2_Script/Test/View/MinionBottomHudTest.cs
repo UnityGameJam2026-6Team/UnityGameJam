@@ -31,8 +31,9 @@ namespace UnityGameJam.Test.View
             }
         }
 
-        [Test]
-        public void 상태_리스트_순서가_바뀌어도_각_졸개의_행동이_맞고_빈_정보는_초기화된다()
+        [TestCase(EMinionActivity.Working, "작업 중")]
+        [TestCase(EMinionActivity.Recalling, "집결 중")]
+        public void 상태_리스트_순서가_바뀌어도_각_졸개의_행동이_맞고_빈_정보는_초기화된다(EMinionActivity activity, string label)
         {
             var source = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/@UnityGameJam/4_Prefab/UI/UI_MinionStatusPanel.prefab");
             var root = UnityEngine.Object.Instantiate(source);
@@ -42,11 +43,11 @@ namespace UnityGameJam.Test.View
                 typeof(MinionStatusPanel).GetMethod("OnEnable", Private).Invoke(panel, null);
                 panel.Show(new[] {
                     new MinionStatus(EWorkerType.Hellhound, EMinionActivity.Dispatching, null, null, false),
-                    new MinionStatus(EWorkerType.Slime, EMinionActivity.Working, null, null, false),
+                    new MinionStatus(EWorkerType.Slime, activity, null, null, false),
                     new MinionStatus(EWorkerType.Goblin, EMinionActivity.AwaitingResponse, null, null, false)
                 });
                 Assert.That(ReadActivity(panel, 0), Is.EqualTo("응답 대기"));
-                Assert.That(ReadActivity(panel, 3), Is.EqualTo("작업 중"));
+                Assert.That(ReadActivity(panel, 3), Is.EqualTo(label));
                 Assert.That(ReadActivity(panel, 1), Is.EqualTo("정보 없음"));
                 panel.Show(Array.Empty<MinionStatus>());
                 Assert.That(ReadActivity(panel, 0), Is.EqualTo("정보 없음"));

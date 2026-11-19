@@ -43,6 +43,8 @@ namespace UnityGameJam.Contract
         public FacilityLayout Layout { get; set; }
         public int Seed { get; set; }
         public IWorkerBody PlayerBody { get; set; }
+        internal IReadOnlyDictionary<(EFloor From, EFloor To), UnityEngine.Vector3> StairEntries { get; set; }
+        internal float StairTransitSeconds { get; set; }
         public Dictionary<EWorkerType, IMinionBody> MinionBodies { get; } = new Dictionary<EWorkerType, IMinionBody>();
     }
 }

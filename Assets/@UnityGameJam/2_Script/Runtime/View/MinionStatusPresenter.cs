@@ -16,6 +16,7 @@ namespace UnityGameJam.View
         [SerializeField] private GameObject _visual;
 
         private MinionAgent _agent;
+        private MatchBootstrap _bootstrap;
         private IMatchReadModel _model;
 
         public EPose CurrentPose => _animatorDriver != null ? _animatorDriver.CurrentPose : EPose.Idle;
@@ -27,9 +28,10 @@ namespace UnityGameJam.View
             _agent = GetComponent<MinionAgent>();
         }
 
-        public void Initialize(IMatchReadModel model)
+        internal void Initialize(MatchBootstrap bootstrap)
         {
-            _model = model;
+            _bootstrap = bootstrap;
+            _model = bootstrap.Session;
             _model.ItemChanged += OnItemChanged;
         }
 
@@ -77,11 +79,12 @@ namespace UnityGameJam.View
 
         private bool TryGetStatus(out MinionStatus status)
         {
-            foreach (MinionStatus candidate in _model.Minions)
+            var minions = _bootstrap.PresentedMinions;
+            for (int index = 0; index < minions.Count; index++)
             {
-                if (candidate.Minion == _agent.Worker)
+                if (minions[index].Minion == _agent.Worker)
                 {
-                    status = candidate;
+                    status = minions[index];
                     return true;
                 }
             }

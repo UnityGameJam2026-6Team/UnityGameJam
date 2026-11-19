@@ -42,6 +42,8 @@ namespace UnityGameJam.View
         private bool _isCompletionChecked;
         private PlayerController _playerController;
         private PlayerInteractor _playerInteractor;
+        private int _minionStatusFrame = -1;
+        private IReadOnlyList<MinionStatus> _presentedMinions;
 
         public bool IsPaused { get; set; }
         public float? CompletionSeconds { get; private set; }
@@ -58,6 +60,20 @@ namespace UnityGameJam.View
         internal PlayerController PlayerController => _playerController;
         internal PlayerInteractor PlayerInteractor => _playerInteractor;
         public IReadOnlyList<MinionAgent> Minions => _minions;
+        internal IReadOnlyList<MinionStatus> PresentedMinions
+        {
+            get
+            {
+                // LateUpdate에서 졸개 자세, 소품, HUD와 오디오가 같은 목록을 읽는다.
+                if (_minionStatusFrame != Time.frameCount)
+                {
+                    _presentedMinions = Session.Minions;
+                    _minionStatusFrame = Time.frameCount;
+                }
+                return _presentedMinions;
+            }
+        }
+
         internal FloorCameraFollow ViewCamera => _camera;
         internal FloorAuthoring ArrivalFloor => Array.Find(_floors, floor => floor != null && floor.Floor == EFloor.Floor1);
         public int OpeningNumber { get; private set; }
@@ -134,7 +150,11 @@ namespace UnityGameJam.View
                 _roomVisibility.RevealAt(Player.Floor, start);
             }
 
-            var setup = new MatchSetup { Layout = Layout, Seed = _seed, PlayerBody = Player };
+            var setup = new MatchSetup
+            {
+                Layout = Layout, Seed = _seed, PlayerBody = Player,
+                StairEntries = stairs.Entries, StairTransitSeconds = _viewSettings.StairTransitSeconds
+            };
             yield return SpawnMinions(setup, stairs, lineCenter);
             Session = _factory.Create(setup);
 
@@ -146,7 +166,7 @@ namespace UnityGameJam.View
             foreach (MinionAgent minion in _minions)
             {
                 var status = minion.GetComponent<MinionStatusPresenter>();
-                status.Initialize(Session);
+                status.Initialize(this);
                 interactor.RegisterMinion(minion, status);
             }
             if (_camera != null) { _camera.SetTarget(Player.transform); }

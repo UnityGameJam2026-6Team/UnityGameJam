@@ -337,7 +337,14 @@ namespace UnityGameJam.View
         {
             foreach (MinionStatus status in _minions.ToList())
             {
-                if (!_bodies.TryGetValue(status.Minion, out IMinionBody body) || !body.HasArrived) { continue; }
+                if (!_bodies.TryGetValue(status.Minion, out IMinionBody body)) { continue; }
+                if (body.HasMoveFailed)
+                {
+                    body.Stop();
+                    SetActivity(status.Minion, EMinionActivity.LobbyIdle);
+                    continue;
+                }
+                if (!body.HasArrived) { continue; }
                 switch (status.Activity)
                 {
                     case EMinionActivity.MovingToRoom:

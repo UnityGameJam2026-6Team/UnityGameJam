@@ -44,6 +44,7 @@ namespace UnityGameJam.Player
         private TMP_Text _directionLabel;
         private string _arrowText;
         private string _interactKey;
+        private (int Frame, ECommandSkill Skill)? _cooldownPress;
         private Vector3 _wasteScale;
         private float _playerHead;
         private CanvasGroup _targetMarkerGroup;
@@ -66,6 +67,9 @@ namespace UnityGameJam.Player
         }
 
         internal EWorkerType? AvailableConversationTarget => !GameMenu.BlocksGameplayInput && isActiveAndEnabled && CurrentChoice.Kind == EInteractionKind.TalkToMinion && !_playerController.IsInConversation ? CurrentChoice.Minion : null;
+
+        internal ECommandSkill? CooldownSkillPressedThisFrame =>
+            _cooldownPress is { } press && press.Frame == Time.frameCount ? press.Skill : null;
 
         private bool CanInteract => !GameMenu.BlocksGameplayInput && _session?.MatchState == EMatchState.Running && !_playerController.IsHandling
             && !_playerController.IsInStairTransit && !_playerController.IsInConversation;
@@ -94,7 +98,7 @@ namespace UnityGameJam.Player
             _heldHomeSlot = null;
             _directionLabel = _wasteArrow != null ? _wasteArrow.GetComponent<TMP_Text>() : null;
             _arrowText = _directionLabel != null ? _directionLabel.text : null;
-            _interactKey = _interactAction?.action.GetBindingDisplayString();
+            RefreshInteractKey();
             _playerHead = HeadHeight(this);
             _markedMinion = null;
             if (_targetMarker != null)
@@ -117,6 +121,8 @@ namespace UnityGameJam.Player
 
         public void SetInteractionDistance(float distance) => _interactionDistance = distance;
 
+        internal void RefreshInteractKey() => _interactKey = _interactAction?.action.GetBindingDisplayString();
+
         private void Update()
         {
             if (GameMenu.BlocksGameplayInput) { return; }
@@ -137,12 +143,14 @@ namespace UnityGameJam.Player
             if (_interactAction != null && _interactAction.action.WasPressedThisFrame()) { Execute(CurrentChoice); }
         }
 
-        private static void CastSkill(ICommandSkillSession skills, ECommandSkill skill)
+        private void CastSkill(ICommandSkillSession skills, ECommandSkill skill)
         {
-            if (skills.SkillCooldownRemaining(skill) <= 0f && !skills.TryCastSkill(skill))
+            if (skills.SkillCooldownRemaining(skill) > 0f)
             {
-                GameSfxPlayer.Play(ESfxCue.Unavailable);
+                _cooldownPress = (Time.frameCount, skill);
+                return;
             }
+            if (!skills.TryCastSkill(skill)) { GameSfxPlayer.Play(ESfxCue.Unavailable); }
         }
 
         internal bool TryGetGroundWorkContext(out PlayerInteractionContext context)

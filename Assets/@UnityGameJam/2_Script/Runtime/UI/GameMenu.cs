@@ -139,6 +139,7 @@ namespace UnityGameJam.UI
         public void ToggleControls()
         {
             GameControlSettings.Toggle();
+            _bootstrap?.PlayerInteractor?.RefreshInteractKey();
             RefreshControlLabels();
             GameSfxPlayer.Play(ESfxCue.Confirm);
         }

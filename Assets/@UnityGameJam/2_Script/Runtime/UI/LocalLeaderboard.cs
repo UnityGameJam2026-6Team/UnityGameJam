@@ -34,17 +34,49 @@ namespace UnityGameJam.UI
         internal static LocalLeaderboard ForThisPc() =>
             new LocalLeaderboard(Path.Combine(Application.persistentDataPath, "leaderboard.json"));
 
-        internal List<Entry> Read()
+        internal List<Entry> Read() => ReadWithBackup(out _);
+
+        private List<Entry> ReadWithBackup(out bool recoveredFromBackup)
         {
-            History history = new History();
-            if (File.Exists(_path))
+            string backup = _path + ".bak";
+            recoveredFromBackup = false;
+            try
             {
-                history = JsonUtility.FromJson<History>(File.ReadAllText(_path));
-                if (history?.Entries == null)
-                {
-                    throw new InvalidDataException("기존 순위표 기록을 읽을 수 없습니다.");
-                }
+                return ReadFile(_path);
             }
+            catch (FileNotFoundException) when (!File.Exists(backup))
+            {
+                return new List<Entry>();
+            }
+            catch (DirectoryNotFoundException)
+            {
+                return new List<Entry>();
+            }
+            catch (Exception exception) when (exception is FileNotFoundException ||
+                (exception is InvalidDataException && File.Exists(backup)))
+            {
+                recoveredFromBackup = true;
+                return ReadFile(backup);
+            }
+        }
+
+        private static List<Entry> ReadFile(string path)
+        {
+            string json = File.ReadAllText(path);
+            History history;
+            try
+            {
+                history = JsonUtility.FromJson<History>(json);
+            }
+            catch (ArgumentException exception)
+            {
+                throw new InvalidDataException("기존 순위표 기록을 읽을 수 없습니다.", exception);
+            }
+            if (history?.Entries == null)
+            {
+                throw new InvalidDataException("기존 순위표 기록을 읽을 수 없습니다.");
+            }
+
             foreach (Entry saved in history.Entries)
             {
                 if (saved == null || (string.IsNullOrWhiteSpace(saved.Nickname) && string.IsNullOrEmpty(saved.Id)) ||
@@ -60,20 +92,14 @@ namespace UnityGameJam.UI
 
         internal List<Entry> Add(Entry entry)
         {
-            List<Entry> entries = Read();
+            List<Entry> entries = ReadWithBackup(out bool recoveredFromBackup);
             bool hasNickname = !string.IsNullOrWhiteSpace(entry.Nickname);
             int index = hasNickname
                 ? entries.FindIndex(saved => saved.Nickname == entry.Nickname)
                 : entries.FindIndex(saved => string.IsNullOrWhiteSpace(saved.Nickname) && saved.Id == entry.Id);
-            if (index >= 0)
-            {
-                if (!hasNickname || CompareScores(entry, entries[index]) >= 0) { return entries; }
-                entries[index] = entry;
-            }
-            else
-            {
-                entries.Add(entry);
-            }
+            if (index < 0) { entries.Add(entry); }
+            else if (hasNickname && CompareScores(entry, entries[index]) < 0) { entries[index] = entry; }
+            else if (!recoveredFromBackup) { return entries; }
             entries.Sort(Compare);
 
             Directory.CreateDirectory(Path.GetDirectoryName(_path));
@@ -81,7 +107,9 @@ namespace UnityGameJam.UI
             File.WriteAllText(temporary, JsonUtility.ToJson(new History { Entries = entries }, true));
             if (File.Exists(_path))
             {
-                File.Replace(temporary, _path, _path + ".bak");
+                // 정상 백업을 손상된 원본으로 덮어쓰지 않는다.
+                string previous = _path + (recoveredFromBackup ? ".corrupt" : ".bak");
+                File.Replace(temporary, _path, previous);
             }
             else
             {

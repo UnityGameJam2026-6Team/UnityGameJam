@@ -107,7 +107,7 @@ namespace UnityGameJam.View
         private void LateUpdate()
         {
             if (_session == null || _session.MatchState != EMatchState.Running) { return; }
-            IReadOnlyList<MinionStatus> statuses = _session.Minions;
+            IReadOnlyList<MinionStatus> statuses = _bootstrap.PresentedMinions;
             UpdateMop(_units[EWorkerType.Player], _session.IsPlayerHoldingMop, _session.IsPlayerWorking);
             foreach (MinionStatus status in statuses)
             {

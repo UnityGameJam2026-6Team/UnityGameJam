@@ -7,6 +7,10 @@ namespace UnityGameJam.UI
 {
     internal sealed class CommandSkillHud
     {
+        private static readonly Color _textColor = new Color(1f, .96f, .82f);
+        private static readonly Color _cooldownHighlight = new Color(1f, .79f, .42f);
+        private const float CooldownFlashSeconds = .25f;
+
         private sealed class Slot
         {
             internal Image Frame, Icon, Sweep;
@@ -14,6 +18,7 @@ namespace UnityGameJam.UI
             internal Color Accent;
             internal int LastSeconds = -1;
             internal float FlashUntil;
+            internal float CooldownFlashUntil;
         }
 
         private readonly Slot[] _slots = new Slot[2];
@@ -38,9 +43,13 @@ namespace UnityGameJam.UI
             track.gameObject.SetActive(false);
         }
 
-        internal void Show(ICommandSkillSession skills)
+        internal void Show(ICommandSkillSession skills, ECommandSkill? cooldownPressed)
         {
             float now = Time.unscaledTime;
+            if (cooldownPressed is ECommandSkill pressed)
+            {
+                _slots[(int)pressed].CooldownFlashUntil = now + CooldownFlashSeconds;
+            }
             if (skills.LastSkillCast.Sequence != _lastCast)
             {
                 _lastCast = skills.LastSkillCast.Sequence;
@@ -59,7 +68,10 @@ namespace UnityGameJam.UI
                     slot.Time.text = seconds > 0 ? Seconds(seconds) : "";
                 }
                 slot.Sweep.fillAmount = Mathf.Clamp01(left / skills.SkillCooldown(skill));
-                slot.Icon.color = left > 0f ? new Color(.64f, .59f, .68f) : Color.white;
+                float cooldownPulse = Mathf.Clamp01((slot.CooldownFlashUntil - now) / CooldownFlashSeconds);
+                Color iconColor = left > 0f ? new Color(.64f, .59f, .68f) : Color.white;
+                slot.Icon.color = Color.Lerp(iconColor, _cooldownHighlight, cooldownPulse);
+                slot.Time.color = Color.Lerp(_textColor, _cooldownHighlight, cooldownPulse);
                 float pulse = Mathf.Clamp01((slot.FlashUntil - now) / .32f);
                 slot.Frame.color = Color.Lerp(slot.Accent, new Color(1f, .96f, .77f), pulse);
                 slot.Frame.rectTransform.localScale = Vector3.one * (1f + pulse * .055f);
@@ -128,7 +140,7 @@ namespace UnityGameJam.UI
             text.fontStyle = FontStyles.Bold;
             text.alignment = TextAlignmentOptions.Center;
             text.textWrappingMode = TextWrappingModes.NoWrap;
-            text.color = new Color(1f, .96f, .82f);
+            text.color = _textColor;
             text.raycastTarget = false;
             return text;
         }

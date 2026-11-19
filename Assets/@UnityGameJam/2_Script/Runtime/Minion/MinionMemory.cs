@@ -44,6 +44,16 @@ namespace UnityGameJam.Minion
         private static readonly EZoneId[] KnownZones = (EZoneId[])System.Enum.GetValues(typeof(EZoneId));
         private readonly Dictionary<EZoneId, RoomObservation> _observations = new Dictionary<EZoneId, RoomObservation>();
         private readonly Dictionary<EZoneId, RoomReport> _shared = new();
+        private readonly HashSet<EZoneId> _roomsToResurvey = new();
+
+        public void InvalidateRoom(EZoneId zone)
+        {
+            _observations.Remove(zone);
+            _shared.Remove(zone);
+            _roomsToResurvey.Add(zone);
+        }
+
+        public bool NeedsResurvey(EZoneId zone) => _roomsToResurvey.Contains(zone);
 
         public void BeginSurvey(EZoneId zone)
         {
@@ -82,7 +92,7 @@ namespace UnityGameJam.Minion
                 if (IsVisible(spawn.Position, position, radius)) { room.SeenSpawnPoints.Add(spawn.Position); }
                 else { hasUnseenPoint = true; }
             }
-            if (!hasUnseenPoint) { room.IsScouted = true; }
+            if (!hasUnseenPoint && !NeedsResurvey(zone)) { room.IsScouted = true; }
             UpdateReport(room, revision);
         }
 
@@ -121,6 +131,7 @@ namespace UnityGameJam.Minion
 
         public void FinishPatrol(EZoneId zone, FacilityLayout layout, int revision)
         {
+            _roomsToResurvey.Remove(zone);
             if (_observations.TryGetValue(zone, out RoomObservation room))
             {
                 room.IsScouted = layout.SpawnPoints.Where(point => point.Zone == zone)

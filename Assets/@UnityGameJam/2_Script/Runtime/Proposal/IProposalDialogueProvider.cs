@@ -14,17 +14,20 @@ namespace UnityGameJam.Proposal
         public readonly EWorkerType Partner;
         public readonly int PartnerAssignmentId;
         public readonly int FloorChanges;
+        public readonly float EstimatedSeconds;
 
         public EProposalKind Kind => Partner == EWorkerType.Player ? EProposalKind.PlayerAssistance : EProposalKind.MinionCollaboration;
 
         public CollaborationPlan((EZoneId Zone, int ItemId, EContaminationType Type) ownTask,
-            (EZoneId Zone, int ItemId, EContaminationType Type) partnerTask, EWorkerType partner, int partnerAssignmentId, int floorChanges)
+            (EZoneId Zone, int ItemId, EContaminationType Type) partnerTask, EWorkerType partner, int partnerAssignmentId,
+            int floorChanges, float estimatedSeconds)
         {
             OwnTask = ownTask;
             PartnerTask = partnerTask;
             Partner = partner;
             PartnerAssignmentId = partnerAssignmentId;
             FloorChanges = floorChanges;
+            EstimatedSeconds = estimatedSeconds;
         }
     }
 

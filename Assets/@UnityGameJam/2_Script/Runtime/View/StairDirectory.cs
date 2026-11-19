@@ -8,6 +8,7 @@ namespace UnityGameJam.View
     public sealed class StairDirectory
     {
         private readonly Dictionary<(EFloor From, EFloor To), Vector3> _entries = new();
+        internal IReadOnlyDictionary<(EFloor From, EFloor To), Vector3> Entries => _entries;
 
         public static StairDirectory FromFloors(IEnumerable<FloorAuthoring> floors)
         {
