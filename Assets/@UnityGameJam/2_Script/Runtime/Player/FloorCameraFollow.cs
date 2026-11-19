@@ -25,6 +25,9 @@ namespace UnityGameJam.Player
         private readonly List<Vector3> _framingPoints = new();
         private readonly RaycastHit[] _obstructions = new RaycastHit[12];
 
+        /// <summary>지금 따라가는 대상(플레이어). 벽 반투명 처리가 시선 검사에 쓴다.</summary>
+        public Transform Target => _target;
+
         private void Awake() => _camera = GetComponent<Camera>();
 
         private void OnDestroy()

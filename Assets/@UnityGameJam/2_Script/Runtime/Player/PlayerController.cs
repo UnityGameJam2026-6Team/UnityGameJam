@@ -24,7 +24,6 @@ namespace UnityGameJam.Player
         private PlayerBody _body;
         private IMatchSession _session;
         private CarryAnimationState _carry;
-        private InputAction _sprint;
         private float _baseSpeed;
         private EWorkerType _talkWorker;
         private Transform _talkPartner;
@@ -44,20 +43,19 @@ namespace UnityGameJam.Player
         {
             _controller = GetComponent<CharacterController>();
             _body = GetComponent<PlayerBody>();
-            _sprint = _moveAction?.action?.actionMap?.FindAction("Sprint");
         }
 
         private void OnEnable()
         {
             if (_moveAction != null) { _moveAction.action.Enable(); }
-            _sprint?.Enable();
         }
 
         public void Initialize(IMatchSession session, StairDirectory stairs, ViewSettingsSO settings, FloorCameraFollow camera = null)
         {
             _session = session;
             _baseSpeed = session.PlayerMoveSpeed;
-            _carry = new CarryAnimationState(EWorkerType.Player, BeginHandling);
+            // 플레이어는 줍기·내려놓기 동작 없이 바로 들고 놓는다(조작이 끊기지 않게). 졸개는 동작을 그대로 보여 준다.
+            _carry = new CarryAnimationState(EWorkerType.Player, static (_, _) => { });
             _session.ItemChanged += _carry.Observe;
             _session.MatchStateChanged += OnMatchStateChanged;
             _stairs = stairs;
@@ -96,7 +94,8 @@ namespace UnityGameJam.Player
 
             Vector3 direction = new Vector3(input.x, 0f, input.y);
             if (direction.sqrMagnitude > 1f) { direction.Normalize(); }
-            bool running = _sprint != null && _sprint.IsPressed() && !_carry.CarriedType.HasValue && !_carry.IsHoldingMop;
+            // 기본 이동은 달리기다. 물건이나 걸레를 들었을 때만 운반 걸음으로 바뀐다.
+            bool running = !_carry.CarriedType.HasValue && !_carry.IsHoldingMop;
             float speed = _carry.GetMoveSpeed(_animatorDriver, _baseSpeed, _session.PlayerMoveSpeed, running);
             _controller.SimpleMove(direction * speed);
 
@@ -169,11 +168,6 @@ namespace UnityGameJam.Player
             direction.y = 0f;
             if (direction.sqrMagnitude <= 0.000001f) { return; }
             actor.rotation = Quaternion.RotateTowards(actor.rotation, Quaternion.LookRotation(direction), _settings.PlayerTurnSpeed * Time.deltaTime);
-        }
-
-        private void BeginHandling(bool pickingUp, bool heavy)
-        {
-            if (_session.MatchState == EMatchState.Running) { _animatorDriver?.BeginHandling(pickingUp, heavy); }
         }
 
         private void OnMatchStateChanged(EMatchState state)

@@ -15,9 +15,9 @@ MonoBehaviour:
   _completionCountdownSeconds: 2
   _interactRadius: 1.5
   _playerTurnSpeed: 720
-  _cameraHeight: 18
-  _cameraBackDistance: 12
-  _cameraPitch: 56
+  _cameraHeight: 6.5
+  _cameraBackDistance: 8.5
+  _cameraPitch: 36
   _cameraSmoothTime: 0.15
   _conversationCameraPitch: 24
   _conversationFrameHeight: 0.67
@@ -44,11 +44,11 @@ MonoBehaviour:
   _globalMoveRate: 1
   _globalAnimationRate: 1
   _playerMotion:
-    _walkRate: 1
-    _runRate: 1
-    _carryRate: 1
-    _heavyCarryRate: 1
-    _mopWalkRate: 1
+    _walkRate: 2
+    _runRate: 2
+    _carryRate: 2
+    _heavyCarryRate: 2
+    _mopWalkRate: 2
     _idleAnimationRate: 1
     _walkAnimationRate: 1
     _runAnimationRate: 1

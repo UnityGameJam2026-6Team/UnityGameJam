@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 8873898632682984609}
   - component: {fileID: 5930657988997463688}
   - component: {fileID: 3124968332839938015}
+  - component: {fileID: 3282673779229638477}
   m_Layer: 0
   m_Name: SYS_MainCamera
   m_TagString: MainCamera
@@ -117,7 +118,7 @@ MonoBehaviour:
     m_Bits: 1
   m_VolumeTrigger: {fileID: 0}
   m_VolumeFrameworkUpdateModeOption: 2
-  m_RenderPostProcessing: 0
+  m_RenderPostProcessing: 1
   m_Antialiasing: 0
   m_AntialiasingQuality: 2
   m_StopNaN: 0
@@ -151,3 +152,25 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.Player.FloorCameraFollow
   _settings: {fileID: 11400000, guid: 4fa4de6e83935ad46870ce51993abb41, type: 2}
+--- !u!114 &3282673779229638477
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1237345487479857357}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4fa313fcd5b280b41a877ce9dc0ddd53, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.Player.WallOcclusionFader
+  _fadeMaterial: {fileID: 2100000, guid: c7fd48301a0965a4985ba7f0dff4afa8, type: 2}
+  _probeRadius: 0.45
+  _probeHeights:
+  - 0.6
+  - 1.4
+  _holeCenterHeight: 0.9
+  _holeRadius: 1.5
+  _holeSoftness: 0.35
+  _minOpacity: 0.2
+  _fadeSpeed: 5
