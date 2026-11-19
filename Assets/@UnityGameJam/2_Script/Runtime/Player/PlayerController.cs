@@ -1,3 +1,4 @@
+using UnityGameJam.UI;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityGameJam.Contract;
@@ -68,6 +69,7 @@ namespace UnityGameJam.Player
 
         private void Update()
         {
+            if (GameMenu.BlocksGameplayInput) { return; }
             if (_session == null || _session.MatchState != EMatchState.Running || _moveAction == null) { return; }
             RefreshMop();
             if (IsHandling)

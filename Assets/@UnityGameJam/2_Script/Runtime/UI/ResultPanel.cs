@@ -105,6 +105,7 @@ namespace UnityGameJam.UI
 
         private void OnLeaderboardNavigate(InputAction.CallbackContext context)
         {
+            if (GameMenu.BlocksGameplayInput) { return; }
             float horizontal = context.ReadValue<Vector2>().x;
             int direction = horizontal > 0.5f ? 1 : horizontal < -0.5f ? -1 : 0;
             if (!_isReloading && direction != 0 && direction != _pageDirection) { _leaderboard.ChangePage(direction); }
@@ -126,7 +127,7 @@ namespace UnityGameJam.UI
 
         private void Restart()
         {
-            if (_isReloading) { return; }
+            if (_isReloading || GameMenu.BlocksGameplayInput) { return; }
             _isReloading = true;
             GameSfxPlayer.Restart();
             _restartButton.interactable = false;

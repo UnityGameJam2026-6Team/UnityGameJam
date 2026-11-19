@@ -94,6 +94,7 @@ namespace UnityGameJam.UI
 
         private void LateUpdate()
         {
+            if (GameMenu.BlocksGameplayInput) { return; }
             IMatchSession session = _bootstrap != null ? _bootstrap.Session : null;
             if (session == null) { return; }
             ShowTime(session.RemainingTime);

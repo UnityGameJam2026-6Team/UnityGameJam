@@ -1,3 +1,4 @@
+using UnityGameJam.UI;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -64,6 +65,7 @@ namespace UnityGameJam.Player
 
         private void Update()
         {
+            if (GameMenu.BlocksGameplayInput) { return; }
             if (_playerController != null && _playerController.IsTalkingToHellhound &&
                 (!IsHellhoundVisible || PlayerInteractionSelector.DistanceXZ(transform.position, _hellhound.position) > _interactionDistance))
             {

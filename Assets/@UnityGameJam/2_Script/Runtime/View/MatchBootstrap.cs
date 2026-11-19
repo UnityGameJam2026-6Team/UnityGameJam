@@ -37,6 +37,7 @@ namespace UnityGameJam.View
         private PlayerController _playerController;
         private PlayerInteractor _playerInteractor;
 
+        public bool IsPaused { get; set; }
         public float? CompletionSeconds { get; private set; }
         public bool IsFastForwarding => CompletionSeconds.HasValue && Session.MatchState == EMatchState.Running;
 
@@ -133,7 +134,7 @@ namespace UnityGameJam.View
 
         private void Update()
         {
-            if (Session == null) { return; }
+            if (Session == null || IsPaused) { return; }
             if (IsFastForwarding)
             {
                 Session.Tick(Time.unscaledDeltaTime * _fastForwardRate);

@@ -254,7 +254,7 @@ namespace UnityGameJam.UI
 
         private void Respond(int messageId, bool approve)
         {
-            if (_session == null || _isTalking || _session.MatchState != EMatchState.Running) { return; }
+            if (GameMenu.BlocksGameplayInput || _session == null || _isTalking || _session.MatchState != EMatchState.Running) { return; }
             IReadOnlyList<MinionStatus> minions = _session.Minions;
             for (int i = 0; i < minions.Count; i++)
             {

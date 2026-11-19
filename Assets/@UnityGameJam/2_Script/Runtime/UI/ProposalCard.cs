@@ -41,6 +41,9 @@ namespace UnityGameJam.UI
         private RectTransform _rect;
         private UnityEngine.UI.LayoutElement _layout;
         private Action<int, bool> _respond;
+        private TMP_Text _approveLabel;
+        private TMP_Text _holdLabel;
+        private int _controlMode = -1;
 
         public int MessageId => _messageId;
         public bool IsDismissing { get; private set; }
@@ -51,6 +54,8 @@ namespace UnityGameJam.UI
             if (_rect != null) { return; }
             _rect = (RectTransform)transform;
             _layout = GetComponent<UnityEngine.UI.LayoutElement>();
+            _approveLabel = _approveButton != null ? _approveButton.GetComponentInChildren<TMP_Text>(true) : null;
+            _holdLabel = _holdButton != null ? _holdButton.GetComponentInChildren<TMP_Text>(true) : null;
             if (_approveButton != null) { _approveButton.onClick.AddListener(Approve); }
             if (_holdButton != null) { _holdButton.onClick.AddListener(Hold); }
         }
@@ -72,6 +77,13 @@ namespace UnityGameJam.UI
         {
             if (_rect == null) { Awake(); }
             bool isNewMessage = _messageId != message.MessageId;
+            int mode = GameControlSettings.UseSpaceAndMouse ? 1 : 0;
+            if (_controlMode != mode)
+            {
+                if (_approveLabel != null) { _approveLabel.text = mode == 1 ? "확인" : "확인 K / Y"; }
+                if (_holdLabel != null) { _holdLabel.text = mode == 1 ? "보류" : "보류 L / N"; }
+                _controlMode = mode;
+            }
             bool isProposal = message.Kind == EMessageKind.Proposal;
             _isTarget = isProposal && isTarget && !IsDismissing;
             float width = _rect.rect.width;
