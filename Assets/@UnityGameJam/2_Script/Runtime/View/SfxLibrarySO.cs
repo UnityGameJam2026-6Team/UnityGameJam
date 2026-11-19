@@ -9,7 +9,8 @@ namespace UnityGameJam.View
         TitleStamp, TitleTextPop, TitleCrownLand, RoundStart, OneMinute, TimerNudge, Heartbeat, TimeUp,
         Success, Failure, LightStep, HeavyStep, SkeletonStep, SlimeStep, HoundStep,
         SoftPickup, SoftPlace, HardPickup, HardPlace, HeavyPickup, HeavyPlace, Organized,
-        MopBorrow, MopReturn, MopScrub, StainClear, Swallow, DigestDone, HoundDispatch, HoundReturn, RoomTone
+        MopBorrow, MopReturn, MopScrub, StainClear, Swallow, DigestDone, HoundDispatch, HoundReturn, RoomTone,
+        SkillShout, SkillSurge, OpeningTick, ComicPanel, EndingDoorOpen, EndingHoundGreet, EndingTrashThrow
     }
 
     [CreateAssetMenu(menuName = "UnityGameJam/SFX Library", fileName = "SfxLibrary")]

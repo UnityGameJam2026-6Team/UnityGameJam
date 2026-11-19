@@ -49,6 +49,10 @@ MonoBehaviour:
     Clips:
     - {fileID: 8300000, guid: 91a98d17981adc44db69822f2c8e5727, type: 3}
     Volume: 0.6
+  - Kind: 44
+    Clips:
+    - {fileID: 8300000, guid: be07c0dbd162056478c48669b6571ca9, type: 3}
+    Volume: 0.52
   _worldVoices: 1
   _stepVoices: 1
   _minionScrubVoices: 1

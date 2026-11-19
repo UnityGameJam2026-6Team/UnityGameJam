@@ -51,6 +51,7 @@ namespace UnityGameJam.UI
         private Quaternion _throwRotation;
         private bool _trashReleased;
         private bool _hasImpact;
+        private bool _hasDogGreeted;
 
         private void Awake()
         {
@@ -205,6 +206,7 @@ namespace UnityGameJam.UI
                 _trash = Instantiate(trash.gameObject, ground, rotation, _bootstrap.transform).transform;
                 _trash.gameObject.SetActive(false);
             }
+            GameSfxPlayer.Play(ESfxCue.EndingDoorOpen);
             UpdateEntrance(0f);
             return true;
         }
@@ -295,6 +297,12 @@ namespace UnityGameJam.UI
             _stageDog.transform.SetPositionAndRotation(position, isRunning ? Facing(start, stop) : Facing(position, kingPosition));
             if (runTime >= _ending.DogRunSeconds)
             {
+                if (!_hasDogGreeted)
+                {
+                    _hasDogGreeted = true;
+                    _stageDog.SetPose(EPose.Idle);
+                    GameSfxPlayer.Play(ESfxCue.EndingHoundGreet);
+                }
                 _stageDog.SampleCinematicClip(_ending.DogGreeting, runTime - _ending.DogRunSeconds);
             }
             else
@@ -327,6 +335,7 @@ namespace UnityGameJam.UI
                 _stagePlayer.SampleCinematicState(ECharacterAnimation.PickUpHeavy, _ending.ThrowReleaseAt);
                 GetThrowGrip(out _throwFrom, out _throwRotation);
                 _trashReleased = true;
+                GameSfxPlayer.Play(ESfxCue.EndingTrashThrow);
             }
             _stagePlayer.SampleCinematicState(ECharacterAnimation.PickUpHeavy, poseTime);
             Vector3 contact = kingPosition + Vector3.up * _ending.ThrowTargetHeight + kingFacing * Vector3.forward * 0.32f;
@@ -393,6 +402,7 @@ namespace UnityGameJam.UI
                 if (minion.Actor != null) { Destroy(minion.Actor); }
             }
             _stageMinions.Clear();
+            _hasDogGreeted = false;
             if (_trash != null) { Destroy(_trash.gameObject); }
             if (_demonKing != null) { Destroy(_demonKing); }
             _demonKing = null;

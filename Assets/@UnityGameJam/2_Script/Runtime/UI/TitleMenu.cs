@@ -121,6 +121,7 @@ namespace UnityGameJam.UI
             foreach (CanvasGroup panel in _comicPanels)
             {
                 yield return WaitForComicKey();
+                GameSfxPlayer.Play(ESfxCue.ComicPanel);
                 yield return RevealPanel(panel);
             }
 

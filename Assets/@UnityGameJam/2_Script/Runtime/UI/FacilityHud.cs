@@ -285,7 +285,11 @@ namespace UnityGameJam.UI
             {
                 _lastOpeningNumber = number;
                 _openingNumber.gameObject.SetActive(number > 0);
-                if (number > 0) { _openingNumber.sprite = _countdown.digitSprites[number]; }
+                if (number > 0)
+                {
+                    _openingNumber.sprite = _countdown.digitSprites[number];
+                    GameSfxPlayer.Play(ESfxCue.OpeningTick);
+                }
             }
             if (number <= 0) { return; }
             float settle = Mathf.Clamp01(_bootstrap.OpeningBeatProgress / 0.2f);
