@@ -198,6 +198,30 @@ MonoBehaviour:
     Clips:
     - {fileID: 8300000, guid: 13f3f25ab444f3741891bae85b7baae7, type: 3}
     Volume: 0.12
+  - Kind: 41
+    Clips:
+    - {fileID: 8300000, guid: aa1dccb4f751ea140b3650f50fa5a0c4, type: 3}
+    Volume: 0.62
+  - Kind: 42
+    Clips:
+    - {fileID: 8300000, guid: ee4c605642c9f8c43aa7588a139a0ca2, type: 3}
+    Volume: 0.57
+  - Kind: 43
+    Clips:
+    - {fileID: 8300000, guid: 90b92f4298943bc4fb02895089e58a3a, type: 3}
+    Volume: 0.54
+  - Kind: 45
+    Clips:
+    - {fileID: 8300000, guid: b701be1dcb8402749b8133e7d4af87f1, type: 3}
+    Volume: 0.2
+  - Kind: 46
+    Clips:
+    - {fileID: 8300000, guid: 26dd4ca684c0e9e4abeeefef3e97b24e, type: 3}
+    Volume: 0.47
+  - Kind: 47
+    Clips:
+    - {fileID: 8300000, guid: 3c3ee64489cdcb14698ba75f4a4508c8, type: 3}
+    Volume: 0.45
   _worldVoices: 8
   _stepVoices: 4
   _minionScrubVoices: 2

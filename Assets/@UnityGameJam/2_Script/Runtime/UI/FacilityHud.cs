@@ -46,6 +46,10 @@ namespace UnityGameJam.UI
         private readonly List<InputAction> _suspendedActions = new List<InputAction>();
         private static readonly EZoneId[] Zones = (EZoneId[])Enum.GetValues(typeof(EZoneId));
         private int _lastSecond = -1;
+        private int _shownItemRevision = -1;
+        private EZoneId? _shownZone;
+        private EFloor? _shownFloor;
+        private float _facilityCleanliness;
         [SerializeField] private DemonKing.UI.DemonKingCountdownHUD _countdown;
 
         private void Awake()
@@ -118,11 +122,7 @@ namespace UnityGameJam.UI
             if (session == null || session.MatchState == EMatchState.Ready) { _countdown?.PauseTimer(); return; }
             SetGameplayHudVisible(true);
             ShowTime(session.RemainingTime);
-            EZoneId? zone = session.PlayerZone;
-            _zone.text = zone.HasValue ? ZoneDisplayName.GetFullName(zone.Value) : ZoneDisplayName.GetFloorLabel(_bootstrap.Player.Floor);
-            _zoneProgress.gameObject.SetActive(zone.HasValue);
-            if (zone.HasValue) { ShowProgress(_zoneProgress, session.GetZoneCleanliness(zone.Value), session.ZoneThreshold); }
-            ShowFacilityProgress(session.FacilityCleanliness, session.FacilityThreshold, Time.unscaledDeltaTime);
+            UpdateCleanliness(session);
             IReadOnlyList<MinionStatus> minions = session.Minions;
             _minionPanel.Show(minions);
             bool isWorking = session.IsPlayerWorking;
@@ -250,6 +250,13 @@ namespace UnityGameJam.UI
         internal void EndMatch()
         {
             ShowTime(0f);
+            IMatchSession session = _bootstrap.Session;
+            if (session != null)
+            {
+                float cleanliness = session.FacilityCleanliness;
+                ShowProgress(_facilityProgress, cleanliness, session.FacilityThreshold);
+                AnimateFacilityProgress(cleanliness, session.FacilityThreshold, 0f);
+            }
             // 대화 중 마감되면 기존 잠금을 다음 판까지 유지한다.
             if (!_talking.HasValue) { SuspendPlayerInput(); }
             _bootstrap.PlayerController.EndHellhoundTalk();
@@ -292,9 +299,35 @@ namespace UnityGameJam.UI
             _minionPanel.IsToggleBlocked = !isVisible;
         }
 
-        private void ShowFacilityProgress(float cleanliness, float threshold, float deltaTime)
+        private void UpdateCleanliness(IMatchSession session)
         {
-            ShowProgress(_facilityProgress, cleanliness, threshold);
+            EZoneId? zone = session.PlayerZone;
+            EFloor floor = _bootstrap.Player.Floor;
+            bool zoneChanged = zone != _shownZone || floor != _shownFloor;
+            int revision = _bootstrap.ItemRevision;
+            bool itemsChanged = revision != _shownItemRevision;
+            if (zoneChanged)
+            {
+                _shownZone = zone;
+                _shownFloor = floor;
+                _zone.text = zone.HasValue ? ZoneDisplayName.GetFullName(zone.Value) : ZoneDisplayName.GetFloorLabel(floor);
+                _zoneProgress.gameObject.SetActive(zone.HasValue);
+            }
+            if (zone.HasValue && (zoneChanged || itemsChanged))
+            {
+                ShowProgress(_zoneProgress, session.GetZoneCleanliness(zone.Value), session.ZoneThreshold);
+            }
+            if (itemsChanged)
+            {
+                _shownItemRevision = revision;
+                _facilityCleanliness = session.FacilityCleanliness;
+                ShowProgress(_facilityProgress, _facilityCleanliness, session.FacilityThreshold);
+            }
+            AnimateFacilityProgress(_facilityCleanliness, session.FacilityThreshold, Time.unscaledDeltaTime);
+        }
+
+        private void AnimateFacilityProgress(float cleanliness, float threshold, float deltaTime)
+        {
             if (_facilitySlider == null) { return; }
 
             float target = Mathf.Clamp(cleanliness, _facilitySlider.minValue, _facilitySlider.maxValue);
@@ -348,12 +381,27 @@ namespace UnityGameJam.UI
 
         private void DispatchHellhound()
         {
-            if (_talking != EWorkerType.Hellhound || !_bootstrap.PlayerController.IsTalkingToHellhound ||
-                _bootstrap.Session.MatchState != EMatchState.Running) { return; }
+            if (GameMenu.BlocksGameplayInput || _talking != EWorkerType.Hellhound ||
+                !_bootstrap.PlayerController.IsTalkingToHellhound || _bootstrap.Session.MatchState != EMatchState.Running) { return; }
             _bootstrap.PlayerController.EndHellhoundTalk();
-            bool accepted = _bootstrap.Session.DispatchHellhound();
-            GameAudioPresenter.QuietHoundNotice();
-            GameSfxPlayer.Play(accepted ? ESfxCue.Confirm : ESfxCue.Unavailable);
+            IMatchSession session = _bootstrap.Session;
+            int previousCount = session.ActiveMessages.Count;
+            if (session.DispatchHellhound())
+            {
+                GameSfxPlayer.Play(ESfxCue.Confirm);
+                return;
+            }
+
+            IReadOnlyList<MessageEntry> messages = session.ActiveMessages;
+            if (messages.Count > previousCount)
+            {
+                MessageEntry notice = messages[messages.Count - 1];
+                if (notice.Kind == EMessageKind.Notice && notice.Minion == EWorkerType.Hellhound)
+                {
+                    GameAudioPresenter.QuietNotice(notice.MessageId);
+                }
+            }
+            GameSfxPlayer.Play(ESfxCue.Unavailable);
         }
 
         private void Cancel()

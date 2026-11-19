@@ -27,7 +27,12 @@ namespace UnityGameJam.Test
             var rect = (RectTransform)panel.transform;
             Assert.That(rect.anchorMin.y, Is.Zero);
             Assert.That(rect.anchorMax.y, Is.EqualTo(1f));
-            Assert.That(((RectTransform)rect.Find("Dialogue")).anchorMin, Is.EqualTo(new Vector2(0.5f, 1f)));
+            var dialogue = (RectTransform)rect.Find("Dialogue");
+            Assert.That(dialogue.anchorMin, Is.EqualTo(Vector2.one));
+            Assert.That(dialogue.anchorMax, Is.EqualTo(Vector2.one));
+            Assert.That(dialogue.pivot, Is.EqualTo(Vector2.one));
+            Assert.That(dialogue.anchoredPosition.x, Is.LessThan(0f));
+            Assert.That(dialogue.sizeDelta.x - dialogue.anchoredPosition.x, Is.LessThanOrEqualTo(1280f));
             Assert.That(((RectTransform)rect.Find("Choice")).anchorMin, Is.EqualTo(new Vector2(0.5f, 0f)));
             Assert.That(((RectTransform)rect.Find("HellhoundChoices")).anchorMin, Is.EqualTo(new Vector2(0.5f, 0f)));
             Assert.That(rect.Find("Choice/KeyboardHints"), Is.Null);

@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
@@ -11,6 +12,8 @@ namespace UnityGameJam.View
     [DisallowMultipleComponent]
     public sealed class ContaminationView : MonoBehaviour
     {
+        private const int OpeningItemsPerFrame = 8;
+
         private sealed class HeldVisual
         {
             public readonly GameObject Instance;
@@ -59,6 +62,7 @@ namespace UnityGameJam.View
         private CommandSkillCast _skillCast;
         private float _skillEffectStarted;
         private bool _isMopMissing;
+        private int _preparationVersion;
 
         private void Awake()
         {
@@ -67,11 +71,15 @@ namespace UnityGameJam.View
 
         private void OnEnable()
         {
-            if (_bootstrap.Session != null) { Prepare(); }
+            if (_bootstrap.Session != null) { StartCoroutine(Prepare(int.MaxValue)); }
         }
 
-        internal void Prepare()
+        internal IEnumerator PrepareOpening() => Prepare(OpeningItemsPerFrame);
+
+        private IEnumerator Prepare(int itemsPerFrame)
         {
+            if (_session != null) { yield break; }
+            int version = ++_preparationVersion;
             _session = _bootstrap.Session;
             _playerInteractor = _bootstrap.Player.GetComponent<PlayerInteractor>();
             _carriers[EWorkerType.Player] = (_bootstrap.Player.transform, _bootstrap.Player.GetComponent<CharacterController>().height,
@@ -83,14 +91,22 @@ namespace UnityGameJam.View
             }
 
             _session.ItemChanged += OnItemChanged;
-            foreach (ItemSnapshot item in _session.Items)
+            IReadOnlyList<ItemSnapshot> items = _session.Items;
+            for (int i = 0; i < items.Count; i++)
             {
+                ItemSnapshot item = items[i];
                 if (UpdateItem(item)) { _movingItems.Add(item); }
+                if ((i + 1) % itemsPerFrame == 0 && i + 1 < items.Count)
+                {
+                    yield return null;
+                    if (version != _preparationVersion) { yield break; }
+                }
             }
         }
 
         private void OnDisable()
         {
+            _preparationVersion++;
             if (_session != null) { _session.ItemChanged -= OnItemChanged; }
             _session = null;
             _changedItems.Clear();
@@ -119,7 +135,7 @@ namespace UnityGameJam.View
 
         private void LateUpdate()
         {
-            if (_session == null) { return; }
+            if (_session == null || _session.MatchState == EMatchState.Ready) { return; }
 
             for (int i = _movingItems.Count - 1; i >= 0; i--)
             {

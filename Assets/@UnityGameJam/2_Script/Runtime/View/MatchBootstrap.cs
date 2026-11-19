@@ -14,6 +14,7 @@ namespace UnityGameJam.View
     public sealed class MatchBootstrap : MonoBehaviour
     {
         private const int OpeningSeconds = 5;
+        private const int WindowsFrameRateLimit = 60;
         private const float OpeningFadeSeconds = 0.2f;
 
         [Header("판")]
@@ -36,6 +37,7 @@ namespace UnityGameJam.View
         private readonly List<MinionAgent> _minions = new List<MinionAgent>();
         private RoomVisibility _roomVisibility;
         private float _initialMatchTime;
+        private int? _previousTargetFrameRate;
         private float _fastForwardRate;
         private bool _isCompletionChecked;
         private PlayerController _playerController;
@@ -49,6 +51,7 @@ namespace UnityGameJam.View
         public IReadOnlyDictionary<int, string> HomeSlotKinds => _homeSlotKinds;
         public ViewSettingsSO ViewSettings => _viewSettings;
         public IMatchSession Session { get; private set; }
+        internal int ItemRevision { get; private set; }
         public float MatchDuration => _factory.MatchDuration ?? _initialMatchTime;
         public FacilityLayout Layout { get; private set; }
         public PlayerBody Player { get; private set; }
@@ -100,6 +103,16 @@ namespace UnityGameJam.View
                 yield break;
             }
 
+            if (Application.platform == RuntimePlatform.WindowsPlayer && QualitySettings.vSyncCount == 0)
+            {
+                int target = Application.targetFrameRate;
+                if (target <= 0 || target > WindowsFrameRateLimit)
+                {
+                    _previousTargetFrameRate = target;
+                    Application.targetFrameRate = WindowsFrameRateLimit;
+                }
+            }
+
             foreach (FloorAuthoring floor in _floors)
             {
                 if (floor == null) { continue; }
@@ -141,7 +154,7 @@ namespace UnityGameJam.View
             Session.ItemChanged += OnItemChanged;
             if (TryGetComponent(out ContaminationView contaminationView) && contaminationView.isActiveAndEnabled)
             {
-                contaminationView.Prepare();
+                yield return contaminationView.PrepareOpening();
             }
 
             Vector3 openingCenter = (start + lineCenter) * 0.5f;
@@ -204,10 +217,16 @@ namespace UnityGameJam.View
         private void OnItemChanged(ItemSnapshot item)
         {
             _isCompletionChecked = false;
+            ItemRevision++;
         }
 
         private void OnDestroy()
         {
+            if (_previousTargetFrameRate.HasValue && Application.targetFrameRate == WindowsFrameRateLimit)
+            {
+                Application.targetFrameRate = _previousTargetFrameRate.Value;
+            }
+
             if (Session != null) { Session.ItemChanged -= OnItemChanged; }
             (Session as IDisposable)?.Dispose();
         }
