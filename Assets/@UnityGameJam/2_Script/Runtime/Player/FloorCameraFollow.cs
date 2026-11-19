@@ -20,6 +20,8 @@ namespace UnityGameJam.Player
         private Quaternion _conversationRotation;
         private Vector3 _conversationFocusOffset;
         private float _conversationDistance;
+        private float _conversationScreenCenter;
+        private float _conversationScreenHeight;
         private Vector3 _blendFromFocus;
         private Vector3 _blendFromOffset;
         private Quaternion _blendFromRotation;
@@ -40,7 +42,7 @@ namespace UnityGameJam.Player
             _isBlending = false;
         }
 
-        public void SetConversationPartner(Transform partner)
+        public void SetConversationPartner(Transform partner, Vector2 viewportY = default)
         {
             if (_conversationPartner == partner) { return; }
             if (_target != null && _settings != null) { StartBlend(); }
@@ -54,6 +56,10 @@ namespace UnityGameJam.Player
             Vector3 focus = ConversationMidpoint();
             focus.y = bounds.center.y;
             _conversationFocusOffset = focus - ConversationMidpoint();
+            float availableHeight = viewportY.y - viewportY.x;
+            _conversationScreenCenter = availableHeight > 0f ? viewportY.x + viewportY.y - 1f : 0f;
+            _conversationScreenHeight = availableHeight > 0f
+                ? Mathf.Min(availableHeight * 0.92f, _settings.ConversationFrameHeight) : _settings.ConversationFrameHeight;
             SetConversationFraming(focus);
         }
 
@@ -120,7 +126,7 @@ namespace UnityGameJam.Player
         private float VerticalSlope => Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
 
         private Vector3 ConversationPosition(Vector3 focus, Quaternion rotation, float distance) =>
-            focus + rotation * new Vector3(0f, distance * VerticalSlope * 0.12f, -distance);
+            focus + rotation * new Vector3(0f, -distance * VerticalSlope * _conversationScreenCenter, -distance);
 
         private void SetConversationFraming(Vector3 focus)
         {
@@ -137,14 +143,16 @@ namespace UnityGameJam.Player
         {
             _conversationRotation = Quaternion.Euler(pitch, 0f, 0f);
             Quaternion inverseRotation = Quaternion.Inverse(_conversationRotation);
-            float vertical = VerticalSlope * _settings.ConversationFrameHeight;
-            // 양옆 대사와 지시 패널 사이의 중앙 영역에 두 유닛을 담는다.
-            float horizontal = VerticalSlope * _camera.aspect * 0.44f;
+            float slope = VerticalSlope;
+            float vertical = slope * _conversationScreenHeight;
+            float horizontal = slope * _camera.aspect * 0.85f;
             float distance = 2.3f;
             foreach (Vector3 point in _framingPoints)
             {
                 Vector3 local = inverseRotation * (point - focus);
-                distance = Mathf.Max(distance, Mathf.Max(Mathf.Abs(local.x) / horizontal, Mathf.Abs(local.y) / vertical) - local.z);
+                // 상하 패널 사이의 중심이 화면 중앙과 다를 때도 모델 전체를 그 안에 맞춘다.
+                float verticalOffset = local.y - local.z * slope * _conversationScreenCenter;
+                distance = Mathf.Max(distance, Mathf.Max(Mathf.Abs(local.x) / horizontal, Mathf.Abs(verticalOffset) / vertical) - local.z);
             }
             _conversationDistance = distance;
         }
@@ -171,21 +179,30 @@ namespace UnityGameJam.Player
             {
                 foreach (Renderer renderer in slot.Model.GetComponentsInChildren<Renderer>())
                 {
-                    if (renderer.enabled) { AddBoundsCorners(renderer.bounds); }
+                    if (!renderer.enabled) { continue; }
+                    if (renderer is SkinnedMeshRenderer skin && skin.sharedMesh != null)
+                    {
+                        // 대화는 제자리에서 진행되므로 이동 클립 전체의 컬링 범위 대신 기본 모델에 여유를 둔다.
+                        Bounds modelBounds = skin.sharedMesh.bounds;
+                        modelBounds.Expand(modelBounds.size * 0.15f);
+                        AddBoundsCorners(modelBounds, skin.localToWorldMatrix);
+                    }
+                    else { AddBoundsCorners(renderer.bounds, Matrix4x4.identity); }
                 }
             }
             if (_framingPoints.Count == initialCount)
             {
-                AddBoundsCorners(new Bounds(actor.position + Vector3.up * 0.65f, new Vector3(0.65f, 1.3f, 0.65f)));
+                AddBoundsCorners(new Bounds(actor.position + Vector3.up * 0.65f, new Vector3(0.65f, 1.3f, 0.65f)), Matrix4x4.identity);
             }
         }
 
-        private void AddBoundsCorners(Bounds bounds)
+        private void AddBoundsCorners(Bounds bounds, Matrix4x4 localToWorld)
         {
             for (int corner = 0; corner < 8; corner++)
             {
-                _framingPoints.Add(new Vector3((corner & 1) == 0 ? bounds.min.x : bounds.max.x,
-                    (corner & 2) == 0 ? bounds.min.y : bounds.max.y, (corner & 4) == 0 ? bounds.min.z : bounds.max.z));
+                var point = new Vector3((corner & 1) == 0 ? bounds.min.x : bounds.max.x,
+                    (corner & 2) == 0 ? bounds.min.y : bounds.max.y, (corner & 4) == 0 ? bounds.min.z : bounds.max.z);
+                _framingPoints.Add(localToWorld.MultiplyPoint3x4(point));
             }
         }
     }

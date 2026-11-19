@@ -63,13 +63,13 @@ namespace UnityGameJam.View
                 && (_roomVisibility == null || !_roomVisibility.IsCovered(floor, position));
         }
 
-        public void FocusConversation(EWorkerType? worker)
+        public void FocusConversation(EWorkerType? worker, Vector2 viewportY = default)
         {
             if (_camera == null) { return; }
             foreach (MinionAgent minion in _minions)
             {
                 if (minion.Worker != worker) { continue; }
-                _camera.SetConversationPartner(minion.transform);
+                _camera.SetConversationPartner(minion.transform, viewportY);
                 return;
             }
             _camera.SetConversationPartner(null);

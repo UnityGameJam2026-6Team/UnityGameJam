@@ -19,6 +19,21 @@ namespace UnityGameJam.Test
         }
 
         [Test]
+        public void 대화는_상단_이름표와_하단_명령을_표시하고_방향키_안내는_제거한다()
+        {
+            var hud = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/@UnityGameJam/4_Prefab/UI/UI_HudRoot.prefab");
+            var presenter = new SerializedObject(hud.GetComponent<FacilityHud>());
+            var panel = (GameObject)presenter.FindProperty("_choices").objectReferenceValue;
+            var rect = (RectTransform)panel.transform;
+            Assert.That(rect.anchorMin.y, Is.Zero);
+            Assert.That(rect.anchorMax.y, Is.EqualTo(1f));
+            Assert.That(((RectTransform)rect.Find("Dialogue")).anchorMin, Is.EqualTo(new Vector2(0.5f, 1f)));
+            Assert.That(((RectTransform)rect.Find("Choice")).anchorMin, Is.EqualTo(new Vector2(0.5f, 0f)));
+            Assert.That(((RectTransform)rect.Find("HellhoundChoices")).anchorMin, Is.EqualTo(new Vector2(0.5f, 0f)));
+            Assert.That(rect.Find("Choice/KeyboardHints"), Is.Null);
+        }
+
+        [Test]
         public void 헬하운드_대화의_배출과_취소는_방_목록과_분리되고_서로_이동할_수_있다()
         {
             var hud = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/@UnityGameJam/4_Prefab/UI/UI_HudRoot.prefab");

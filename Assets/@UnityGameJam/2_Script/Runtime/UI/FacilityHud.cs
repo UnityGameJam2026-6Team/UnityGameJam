@@ -30,7 +30,8 @@ namespace UnityGameJam.UI
         [SerializeField] private RectTransform _workFill;
         private MatchBootstrap _bootstrap;
         private Slider _facilityProgressSlider;
-        private RectTransform _assignmentPanel;
+        private RectTransform _dialoguePanel;
+        private RectTransform _hudRect;
         private AssignmentPanelChoices _panelChoices;
         private RectTransform _workGaugeRect;
         private float _workGaugeOriginY;
@@ -47,7 +48,8 @@ namespace UnityGameJam.UI
             _facilityProgressSlider = _facilityProgress.GetComponentInParent<Slider>(true);
             if (_countdown == null) { _countdown = GetComponentInChildren<DemonKing.UI.DemonKingCountdownHUD>(true); }
             if (_countdown != null) { _countdown.PauseTimer(); }
-            _assignmentPanel = (RectTransform)_choices.transform;
+            if (_assignmentDialogue != null) { _dialoguePanel = (RectTransform)_assignmentDialogue.transform.parent; }
+            _hudRect = (RectTransform)transform;
             _workGaugeRect = (RectTransform)_workGauge.transform;
             _workGaugeOriginY = _workGaugeRect.anchoredPosition.y;
             _assignmentTitle.text = "작업 지시";
@@ -137,13 +139,13 @@ namespace UnityGameJam.UI
                 }
                 else { CloseAssignmentPanel(); }
                 _talking = talking?.Minion;
-                _bootstrap.FocusConversation(_talking);
+                if (_talking.HasValue) { _bootstrap.FocusConversation(_talking, GetConversationViewportY()); }
             }
             if (_talking.HasValue && EventSystem.current != null &&
                 EventSystem.current.currentInputModule is InputSystemUIInputModule input &&
                 input.cancel?.action?.WasPressedThisFrame() == true) { Cancel(); }
             RectTransform messageBoundary = _minionPanel.Rect;
-            if (talking.HasValue) { messageBoundary = _assignmentPanel; }
+            if (talking.HasValue) { messageBoundary = _panelChoices.VisibleChoices; }
             else if (isWorking) { messageBoundary = _workGaugeRect; }
             _proposalStack.Show(session, minions, _bootstrap.MatchDuration - session.RemainingTime,
                 messageBoundary, wasTalking || talking.HasValue);
@@ -207,6 +209,17 @@ namespace UnityGameJam.UI
             if (_bootstrap != null && _bootstrap.PlayerController != null) { _bootstrap.PlayerController.EndHellhoundTalk(); }
             _bootstrap?.FocusConversation(null);
             RestorePlayerInput();
+        }
+
+        private Vector2 GetConversationViewportY()
+        {
+            if (_dialoguePanel == null) { return default; }
+            RectTransform commands = _panelChoices.VisibleChoices;
+            Vector3 commandsTop = commands.TransformPoint(0f, commands.rect.yMax, 0f);
+            Vector3 dialogueBottom = _dialoguePanel.TransformPoint(0f, _dialoguePanel.rect.yMin, 0f);
+            float min = Mathf.InverseLerp(_hudRect.rect.yMin, _hudRect.rect.yMax, _hudRect.InverseTransformPoint(commandsTop).y);
+            float max = Mathf.InverseLerp(_hudRect.rect.yMin, _hudRect.rect.yMax, _hudRect.InverseTransformPoint(dialogueBottom).y);
+            return new Vector2(min, max);
         }
 
         private void RestorePlayerInput()

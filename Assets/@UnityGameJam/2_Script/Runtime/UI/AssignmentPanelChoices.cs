@@ -13,6 +13,8 @@ namespace UnityGameJam.UI
         [SerializeField] private Button _dispatch;
         [SerializeField] private Button _cancelDispatch;
 
+        internal RectTransform VisibleChoices { get; private set; }
+
         internal void BindHellhoundCommands(UnityAction dispatch, UnityAction cancel)
         {
             _dispatch.onClick.AddListener(dispatch);
@@ -24,6 +26,7 @@ namespace UnityGameJam.UI
             bool isHellhound = worker == EWorkerType.Hellhound;
             _roomChoices.SetActive(!isHellhound);
             _hellhoundChoices.SetActive(isHellhound);
+            VisibleChoices = (RectTransform)(isHellhound ? _hellhoundChoices : _roomChoices).transform;
             if (isHellhound) { _dispatch.Select(); }
         }
     }
