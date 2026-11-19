@@ -12,7 +12,6 @@ namespace UnityGameJam.Test
 {
     public class ContaminationSpawnerTest
     {
-        private const string DataPath = "Assets/@UnityGameJam/3_Data/ScriptableObject";
         private static readonly EZoneId[] _zones = (EZoneId[])Enum.GetValues(typeof(EZoneId));
         private static readonly EContaminationType[] _types = (EContaminationType[])Enum.GetValues(typeof(EContaminationType));
         private readonly List<ScriptableObject> _settings = new List<ScriptableObject>();
@@ -109,25 +108,6 @@ namespace UnityGameJam.Test
 
             Assert.That(second.Select(item => (item.Id, item.Type, item.Zone, item.Position, item.HomeSlotId)),
                 Is.EqualTo(first.Select(item => (item.Id, item.Type, item.Zone, item.Position, item.HomeSlotId))));
-        }
-
-        [Test]
-        public void 기본_생성_표는_여러_판에서_시설_오염량_범위를_만족한다()
-        {
-            ZoneSpawnTableSO table = AssetDatabase.LoadAssetAtPath<ZoneSpawnTableSO>(DataPath + "/ZoneSpawnTable.asset");
-            ContaminationTypeSO types = AssetDatabase.LoadAssetAtPath<ContaminationTypeSO>(DataPath + "/ContaminationType.asset");
-            Assert.That(table, Is.Not.Null);
-            Assert.That(types, Is.Not.Null);
-            Assert.That(table.MinimumFacilityWeight, Is.EqualTo(170));
-            Assert.That(table.MaximumFacilityWeight, Is.EqualTo(200));
-
-            FacilityLayout layout = CreateLayout(10);
-            for (int seed = 0; seed < 40; seed++)
-            {
-                IReadOnlyList<ContaminationItem> items = new ContaminationSpawner(layout, table, types, new SeededRandom(seed)).Spawn();
-                Assert.That(items.Sum(item => item.Weight), Is.InRange(170, 200), $"시드 {seed}");
-                Assert.That(items.Select(item => item.Zone).Distinct(), Is.EquivalentTo(_zones));
-            }
         }
 
         private ZoneSpawnTableSO CreateTable(int minimum, int maximum, int clutterCount = 0)

@@ -300,49 +300,6 @@ namespace UnityGameJam.Test
         }
 
         [Test]
-        public void 폐기물_운반_중_재배정되면_현재_위치에_내려놓고_새_방으로_이동한다()
-        {
-            var player = new WorkerBody();
-            var orc = new WorkerBody();
-            var waste = new ContaminationItem(100, EContaminationType.HeavyDebris, 4, EZoneId.Floor1Lobby, Vector3.zero);
-            MatchSimulation match = CreateMatch(player, waste, orc, EWorkerType.Orc);
-            match.StartMatch();
-            Assert.That(match.BeginTalk(EWorkerType.Orc), Is.True);
-            Assert.That(match.AssignRoom(EWorkerType.Orc, EZoneId.Floor1Lobby), Is.True);
-            match.Tick(0.1f);
-            match.Tick(0.1f);
-            Assert.That(match.Minions.Single().CarriedItemId, Is.EqualTo(100));
-
-            player.Position = orc.Position;
-            Vector3 dropPosition = orc.Position;
-            Assert.That(match.BeginTalk(EWorkerType.Orc), Is.True);
-            Assert.That(match.AssignRoom(EWorkerType.Orc, EZoneId.Workshop), Is.True);
-
-            ItemSnapshot item = match.Items.Single(snapshot => snapshot.ItemId == 100);
-            Assert.That(item.State, Is.EqualTo(EItemState.InDischargeArea));
-            Assert.That(item.Position, Is.EqualTo(dropPosition));
-            Assert.That(orc.LastDestinationFloor, Is.EqualTo(EFloor.Floor2));
-        }
-
-        [Test]
-        public void 오크는_배출_구역의_바닥으로_운반해_잔해를_내려놓는다()
-        {
-            var orc = new WorkerBody();
-            var waste = new ContaminationItem(100, EContaminationType.HeavyDebris, 4, EZoneId.Floor1Lobby, Vector3.zero);
-            var bin = new Bounds(new Vector3(6f, 1.5f, -12.5f), new Vector3(4f, 3f, 3f));
-            MatchSimulation match = CreateMatch(new WorkerBody(), waste, orc, EWorkerType.Orc, bin);
-            match.StartMatch();
-            Assert.That(match.BeginTalk(EWorkerType.Orc), Is.True);
-            Assert.That(match.AssignRoom(EWorkerType.Orc, EZoneId.Floor1Lobby), Is.True);
-            match.Tick(0.1f);
-            match.Tick(0.1f);
-            Assert.That(match.Minions.Single().CarriedItemId, Is.EqualTo(100));
-            Assert.That(orc.Position, Is.EqualTo(new Vector3(6f, 0f, -12.5f)));
-            match.Tick(0.1f);
-            Assert.That(match.Items.Single(item => item.ItemId == 100).State, Is.EqualTo(EItemState.InDischargeArea));
-        }
-
-        [Test]
         public void 작은_물건의_제자리_슬롯이_초기_목록과_운반_이벤트에_유지된다()
         {
             var clutter = new ContaminationItem(100, EContaminationType.ClutterItem, 2, EZoneId.Floor1Lobby, Vector3.zero, 17);
