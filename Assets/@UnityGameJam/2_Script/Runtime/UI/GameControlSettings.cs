@@ -24,9 +24,11 @@ namespace UnityGameJam.UI
 
         public static void ApplySaved() => ApplyBindings();
 
-        public static void Toggle()
+        public static void Toggle() => SetUseSpaceAndMouse(!UseSpaceAndMouse);
+
+        internal static void SetUseSpaceAndMouse(bool useSpaceAndMouse)
         {
-            _useSpaceAndMouse = !UseSpaceAndMouse;
+            _useSpaceAndMouse = useSpaceAndMouse;
             _isLoaded = true;
             PlayerPrefs.SetInt(PreferenceKey, _useSpaceAndMouse ? 1 : 0);
             PlayerPrefs.Save();

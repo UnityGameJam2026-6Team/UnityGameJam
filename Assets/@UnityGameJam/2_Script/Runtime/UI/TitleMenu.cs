@@ -19,6 +19,8 @@ namespace UnityGameJam.UI
         [SerializeField] private GameObject _leaderboardOverlay;
         [SerializeField] private LeaderboardView _leaderboard;
         [SerializeField] private NameInputPanel _nameInput;
+        [SerializeField] private GameObject _controlsOverlay;
+        [SerializeField] private TMP_Text _controlsSelection;
         [SerializeField, Min(0.01f)] private float _fadeSeconds = 0.45f;
 
         [Header("로딩 만화")]
@@ -29,10 +31,50 @@ namespace UnityGameJam.UI
 
         private bool _isLoading;
         private AsyncOperation _pendingLoad;
+        private bool IsControlsOpen => _controlsOverlay != null && _controlsOverlay.activeSelf;
+
+        private void Update()
+        {
+            if (IsControlsOpen && Keyboard.current?.escapeKey.wasPressedThisFrame == true) { CloseControls(); }
+        }
+
+        public void OpenControls()
+        {
+            if (_isLoading || _nameInput.IsOpen || _leaderboardOverlay.activeSelf || IsControlsOpen) { return; }
+            RefreshControlsSelection();
+            _controlsOverlay.SetActive(true);
+            GameSfxPlayer.Play(ESfxCue.PanelOpen);
+        }
+
+        public void CloseControls()
+        {
+            if (!IsControlsOpen) { return; }
+            _controlsOverlay.SetActive(false);
+            GameSfxPlayer.Play(ESfxCue.PanelClose);
+        }
+
+        public void SelectTwoHandControls() => SelectControls(false);
+
+        public void SelectSpaceAndMouseControls() => SelectControls(true);
+
+        private void SelectControls(bool useSpaceAndMouse)
+        {
+            if (!IsControlsOpen) { return; }
+            GameControlSettings.SetUseSpaceAndMouse(useSpaceAndMouse);
+            RefreshControlsSelection();
+            GameSfxPlayer.Play(ESfxCue.Confirm);
+        }
+
+        private void RefreshControlsSelection()
+        {
+            _controlsSelection.text = GameControlSettings.UseSpaceAndMouse
+                ? "현재 선택 · 한손 + 마우스"
+                : "현재 선택 · 기본 양손";
+        }
 
         public void OpenLeaderboard()
         {
-            if (_isLoading || _nameInput.IsOpen) { return; }
+            if (_isLoading || _nameInput.IsOpen || IsControlsOpen) { return; }
             try
             {
                 _leaderboard.Show(LocalLeaderboard.ForThisPc().Read());
@@ -55,7 +97,7 @@ namespace UnityGameJam.UI
 
         public void StartGame()
         {
-            if (_isLoading || _nameInput.IsOpen || _leaderboardOverlay.activeSelf) { return; }
+            if (_isLoading || _nameInput.IsOpen || _leaderboardOverlay.activeSelf || IsControlsOpen) { return; }
             if (!Application.CanStreamedLevelBeLoaded(_gameScene))
             {
                 Debug.LogError($"빌드 씬 목록에서 게임 씬을 찾을 수 없습니다. ({_gameScene})", this);
@@ -77,7 +119,7 @@ namespace UnityGameJam.UI
 
         public void QuitGame()
         {
-            if (_isLoading || _nameInput.IsOpen) { return; }
+            if (_isLoading || _nameInput.IsOpen || IsControlsOpen) { return; }
             GameSfxPlayer.Play(ESfxCue.Confirm);
 #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;

@@ -8,6 +8,7 @@ namespace UnityGameJam.View
     public sealed class GameSfxPlayer : MonoBehaviour
     {
         [SerializeField] private SfxLibrarySO _library;
+        [SerializeField] private AudioSource _matchMusic;
         private static GameSfxPlayer _instance;
         private readonly Dictionary<ESfxCue, SfxLibrarySO.Cue> _cues = new();
         private readonly Dictionary<ESfxCue, int> _lastVariant = new();
@@ -64,6 +65,7 @@ namespace UnityGameJam.View
             UpdateListener();
             Play(ESfxCue.RoundStart);
             PlaySource(_ambient, ESfxCue.RoomTone, -1, true);
+            if (_matchMusic != null) { _matchMusic.Play(); }
         }
 
         private void LateUpdate()
@@ -188,6 +190,7 @@ namespace UnityGameJam.View
             foreach (AudioSource source in _steps) { source.Stop(); }
             foreach (AudioSource source in _scrubs.Values) { source.Stop(); }
             _ambient.Stop();
+            if (_matchMusic != null) { _matchMusic.Stop(); }
         }
 
         private AudioSource[] CreatePool(string name, int count, float spatial)
