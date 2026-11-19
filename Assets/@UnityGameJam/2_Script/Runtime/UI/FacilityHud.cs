@@ -54,6 +54,7 @@ namespace UnityGameJam.UI
         private int _shownItemRevision = -1;
         private EZoneId? _shownZone;
         private EFloor? _shownFloor;
+        private bool _shownToilet;
         private float _facilityCleanliness;
         [SerializeField] private DemonKing.UI.DemonKingCountdownHUD _countdown;
 
@@ -323,13 +324,17 @@ namespace UnityGameJam.UI
             EZoneId? zone = session.PlayerZone;
             EFloor floor = _bootstrap.Player.Floor;
             bool zoneChanged = zone != _shownZone || floor != _shownFloor;
+            bool isInToilet = !zone.HasValue && IsInToilet(floor, _bootstrap.Player.Position);
             int revision = _bootstrap.ItemRevision;
             bool itemsChanged = revision != _shownItemRevision;
-            if (zoneChanged)
+            if (zoneChanged || isInToilet != _shownToilet)
             {
                 _shownZone = zone;
                 _shownFloor = floor;
-                _zone.text = zone.HasValue ? ZoneDisplayName.GetFullName(zone.Value) : ZoneDisplayName.GetFloorLabel(floor);
+                _shownToilet = isInToilet;
+                string floorLabel = ZoneDisplayName.GetFloorLabel(floor);
+                _zone.text = zone.HasValue ? ZoneDisplayName.GetFullName(zone.Value)
+                    : isInToilet ? $"{floorLabel} 화장실" : floorLabel;
                 _zoneProgress.gameObject.SetActive(zone.HasValue);
             }
             if (zone.HasValue && (zoneChanged || itemsChanged))
@@ -343,6 +348,15 @@ namespace UnityGameJam.UI
                 ShowProgress(_facilityProgress, _facilityCleanliness, session.FacilityThreshold);
             }
             AnimateFacilityProgress(_facilityCleanliness, session.FacilityThreshold, Time.unscaledDeltaTime);
+        }
+
+        private bool IsInToilet(EFloor floor, Vector3 position)
+        {
+            foreach (ToiletStation toilet in _bootstrap.Layout.Toilets)
+            {
+                if (toilet.Floor == floor && FacilityLayoutValidator.ContainsXZ(toilet.Area, position)) { return true; }
+            }
+            return false;
         }
 
         private void AnimateFacilityProgress(float cleanliness, float threshold, float deltaTime)

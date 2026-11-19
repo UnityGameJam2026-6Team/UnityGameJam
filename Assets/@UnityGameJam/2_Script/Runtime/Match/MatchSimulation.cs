@@ -419,10 +419,14 @@ namespace UnityGameJam.Match
             _mopSeconds = 0f;
         }
 
-        public bool TryBorrowMop(EFloor floor)
-        {
-            return CanAct && floor == Player.Floor && GetCarriedItem() == null && _mops.TryBorrow(EWorkerType.Player, Player);
-        }
+        private bool CanAccessPlayerMopRack(EFloor floor) =>
+            CanAct && floor == Player.Floor && GetCarriedItem() == null;
+
+        public bool CanPlayerBorrowMop(EFloor floor) =>
+            CanAccessPlayerMopRack(floor) && _mops.CanBorrow(EWorkerType.Player, Player);
+
+        public bool TryBorrowMop(EFloor floor) =>
+            CanAccessPlayerMopRack(floor) && _mops.TryBorrow(EWorkerType.Player, Player);
 
         public bool TryReturnMop() => CanAct && !IsPlayerWorking && _mops.TryReturn(EWorkerType.Player, Player);
 

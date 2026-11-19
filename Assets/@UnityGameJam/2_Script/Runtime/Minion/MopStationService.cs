@@ -66,17 +66,17 @@ namespace UnityGameJam.Minion
             return closest;
         }
 
+        public bool CanBorrow(EWorkerType worker, IWorkerBody body) =>
+            body != null && !_borrowed.ContainsKey(worker)
+            && _stations.TryGetValue(body.Floor, out ToiletStation station)
+            && _available[station.Floor] > 0 && IsInReach(station, body);
+
         public bool TryBorrow(EWorkerType worker, IWorkerBody body)
         {
-            if (body == null || _borrowed.ContainsKey(worker)
-                || !_stations.TryGetValue(body.Floor, out ToiletStation station)
-                || _available[station.Floor] == 0 || !IsInReach(station, body))
-            {
-                return false;
-            }
+            if (!CanBorrow(worker, body)) { return false; }
 
-            _borrowed.Add(worker, station.Floor);
-            _available[station.Floor]--;
+            _borrowed.Add(worker, body.Floor);
+            _available[body.Floor]--;
             return true;
         }
 

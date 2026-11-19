@@ -57,6 +57,7 @@ namespace UnityGameJam.View
         private PlayerInteractor _playerInteractor;
         private Sprite _glowSprite;
         private SpriteRenderer _homeGlow;
+        private SpriteRenderer _mopRackGlow;
         private readonly SpriteRenderer[] _skillWaves = new SpriteRenderer[2];
         private readonly Dictionary<EWorkerType, SpriteRenderer> _boostGlows = new();
         private CommandSkillCast _skillCast;
@@ -112,6 +113,7 @@ namespace UnityGameJam.View
             _changedItems.Clear();
             _movingItems.Clear();
             if (_homeGlow != null) { _homeGlow.enabled = false; }
+            if (_mopRackGlow != null) { _mopRackGlow.enabled = false; }
             HideSkillEffects();
             foreach (HeldVisual item in _items.Values)
             {
@@ -191,6 +193,20 @@ namespace UnityGameJam.View
                 }
             }
             UpdateHomeGlow(_playerInteractor != null ? _playerInteractor.HeldHomeSlot : null, pulse);
+            UpdateMopRackGlow(visibleFloor != null ? _playerInteractor.CurrentChoice : InteractionChoice.None, pulse);
+        }
+
+        private void UpdateMopRackGlow(InteractionChoice choice, float pulse)
+        {
+            bool visible = choice.Kind == EInteractionKind.BorrowMop
+                && _session.CanPlayerBorrowMop(choice.Floor) && _bootstrap.CanSeeAt(choice.TargetPosition, choice.Floor);
+            if (visible)
+            {
+                if (_mopRackGlow == null) { _mopRackGlow = CreateGlow("걸레 보관대 발광", transform, 1.6f); }
+                _mopRackGlow.transform.position = choice.TargetPosition + Vector3.up * .05f;
+                _mopRackGlow.color = new Color(1f, .79f, .38f, pulse);
+            }
+            if (_mopRackGlow != null) { _mopRackGlow.enabled = visible; }
         }
 
         private void UpdateHomeGlow(HomeSlot slot, float pulse)

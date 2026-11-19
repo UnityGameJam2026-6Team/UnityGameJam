@@ -250,9 +250,11 @@ namespace UnityGameJam.View
             PlayerWorkProgress = 0f;
         }
 
+        public bool CanPlayerBorrowMop(EFloor floor) => CanAct() && !IsPlayerHoldingMop && !_carriedItemId.HasValue;
+
         public bool TryBorrowMop(EFloor floor)
         {
-            if (!CanAct() || IsPlayerHoldingMop || _carriedItemId.HasValue) { return false; }
+            if (!CanPlayerBorrowMop(floor)) { return false; }
             IsPlayerHoldingMop = true;
             return true;
         }

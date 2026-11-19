@@ -7,6 +7,7 @@ namespace UnityGameJam.Contract
     {
         void StartMatch();
         void Tick(float deltaTime);
+        bool CanPlayerBorrowMop(EFloor floor);
     }
 
     public enum ECommandSkill { Shout, Surge }
