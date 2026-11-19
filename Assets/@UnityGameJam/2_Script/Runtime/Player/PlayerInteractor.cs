@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityGameJam.Contract;
@@ -20,26 +21,62 @@ namespace UnityGameJam.Player
         [Header("표시")]
         [Tooltip("고른 대상 위에 띄우는 표시")]
         [SerializeField] private Transform _targetMarker;
+        [SerializeField] private RectTransform _wasteDirection;
+        [SerializeField] private RectTransform _wasteArrow;
 
         private readonly List<(EWorkerType Minion, Vector3 Position)> _minionPositions = new List<(EWorkerType, Vector3)>();
-        private readonly Dictionary<EWorkerType, Transform> _minions = new Dictionary<EWorkerType, Transform>();
+        private readonly Dictionary<EWorkerType, (MinionAgent Agent, MinionStatusPresenter Status, float Head)> _minions = new();
 
         private IMatchSession _session;
+        private InputAction _shoutAction;
+        private InputAction _surgeAction;
         private PlayerInteractionSelector _selector;
         private float _interactionDistance;
         private PlayerBody _playerBody;
         private PlayerController _playerController;
         private EFloor? _borrowedMopFloor;
-        private Vector3? _hellhoundStart;
+        private Transform _viewCamera;
+        private StairDirectory _stairs;
+        private FacilityLayout _layout;
+        private int? _shownCarriedItem;
+        private HomeSlot _heldHomeSlot;
+        private TMP_Text _directionLabel;
+        private string _arrowText;
+        private string _interactKey;
+        private Vector3 _wasteScale;
+        private float _playerHead;
+        private CanvasGroup _targetMarkerGroup;
+        private EWorkerType? _markedMinion;
+        private const float TargetMarkerFadeSeconds = 0.16f;
 
         public InteractionChoice CurrentChoice { get; private set; } = InteractionChoice.None;
+        internal HomeSlot HeldHomeSlot
+        {
+            get
+            {
+                int? itemId = _session?.PlayerCarriedItemId;
+                if (itemId != _shownCarriedItem)
+                {
+                    _shownCarriedItem = itemId;
+                    _heldHomeSlot = itemId.HasValue ? FindHeldHomeSlot(itemId.Value) : null;
+                }
+                return _heldHomeSlot;
+            }
+        }
+
+        private bool CanInteract => _session?.MatchState == EMatchState.Running && !_playerController.IsHandling
+            && !_playerController.IsInStairTransit && !_playerController.IsInConversation;
 
         private void OnEnable()
         {
             if (_interactAction != null) { _interactAction.action.Enable(); }
+            _shoutAction = _interactAction?.action?.actionMap?.FindAction("Shout");
+            _surgeAction = _interactAction?.action?.actionMap?.FindAction("Surge");
+            _shoutAction?.Enable();
+            _surgeAction?.Enable();
         }
 
-        public void Initialize(IMatchSession session, FacilityLayout layout, float interactionDistance)
+        public void Initialize(IMatchSession session, FacilityLayout layout, float interactionDistance, FloorCameraFollow camera, StairDirectory stairs)
         {
             _session = session;
             _interactionDistance = interactionDistance;
@@ -47,37 +84,75 @@ namespace UnityGameJam.Player
             _playerController = GetComponent<PlayerController>();
             _borrowedMopFloor = null;
             _selector = new PlayerInteractionSelector(layout);
-            _hellhoundStart = layout.StartPositions.TryGetValue(EWorkerType.Hellhound, out Vector3 hellhound) ? hellhound : (Vector3?)null;
-            if (_targetMarker != null) { _targetMarker.SetParent(null, true); } // 플레이어 회전을 따라가지 않게 분리
+            _viewCamera = camera != null ? camera.transform : null;
+            _stairs = stairs;
+            _layout = layout;
+            _shownCarriedItem = null;
+            _heldHomeSlot = null;
+            _directionLabel = _wasteArrow != null ? _wasteArrow.GetComponent<TMP_Text>() : null;
+            _arrowText = _directionLabel != null ? _directionLabel.text : null;
+            _interactKey = _interactAction?.action.GetBindingDisplayString();
+            _playerHead = HeadHeight(this);
+            _markedMinion = null;
+            if (_targetMarker != null)
+            {
+                _targetMarkerGroup = _targetMarker.GetComponentInChildren<CanvasGroup>(true);
+                if (_targetMarkerGroup != null) { _targetMarkerGroup.alpha = 0f; }
+                _targetMarker.gameObject.SetActive(false);
+            }
+            if (_wasteDirection != null) { _wasteScale = _wasteDirection.localScale; }
         }
 
-        /// <summary>졸개 몸(B3)이 생기면 등록한다. 헬하운드를 등록하면 시작점 대신 실제 위치로 배출 명령 대상을 고른다.</summary>
-        public void RegisterMinion(EWorkerType minion, Transform body)
+        public void RegisterMinion(MinionAgent agent, MinionStatusPresenter status) =>
+            _minions[agent.Worker] = (agent, status, HeadHeight(agent));
+
+        private static float HeadHeight(Component unit)
         {
-            _minions[minion] = body;
+            ArtSlot art = unit.GetComponentInChildren<ArtSlot>(true);
+            return (art != null && art.ModelTop > 0f ? art.ModelTop : 1.8f) + 0.25f;
         }
 
         public void SetInteractionDistance(float distance) => _interactionDistance = distance;
 
         private void Update()
         {
-            if (_session == null || _session.MatchState != EMatchState.Running || _playerController.IsHandling
-                || _playerController.IsInStairTransit || _playerController.IsInConversation)
+            if (_session is ICommandSkillSession skills && !_playerController.IsInStairTransit && !_playerController.IsInConversation)
+            {
+                if (_shoutAction?.WasPressedThisFrame() == true) { CastSkill(skills, ECommandSkill.Shout); }
+                else if (_surgeAction?.WasPressedThisFrame() == true) { CastSkill(skills, ECommandSkill.Surge); }
+            }
+            if (!CanInteract)
             {
                 CurrentChoice = InteractionChoice.None;
-                SetMarker(CurrentChoice);
                 return;
             }
 
             CurrentChoice = _session.IsPlayerWorking ? InteractionChoice.None : _selector.Select(BuildContext(), _session.Items, CollectMinions());
-            SetMarker(CurrentChoice);
 
             if (_interactAction != null && _interactAction.action.WasPressedThisFrame()) { Execute(CurrentChoice); }
         }
 
-        private void OnDestroy()
+        private static void CastSkill(ICommandSkillSession skills, ECommandSkill skill)
         {
-            if (_targetMarker != null) { Destroy(_targetMarker.gameObject); }
+            if (!skills.TryCastSkill(skill)) { GameSfxPlayer.Play(ESfxCue.Unavailable); }
+        }
+
+        internal bool TryGetGroundWorkContext(out PlayerInteractionContext context)
+        {
+            context = default;
+            if (!isActiveAndEnabled || !CanInteract || _session.IsPlayerWorking || _session.PlayerCarriedItemId.HasValue) { return false; }
+            context = BuildContext();
+            return true;
+        }
+
+        private void OnDisable()
+        {
+            _shoutAction?.Disable();
+            _surgeAction?.Disable();
+            _markedMinion = null;
+            if (_targetMarkerGroup != null) { _targetMarkerGroup.alpha = 0f; }
+            if (_targetMarker != null) { _targetMarker.gameObject.SetActive(false); }
+            if (_wasteDirection != null) { _wasteDirection.gameObject.SetActive(false); }
         }
 
         private PlayerInteractionContext BuildContext()
@@ -95,22 +170,41 @@ namespace UnityGameJam.Player
                     }
                 }
             }
-            Vector3? hellhound = _minions.TryGetValue(EWorkerType.Hellhound, out Transform body) && body != null ? body.position : _hellhoundStart;
+            Vector3? hellhound = _minions.TryGetValue(EWorkerType.Hellhound, out var hound)
+                && IsAvailable(hound.Agent) && hound.Status.IsAvailableForTalk ? hound.Agent.Position : null;
             return new PlayerInteractionContext(transform.position, _playerBody.Floor, _interactionDistance, carried,
                 _session.IsPlayerHoldingMop, _borrowedMopFloor, hellhound);
+        }
+
+        private HomeSlot FindHeldHomeSlot(int carriedId)
+        {
+            foreach (ItemSnapshot item in _session.Items)
+            {
+                if (item.ItemId != carriedId || item.Type != EContaminationType.ClutterItem || !item.HomeSlotId.HasValue) { continue; }
+                foreach (HomeSlot slot in _layout.HomeSlots)
+                {
+                    if (slot.SlotId == item.HomeSlotId.Value) { return slot; }
+                }
+                break;
+            }
+            return null;
         }
 
         private List<(EWorkerType, Vector3)> CollectMinions()
         {
             _minionPositions.Clear();
-            foreach (KeyValuePair<EWorkerType, Transform> pair in _minions)
+            foreach (var (agent, _, _) in _minions.Values)
             {
-                if (pair.Key == EWorkerType.Hellhound || pair.Value == null) { continue; }
-                if (pair.Value.TryGetComponent(out MinionAgent minion) && (minion.IsHandling || minion.IsInStairTransit)) { continue; }
-                _minionPositions.Add((pair.Key, pair.Value.position));
+                if (agent.Worker != EWorkerType.Hellhound && IsAvailable(agent))
+                {
+                    _minionPositions.Add((agent.Worker, agent.Position));
+                }
             }
             return _minionPositions;
         }
+
+        private bool IsAvailable(MinionAgent agent) => agent != null && agent.Floor == _playerBody.Floor
+            && !agent.IsHandling && !agent.IsInStairTransit;
 
         private void Execute(InteractionChoice choice)
         {
@@ -137,14 +231,11 @@ namespace UnityGameJam.Player
                     }
                     break;
                 case EInteractionKind.DispatchHellhound:
-                    accepted = _session.DispatchHellhound();
-                    GameAudioPresenter.QuietHoundNotice();
-                    break;
                 case EInteractionKind.TalkToMinion:
                     accepted = _session.BeginTalk(choice.Minion);
-                    if (accepted && _minions.TryGetValue(choice.Minion, out Transform partner))
+                    if (accepted && _minions.TryGetValue(choice.Minion, out var partner))
                     {
-                        _playerController.FaceForTalk(choice.Minion, partner);
+                        _playerController.FaceForTalk(choice.Minion, partner.Agent.transform);
                     }
                     break;
                 case EInteractionKind.StartMop:
@@ -160,12 +251,77 @@ namespace UnityGameJam.Player
             if (!accepted && choice.Kind != EInteractionKind.None) { GameSfxPlayer.Play(ESfxCue.Unavailable); }
         }
 
-        private void SetMarker(InteractionChoice choice)
+        private void UpdateTargetMarker(float deltaTime)
         {
-            if (_targetMarker == null) { return; }
-            bool isVisible = choice.Kind != EInteractionKind.None;
-            if (_targetMarker.gameObject.activeSelf != isVisible) { _targetMarker.gameObject.SetActive(isVisible); }
-            if (isVisible) { _targetMarker.SetPositionAndRotation(choice.TargetPosition + Vector3.up * 0.03f, Quaternion.identity); }
+            if (_targetMarkerGroup == null || _viewCamera == null) { return; }
+
+            bool canTalk = CurrentChoice.Kind is EInteractionKind.TalkToMinion or EInteractionKind.DispatchHellhound;
+            EWorkerType? candidate = canTalk && !_playerController.IsInConversation
+                && _minions.TryGetValue(CurrentChoice.Minion, out var selectable) && selectable.Agent != null
+                ? CurrentChoice.Minion : null;
+            _markedMinion ??= candidate;
+            bool isCurrent = _markedMinion.HasValue && _markedMinion == candidate;
+            float alpha = Mathf.MoveTowards(_targetMarkerGroup.alpha, isCurrent ? 1f : 0f,
+                deltaTime / TargetMarkerFadeSeconds);
+            _targetMarkerGroup.alpha = alpha;
+
+            if (alpha > 0f && _markedMinion.HasValue && _minions.TryGetValue(_markedMinion.Value, out var target)
+                && target.Agent != null)
+            {
+                _targetMarker.SetPositionAndRotation(target.Agent.Position + Vector3.up * target.Head, _viewCamera.rotation);
+            }
+            if (!isCurrent && alpha <= 0f) { _markedMinion = null; }
+
+            bool visible = alpha > 0f;
+            if (_targetMarker.gameObject.activeSelf != visible) { _targetMarker.gameObject.SetActive(visible); }
+        }
+
+        private void LateUpdate()
+        {
+            UpdateTargetMarker(Time.unscaledDeltaTime);
+
+            if (_wasteDirection == null || _wasteArrow == null) { return; }
+            HomeSlot home = HeldHomeSlot;
+            bool carryingWaste = _playerController != null
+                && (_playerController.CarriedType is EContaminationType.Trash or EContaminationType.HeavyDebris);
+            if (_viewCamera == null || _session?.MatchState != EMatchState.Running || (home == null && !carryingWaste)
+                || _playerController.IsInStairTransit)
+            {
+                _wasteDirection.gameObject.SetActive(false);
+                return;
+            }
+
+            EFloor floor = _playerBody.Floor;
+            Vector3 position = transform.position;
+            WasteBin bin = _playerController.CarriedType == EContaminationType.Trash
+                ? _layout.FindNearestWasteBin(floor, position) : null;
+            Bounds discharge = _layout.DischargeArea;
+            Vector3 destination = home?.Position ?? bin?.Position ?? discharge.center;
+            EFloor targetFloor = home != null ? ZoneDisplayName.GetFloor(home.Zone) : bin?.Floor ?? EFloor.Floor1;
+            bool visible = floor == targetFloor
+                || (_stairs != null && _stairs.TryGet(floor, floor + (floor < targetFloor ? 1 : -1), out destination));
+            _wasteDirection.gameObject.SetActive(visible);
+            if (!visible) { return; }
+
+            bool atDestination = floor == targetFloor && (home != null || bin != null
+                ? PlayerInteractionSelector.DistanceXZ(position, destination) <= _interactionDistance
+                : discharge.size.x > 0f && discharge.size.z > 0f && FacilityLayoutValidator.ContainsXZ(discharge, position));
+            bool canPlaceHere = home != null && CurrentChoice.Kind == EInteractionKind.PlaceAtHome;
+            bool canDropHere = atDestination && (canPlaceHere || (home == null && CurrentChoice.Kind == EInteractionKind.Drop));
+            bool showKey = canPlaceHere && !string.IsNullOrEmpty(_interactKey);
+            if (_directionLabel != null)
+            {
+                string label = showKey ? _interactKey : _arrowText;
+                if (_directionLabel.text != label) { _directionLabel.text = label; }
+            }
+            Vector3 offset = Vector3.ProjectOnPlane(destination - position, Vector3.up);
+            float angle = atDestination ? 180f :
+                Mathf.Atan2(-Vector3.Dot(offset, _viewCamera.right), Vector3.Dot(offset, _viewCamera.up)) * Mathf.Rad2Deg;
+            float bob = canDropHere ? .12f * (1f - Mathf.Cos(Time.time * Mathf.PI * 2.8f)) : 0f;
+            Vector3 arrowPosition = position + Vector3.up * (_playerHead + .30f) + _viewCamera.up * bob;
+            _wasteDirection.SetPositionAndRotation(arrowPosition, _viewCamera.rotation);
+            _wasteDirection.localScale = _wasteScale * Mathf.Lerp(1.45f, 0.7f, Mathf.Clamp01((atDestination ? 0f : offset.magnitude) / 12f));
+            _wasteArrow.localRotation = Quaternion.Euler(0f, 0f, showKey ? 0f : angle);
         }
     }
 }

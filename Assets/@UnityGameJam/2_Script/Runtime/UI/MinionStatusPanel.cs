@@ -19,6 +19,7 @@ namespace UnityGameJam.UI
             internal bool HasStatus;
             internal EZoneId? LastZone;
             internal EMinionActivity LastActivity;
+            internal bool WasBoosted;
         }
 
         [SerializeField] private Slot[] _slots = System.Array.Empty<Slot>();
@@ -30,6 +31,7 @@ namespace UnityGameJam.UI
         private float _expandedHeight;
         private float _collapsedHeight;
 
+        internal bool IsToggleBlocked { get; set; }
         internal RectTransform Rect { get; private set; }
         internal float HeightOffset => Rect.rect.height - _expandedHeight;
 
@@ -70,6 +72,7 @@ namespace UnityGameJam.UI
 
         private void OnToggle(InputAction.CallbackContext context)
         {
+            if (IsToggleBlocked) { return; }
             bool isExpanded = !_body.gameObject.activeSelf;
             SetExpanded(isExpanded);
             GameSfxPlayer.Play(isExpanded ? ESfxCue.PanelOpen : ESfxCue.PanelClose);
@@ -79,10 +82,9 @@ namespace UnityGameJam.UI
         {
             _body.gameObject.SetActive(isExpanded);
             Rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, isExpanded ? _expandedHeight : _collapsedHeight);
-            _title.text = isExpanded ? "졸개 현황  ·  Tab 접기" : "졸개 현황  ·  Tab 펼치기";
         }
 
-        public void Show(IReadOnlyList<MinionStatus> minions)
+        public void Show(IReadOnlyList<MinionStatus> minions, ICommandSkillSession skills = null)
         {
             foreach (Slot slot in _slots)
             {
@@ -110,10 +112,13 @@ namespace UnityGameJam.UI
                     slot._room.text = RoomName(status.AssignedZone);
                     slot.LastZone = status.AssignedZone;
                 }
-                if (!slot.HasStatus || slot.LastActivity != status.Activity)
+                bool boosted = skills?.BoostRemaining(status.Minion) > 0f;
+                if (!slot.HasStatus || slot.LastActivity != status.Activity || slot.WasBoosted != boosted)
                 {
-                    slot._activity.text = ActivityName(status.Activity);
+                    string activity = ActivityName(status.Activity);
+                    slot._activity.text = boosted ? activity + " ↑" : activity;
                     slot.LastActivity = status.Activity;
+                    slot.WasBoosted = boosted;
                 }
                 slot.HasStatus = true;
             }
@@ -142,6 +147,7 @@ namespace UnityGameJam.UI
             EMinionActivity.HandlingMop => "걸레 대여·반납",
             EMinionActivity.AwaitingResponse => "응답 대기",
             EMinionActivity.ReturningToLobby => "로비 복귀",
+            EMinionActivity.Recalling => "집결 중",
             EMinionActivity.Dispatching => "배출 중",
             _ => "기타"
         };

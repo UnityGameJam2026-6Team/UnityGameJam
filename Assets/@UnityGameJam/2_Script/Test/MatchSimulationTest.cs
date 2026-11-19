@@ -1,13 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
 using UnityGameJam.Cleaning;
 using UnityGameJam.Contract;
 using UnityGameJam.Data;
+using UnityGameJam.Facility;
 using UnityGameJam.Match;
+using UnityGameJam.Minion;
 
 namespace UnityGameJam.Test
 {
@@ -16,6 +19,87 @@ namespace UnityGameJam.Test
         private const string Folder = "Assets/@UnityGameJam/3_Data/ScriptableObject/";
         private static readonly EZoneId[] _zones = (EZoneId[])Enum.GetValues(typeof(EZoneId));
         private static readonly Vector3 _mopRack = new Vector3(50f, 0f, 0f);
+
+        [Test]
+        public void 공유된_방_정보는_새로운_관찰을_반영하고_같은_내용을_다시_알리지_않는다()
+        {
+            const EZoneId zone = EZoneId.Storage;
+            var layout = new FacilityLayout();
+            layout.SpawnPoints.Add(new SpawnPoint { Zone = zone, Position = Vector3.right * 8f });
+            var map = new ZoneMap(layout);
+            var item = new ContaminationItem(100, EContaminationType.HeavyDebris, 4, zone, Vector3.right * 8f);
+            var dirty = new ContaminationRegistry(map, new[] { item });
+            var clean = new ContaminationRegistry(map, Array.Empty<ContaminationItem>());
+            var reporter = new MinionMemory();
+            var listener = new MinionMemory();
+
+            listener.Observe(zone, item.Position, 2f, dirty, layout, 1);
+            reporter.Observe(zone, Vector3.zero, 2f, clean, layout, 2);
+            reporter.FinishPatrol(zone, layout, 2);
+            Assert.That(reporter.ShareWith(listener), Is.False);
+
+            reporter.Observe(zone, item.Position, 2f, clean, layout, 3);
+            reporter.FinishPatrol(zone, layout, 3);
+            Assert.That(reporter.ShareWith(listener), Is.True);
+            Assert.That(listener.IsKnownClean(zone), Is.True);
+            reporter.Observe(zone, item.Position, 2f, clean, layout, 4);
+            Assert.That(reporter.ShareWith(listener), Is.False);
+
+            listener.Observe(zone, item.Position, 2f, dirty, layout, 5);
+            Assert.That(listener.ShareWith(reporter), Is.True);
+            Assert.That(reporter.IsKnownClean(zone), Is.False);
+        }
+
+        [Test]
+        public void 로비와_먼_같은_방에서는_기억과_통보가_없고_가까워져야_정보를_교환한다()
+        {
+            var sender = new WorkerBody();
+            var receiver = new WorkerBody();
+            using var match = CreateMatch(new WorkerBody(), slime: sender, minionType: EWorkerType.Orc, goblin: receiver);
+            var brains = (Dictionary<EWorkerType, MinionBrain>)typeof(MatchSimulation)
+                .GetField("_minions", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(match);
+            var senderMemory = brains[EWorkerType.Orc].Memory;
+            var receiverMemory = brains[EWorkerType.Goblin].Memory;
+            const EZoneId observedZone = EZoneId.Storage;
+            var observedLayout = new FacilityLayout();
+            var clean = new ContaminationRegistry(new ZoneMap(observedLayout), Array.Empty<ContaminationItem>());
+            senderMemory.Observe(observedZone, Vector3.zero, 1f, clean, observedLayout, 1);
+            senderMemory.FinishPatrol(observedZone, observedLayout, 1);
+            Assert.That(senderMemory.IsKnownClean(observedZone), Is.True);
+
+            match.StartMatch();
+            foreach (EZoneId lobby in _zones.Where(ZoneDisplayName.IsLobby))
+            {
+                sender.Floor = receiver.Floor = ZoneDisplayName.GetFloor(lobby);
+                sender.Position = receiver.Position = Vector3.right * (20f * (int)lobby);
+                match.Tick(.25f);
+                Assert.That(receiverMemory.IsKnownClean(observedZone), Is.False);
+                Assert.That(match.ActiveMessages, Is.Empty);
+            }
+
+            Vector3 roomCenter = Vector3.right * (20f * (int)EZoneId.Lounge);
+            sender.Floor = receiver.Floor = EFloor.Floor1;
+            sender.Position = roomCenter - Vector3.forward;
+            receiver.Position = roomCenter + Vector3.forward;
+            match.Tick(.25f);
+            Assert.That(receiverMemory.IsKnownClean(observedZone), Is.False);
+            Assert.That(match.ActiveMessages, Is.Empty);
+
+            receiver.Position = sender.Position + Vector3.forward * Load<GameRuleSO>("GameRule").InteractionDistance;
+            match.Tick(.25f);
+            Assert.That(receiverMemory.IsKnownClean(observedZone), Is.True);
+            MessageEntry report = match.ActiveMessages.Single();
+            Assert.That(report.Kind, Is.EqualTo(EMessageKind.Notice));
+            Assert.That(report.Minion, Is.EqualTo(EWorkerType.Orc));
+        }
+
+        [Test]
+        public void 남은_작업과_동료가_있으면_다른_층이_같은_층_미확인_방보다_앞선다()
+        {
+            int unexplored = ProposalCandidateFinder.Rank(EFloor.Floor1, EFloor.Floor1, false, false);
+            int support = ProposalCandidateFinder.Rank(EFloor.Floor1, EFloor.Floor3, true, true);
+            Assert.That(support, Is.LessThan(unexplored));
+        }
 
         [Test]
         public void 작업_완료와_마감이_같은_틱이면_완료를_먼저_반영한다()
@@ -86,8 +170,9 @@ namespace UnityGameJam.Test
             Assert.That(match.Result.FacilityCleanliness, Is.Zero);
         }
 
-        [Test]
-        public void 관찰한_쓰레기를_슬라임이_먹으면_계약_스냅샷에_소화_중으로_표시한다()
+        [TestCase(false)]
+        [TestCase(true)]
+        public void 슬라임의_소화_스냅샷과_증진에_따른_소화_시간을_반영한다(bool boost)
         {
             var player = new WorkerBody();
             var slime = new WorkerBody();
@@ -96,6 +181,7 @@ namespace UnityGameJam.Test
             match.StartMatch();
             Assert.That(match.BeginTalk(EWorkerType.Slime), Is.True);
             Assert.That(match.AssignRoom(EWorkerType.Slime, EZoneId.Floor1Lobby), Is.True);
+            player.Position = Vector3.left * 10f; // 혼자 소화하는 경로에서는 플레이어 도움 제안을 만들지 않는다.
 
             match.Tick(0.1f);
             match.Tick(0.1f);
@@ -103,6 +189,13 @@ namespace UnityGameJam.Test
             Assert.That(item.State, Is.EqualTo(EItemState.Digesting));
             Assert.That(item.Carrier, Is.EqualTo(EWorkerType.Slime));
             Assert.That(slime.LastDestinationFloor, Is.EqualTo(EFloor.Floor1));
+
+            player.Position = Vector3.zero;
+            if (boost) { Assert.That(match.TryCastSkill(ECommandSkill.Surge), Is.True); }
+            float seconds = Load<WorkerStatsSO>("WorkerStats_Slime").DigestSeconds;
+            match.Tick(seconds * .75f);
+            EItemState expected = boost ? EItemState.Resolved : EItemState.Digesting;
+            Assert.That(match.Items.Single(snapshot => snapshot.ItemId == 100).State, Is.EqualTo(expected));
         }
 
         [Test]
@@ -167,6 +260,43 @@ namespace UnityGameJam.Test
             match.CancelTalk(EWorkerType.Slime);
             Assert.That(slime.MoveCount, Is.EqualTo(moves + 1));
             Assert.That(slime.LastDestinationFloor, Is.EqualTo(EFloor.Floor2));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void 같은_방에서_한_명만_마지막_얼룩을_맡고_다른_졸개는_가능하면_잔해를_처리한다(bool hasDebris)
+        {
+            const EZoneId zone = EZoneId.ExecutiveRoom;
+            const EFloor floor = EFloor.Floor3;
+            const int stainId = (int)zone + 1;
+            Vector3 room = Vector3.right * (20f * (int)zone);
+            var player = new WorkerBody();
+            var goblin = new WorkerBody();
+            var orc = new WorkerBody();
+            var debris = hasDebris
+                ? new ContaminationItem(100, EContaminationType.HeavyDebris, 4, zone, room + Vector3.forward)
+                : null;
+            using var match = CreateMatch(player, debris, orc, EWorkerType.Orc, goblin: goblin);
+            match.StartMatch();
+            Assert.That(match.BeginTalk(EWorkerType.Goblin), Is.True);
+            Assert.That(match.AssignRoom(EWorkerType.Goblin, zone), Is.True);
+            Assert.That(match.BeginTalk(EWorkerType.Orc), Is.True);
+            Assert.That(match.AssignRoom(EWorkerType.Orc, zone), Is.True);
+            player.Floor = floor;
+            player.Position = room;
+
+            match.Tick(.1f);
+            Assert.That(goblin.Position, Is.EqualTo(_mopRack));
+            Assert.That(orc.Position, Is.Not.EqualTo(_mopRack));
+
+            match.Tick(.1f);
+            Assert.That(match.Minions.Single(minion => minion.Minion == EWorkerType.Goblin).IsHoldingMop, Is.True);
+            MinionStatus orcStatus = match.Minions.Single(minion => minion.Minion == EWorkerType.Orc);
+            Assert.That(orcStatus.IsHoldingMop, Is.False);
+            if (debris != null) { Assert.That(orcStatus.CarriedItemId, Is.EqualTo(debris.Id)); }
+            match.Tick(.1f);
+            match.Tick(Load<WorkerStatsSO>("WorkerStats_Goblin").MopSeconds);
+            Assert.That(match.Items.Single(item => item.ItemId == stainId).State, Is.EqualTo(EItemState.Resolved));
         }
 
         [Test]
@@ -238,6 +368,13 @@ namespace UnityGameJam.Test
             MatchSimulation match = CreateMatch(new WorkerBody(), waste, hound, EWorkerType.Hellhound, bin);
             match.StartMatch();
 
+            Assert.That(match.BeginTalk(EWorkerType.Hellhound), Is.True);
+            Assert.That(match.Minions.Single().Activity, Is.EqualTo(EMinionActivity.Talking));
+            Assert.That(match.Items.Single(item => item.ItemId == 100).State, Is.EqualTo(EItemState.InDischargeArea));
+            Assert.That(match.AssignRoom(EWorkerType.Hellhound, EZoneId.Floor1Lobby), Is.False);
+            match.CancelTalk(EWorkerType.Hellhound);
+            Assert.That(match.Minions.Single().Activity, Is.EqualTo(EMinionActivity.LobbyIdle));
+            Assert.That(match.BeginTalk(EWorkerType.Hellhound), Is.True);
             Assert.That(match.DispatchHellhound(), Is.True);
             Assert.That(hound.Position, Is.EqualTo(exit));
             Assert.That(match.Items.Single(item => item.ItemId == 100).State, Is.EqualTo(EItemState.Dispatched));
@@ -250,9 +387,133 @@ namespace UnityGameJam.Test
             Assert.That(match.Minions.Single().Activity, Is.EqualTo(EMinionActivity.LobbyIdle));
         }
 
-        private static MatchSimulation CreateMatch(WorkerBody player, ContaminationItem extra = null, WorkerBody slime = null, EWorkerType minionType = EWorkerType.Slime, Bounds? dischargeArea = null)
+        [Test]
+        public void 플레이어는_같은_층_쓰레기통에서만_봉투를_즉시_처리한다()
+        {
+            Vector3 position = Vector3.right * (20f * (int)EZoneId.Workshop);
+            var player = new WorkerBody { Floor = EFloor.Floor2, Position = position };
+            var trash = new ContaminationItem(100, EContaminationType.Trash, 1, EZoneId.Workshop, position);
+            var bin = new WasteBin { Floor = EFloor.Floor2, Position = position + Vector3.right * 5f };
+            MatchSimulation match = CreateMatch(player, trash, wasteBin: bin);
+            match.StartMatch();
+
+            Assert.That(match.TryPickUp(100), Is.True);
+            Assert.That(match.TryDrop(), Is.True);
+            Assert.That(match.Items.Single(item => item.ItemId == 100).State, Is.EqualTo(EItemState.OnFloor));
+            Assert.That(match.TryPickUp(100), Is.True);
+            player.Position = bin.Position;
+            bin.Floor = EFloor.Floor3;
+            Assert.That(match.TryDrop(), Is.True);
+            Assert.That(match.Items.Single(item => item.ItemId == 100).State, Is.EqualTo(EItemState.OnFloor));
+            Assert.That(match.TryPickUp(100), Is.True);
+            bin.Floor = EFloor.Floor2;
+            Assert.That(match.TryDrop(), Is.True);
+            Assert.That(match.Items.Single(item => item.ItemId == 100).State, Is.EqualTo(EItemState.Resolved));
+            Assert.That(match.PlayerCarriedItemId, Is.Null);
+        }
+
+        [Test]
+        public void 고블린은_일반_쓰레기를_같은_층_쓰레기통으로_운반한다()
+        {
+            Vector3 position = Vector3.right * (20f * (int)EZoneId.Workshop);
+            var player = new WorkerBody();
+            var goblin = new WorkerBody();
+            var trash = new ContaminationItem(100, EContaminationType.Trash, 1, EZoneId.Workshop, position);
+            var bin = new WasteBin { Floor = EFloor.Floor2, Position = position + Vector3.right * 5f };
+            MatchSimulation match = CreateMatch(player, trash, goblin, EWorkerType.Goblin, wasteBin: bin);
+            match.StartMatch();
+
+            Assert.That(match.BeginTalk(EWorkerType.Goblin), Is.True);
+            Assert.That(match.AssignRoom(EWorkerType.Goblin, EZoneId.Workshop), Is.True);
+            for (int i = 0; i < 10 && match.Items.Single(item => item.ItemId == 100).State != EItemState.Carried; i++)
+            {
+                match.Tick(.1f);
+            }
+            Assert.That(match.Items.Single(item => item.ItemId == 100).State, Is.EqualTo(EItemState.Carried));
+            Assert.That(goblin.Floor, Is.EqualTo(EFloor.Floor2));
+            Assert.That(goblin.Position, Is.EqualTo(bin.Position));
+            match.Tick(.1f);
+            Assert.That(match.Items.Single(item => item.ItemId == 100).State, Is.EqualTo(EItemState.Resolved));
+        }
+
+        [Test]
+        public void 호통에_모인_졸개는_새_지시까지_대기하고_헬하운드는_출발하지_않는다()
+        {
+            Vector3 meeting = Vector3.right * (20f * (int)EZoneId.Workshop);
+            var player = new WorkerBody { Floor = EFloor.Floor2, Position = meeting };
+            var goblin = new WorkerBody();
+            var orc = new WorkerBody { Floor = EFloor.Floor2, Position = meeting };
+            var hound = new WorkerBody();
+            using MatchSimulation match = CreateMatch(player, slime: orc, minionType: EWorkerType.Orc, goblin: goblin, hound: hound);
+            match.StartMatch();
+            Assert.That(match.BeginTalk(EWorkerType.Orc), Is.True);
+            Assert.That(match.AssignRoom(EWorkerType.Orc, EZoneId.Workshop), Is.True);
+            Assert.That(match.TryCastSkill(ECommandSkill.Shout), Is.True);
+            Assert.That(match.SkillCooldownRemaining(ECommandSkill.Shout), Is.EqualTo(60f));
+            Assert.That(match.TryCastSkill(ECommandSkill.Shout), Is.False);
+            Assert.That(match.Minions.Single(x => x.Minion == EWorkerType.Orc).Activity, Is.EqualTo(EMinionActivity.Recalling));
+            Assert.That(match.ActiveMessages.Count(x => x.Kind == EMessageKind.Notice), Is.EqualTo(2));
+            Assert.That(match.ActiveMessages.Any(x => x.Minion == EWorkerType.Hellhound), Is.False);
+            Assert.That(hound.MoveCount, Is.Zero);
+
+            Vector3 destination = orc.Position;
+            player.Position += Vector3.forward * 5f;
+            match.Tick(20f);
+            Assert.That(orc.Position, Is.EqualTo(destination));
+            Assert.That(goblin.Floor, Is.EqualTo(EFloor.Floor2));
+            Assert.That(match.Minions.Where(x => x.Minion != EWorkerType.Hellhound)
+                .All(x => x.Activity == EMinionActivity.LobbyIdle && !x.AssignedZone.HasValue), Is.True);
+            player.Position = destination;
+            Assert.That(match.BeginTalk(EWorkerType.Orc), Is.True);
+            Assert.That(match.AssignRoom(EWorkerType.Orc, EZoneId.Workshop), Is.True);
+        }
+
+        [Test]
+        public void 증진은_같은_방의_대상만_선정하고_방을_나가도_십오_초를_유지한다()
+        {
+            Vector3 meeting = Vector3.right * (20f * (int)EZoneId.Workshop);
+            var player = new WorkerBody { Floor = EFloor.Floor2, Position = meeting };
+            var orc = new WorkerBody { Floor = EFloor.Floor2, Position = meeting + Vector3.left };
+            var goblin = new WorkerBody { Floor = EFloor.Floor2, Position = meeting + Vector3.right * 9f };
+            using MatchSimulation match = CreateMatch(player, slime: orc, minionType: EWorkerType.Orc, goblin: goblin);
+            match.StartMatch();
+            Assert.That(match.TryCastSkill(ECommandSkill.Surge), Is.True);
+            Assert.That(match.SkillCooldownRemaining(ECommandSkill.Surge), Is.EqualTo(90f));
+            Assert.That(match.SkillCooldownRemaining(ECommandSkill.Shout), Is.Zero);
+            Assert.That(match.BoostRemaining(EWorkerType.Orc), Is.EqualTo(15f));
+            Assert.That(orc.ActionRate, Is.EqualTo(1.5f));
+            Assert.That(goblin.ActionRate, Is.EqualTo(1f));
+            Assert.That(match.ActiveMessages.Single().Minion, Is.EqualTo(EWorkerType.Orc));
+
+            orc.Position += Vector3.forward * 9f;
+            goblin.Position = meeting;
+            match.Tick(14f);
+            Assert.That(orc.ActionRate, Is.EqualTo(1.5f));
+            Assert.That(goblin.ActionRate, Is.EqualTo(1f));
+            match.Tick(1f);
+            Assert.That(orc.ActionRate, Is.EqualTo(1f));
+            Assert.That(match.SkillCooldownRemaining(ECommandSkill.Surge), Is.EqualTo(75f));
+        }
+
+        [Test]
+        public void 증진_대상이_없으면_쿨다운과_알림을_소비하지_않는다()
+        {
+            Vector3 meeting = Vector3.right * (20f * (int)EZoneId.Workshop);
+            var player = new WorkerBody { Floor = EFloor.Floor2, Position = meeting };
+            var goblin = new WorkerBody { Floor = EFloor.Floor1, Position = meeting };
+            using MatchSimulation match = CreateMatch(player, goblin: goblin);
+            match.StartMatch();
+            Assert.That(match.TryCastSkill(ECommandSkill.Surge), Is.False);
+            Assert.That(match.SkillCooldownRemaining(ECommandSkill.Surge), Is.Zero);
+            Assert.That(match.ActiveMessages, Is.Empty);
+        }
+
+        private static MatchSimulation CreateMatch(WorkerBody player, ContaminationItem extra = null, WorkerBody slime = null,
+            EWorkerType minionType = EWorkerType.Slime, Bounds? dischargeArea = null, WorkerBody goblin = null,
+            WasteBin wasteBin = null, WorkerBody hound = null)
         {
             var layout = new FacilityLayout { DischargeArea = dischargeArea ?? new Bounds(Vector3.right * 80f, Vector3.one) };
+            if (wasteBin != null) { layout.WasteBins.Add(wasteBin); }
             foreach (EFloor floor in Enum.GetValues(typeof(EFloor)))
             {
                 layout.Toilets.Add(new ToiletStation { Floor = floor, MopPickupPosition = _mopRack });
@@ -269,6 +530,8 @@ namespace UnityGameJam.Test
             layout.StartPositions[minionType] = Vector3.zero;
             var setup = new MatchSetup { Layout = layout, PlayerBody = player };
             if (slime != null) { setup.MinionBodies[minionType] = slime; }
+            if (goblin != null) { setup.MinionBodies[EWorkerType.Goblin] = goblin; }
+            if (hound != null) { setup.MinionBodies[EWorkerType.Hellhound] = hound; }
             var items = _zones.Select((zone, index) =>
                 new ContaminationItem(index + 1, EContaminationType.FloorStain, 1, zone,
                     Vector3.right * (20f * index))).ToList();
@@ -290,6 +553,7 @@ namespace UnityGameJam.Test
             public EFloor Floor { get; set; }
             public EFloor LastDestinationFloor { get; private set; }
             public int MoveCount { get; private set; }
+            public float ActionRate { get; private set; } = 1f;
             public bool HasArrived => true;
 
             public void MoveTo(EFloor floor, Vector3 destination)
@@ -302,6 +566,7 @@ namespace UnityGameJam.Test
 
             public void Stop() { }
             public void SetMoveSpeed(float speed) { }
+            public void SetActionRate(float rate) => ActionRate = rate;
         }
     }
 }

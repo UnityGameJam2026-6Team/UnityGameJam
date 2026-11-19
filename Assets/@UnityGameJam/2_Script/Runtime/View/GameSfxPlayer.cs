@@ -21,6 +21,8 @@ namespace UnityGameJam.View
         private AudioListener _listener;
         private MatchBootstrap _bootstrap;
         private float _lastImpact = float.NegativeInfinity;
+        private AudioClip _shoutSound;
+        private AudioClip _surgeSound;
 
         public SfxLibrarySO Library => _library;
         internal static GameSfxPlayer Instance => _instance;
@@ -38,6 +40,8 @@ namespace UnityGameJam.View
 
         private void OnDestroy()
         {
+            if (_shoutSound != null) { Destroy(_shoutSound); }
+            if (_surgeSound != null) { Destroy(_surgeSound); }
             if (_listener != null) { _listener.enabled = false; }
             if (_instance == this) { _instance = null; }
             foreach (AudioListener listener in _previousListeners)
@@ -107,6 +111,43 @@ namespace UnityGameJam.View
             }
             source.priority = priority;
             _instance.PlaySource(source, cue);
+        }
+
+        internal static void PlayCommandSkill(ECommandSkill skill)
+        {
+            if (_instance == null) { return; }
+            AudioSource source = _instance.FindVoice(_instance._global);
+            if (source == null) { return; }
+            bool shout = skill == ECommandSkill.Shout;
+            AudioClip clip = shout
+                ? (_instance._shoutSound ??= CreateCommandSound(true))
+                : (_instance._surgeSound ??= CreateCommandSound(false));
+            source.clip = clip;
+            source.priority = 24;
+            source.loop = false;
+            source.pitch = 1f;
+            source.volume = .86f;
+            source.Play();
+        }
+
+        private static AudioClip CreateCommandSound(bool shout)
+        {
+            const int rate = 24000;
+            float duration = shout ? .72f : .55f;
+            var data = new float[Mathf.RoundToInt(rate * duration)];
+            for (int i = 0; i < data.Length; i++)
+            {
+                float t = (float)i / rate;
+                float time = t / duration;
+                float phase = 2f * Mathf.PI * (shout ? t * (96f - 30f * t) : t * (230f + 640f * t));
+                float envelope = Mathf.Min(1f, t / .03f) * (1f - time) * (1f - time);
+                float tone = Mathf.Sin(phase) + .42f * Mathf.Sin(2f * phase) + .21f * Mathf.Sin(3f * phase);
+                float attack = Mathf.Sin(2f * Mathf.PI * (54f - 34f * t) * t) * Mathf.Exp(-15f * t);
+                data[i] = envelope * (tone * .43f + .35f * attack);
+            }
+            AudioClip clip = AudioClip.Create(shout ? "Shout" : "Surge", data.Length, 1, rate, false);
+            clip.SetData(data, 0);
+            return clip;
         }
 
         internal void PlayWorld(ESfxCue cue, Vector3 position, EFloor floor, int variant = -1)

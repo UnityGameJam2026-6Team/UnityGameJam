@@ -21,4 +21,4 @@ MonoBehaviour:
     _weight: 2
   - _type: 3
     _weight: 1
-  _playerMopSeconds: 2
+  _playerMopSeconds: 3

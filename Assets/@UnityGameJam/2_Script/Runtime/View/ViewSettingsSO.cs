@@ -24,6 +24,119 @@ namespace UnityGameJam.View
         [Tooltip("이동 또는 대화 방향으로 회전하는 속도(도/초)")]
         [SerializeField, Min(1f)] private float _playerTurnSpeed = 720f;
 
+        [Serializable]
+        internal struct OpeningCameraShot
+        {
+            public Vector3 StartOffset;
+            public Vector3 EndOffset;
+            public Vector3 FocusOffset;
+        }
+
+        [Header("시작 연출")]
+        [SerializeField, Min(0.1f)] private float _openingLineDistance = 3f;
+        [SerializeField, Min(0.1f)] private float _openingMinionSpacing = 2f;
+        [SerializeField] private OpeningCameraShot _openingWide = new OpeningCameraShot
+        {
+            StartOffset = new Vector3(-7f, 9f, -8f),
+            EndOffset = new Vector3(-5f, 8f, -9f),
+            FocusOffset = new Vector3(0f, 0.9f, 0f)
+        };
+        [SerializeField] private OpeningCameraShot _openingShoulder = new OpeningCameraShot
+        {
+            StartOffset = new Vector3(-1.5f, 4f, 9f),
+            EndOffset = new Vector3(-0.6f, 3.8f, 8f),
+            FocusOffset = new Vector3(0f, 0.85f, -1.1f)
+        };
+        [SerializeField] private OpeningCameraShot _openingMinions = new OpeningCameraShot
+        {
+            StartOffset = new Vector3(-2.8f, 2.5f, 7f),
+            EndOffset = new Vector3(2.8f, 2.5f, 7f),
+            FocusOffset = new Vector3(0f, 0.8f, -1.2f)
+        };
+        [SerializeField] private OpeningCameraShot _openingSide = new OpeningCameraShot
+        {
+            StartOffset = new Vector3(-8f, 4f, -4f),
+            EndOffset = new Vector3(-7.4f, 4.5f, -5.4f),
+            FocusOffset = new Vector3(0f, 0.9f, 0f)
+        };
+
+        internal float OpeningLineDistance => _openingLineDistance;
+        internal float OpeningMinionSpacing => _openingMinionSpacing;
+
+        internal OpeningCameraShot GetOpeningShot(int number) => number switch
+        {
+            5 => _openingWide,
+            4 => _openingShoulder,
+            3 => _openingMinions,
+            _ => _openingSide
+        };
+
+        [Serializable]
+        internal struct EndingShot
+        {
+            public Vector3 StartPosition;
+            public Vector3 EndPosition;
+            public Vector3 StartFocus;
+            public Vector3 EndFocus;
+
+            public EndingShot(Vector3 startPosition, Vector3 endPosition, Vector3 startFocus, Vector3 endFocus)
+            {
+                StartPosition = startPosition;
+                EndPosition = endPosition;
+                StartFocus = startFocus;
+                EndFocus = endFocus;
+            }
+        }
+
+        [Serializable]
+        internal sealed class EndingSettings
+        {
+            [Min(0.01f)] public float DoorSeconds = 0.65f;
+            [Min(0.01f)] public float WalkSeconds = 2f;
+            [Min(0.01f)] public float FaceoffSeconds = 0.6f;
+            [Min(0.01f)] public float SuccessSeconds = 1.65f;
+            [Min(0.01f)] public float DogRunSeconds = 0.42f;
+            [Min(0f)] public float DogRunAt = 0.62f;
+            public float DoorAngle = 100f;
+            public Vector3 KingStart = new Vector3(0f, 0f, -0.75f);
+            public Vector3 KingStop = new Vector3(0f, 0f, 2.05f);
+            public Vector3 PlayerStart = new Vector3(1.4f, 0f, 5.1f);
+            public Vector3 FailurePlayerStart = new Vector3(0f, 0f, 10.35f);
+            public Vector3[] FailureMinionOffsets =
+            {
+                new Vector3(-2f, 0f, -2.15f),
+                new Vector3(2.1f, 0f, -2.1f),
+                new Vector3(-3.1f, 0f, -0.6f),
+                new Vector3(2.8f, 0f, -0.38f)
+            };
+            public Vector3 DogStart = new Vector3(-3.45f, 0f, 1.6f);
+            public Vector3 DogStop = new Vector3(-2.05f, 0f, 2.9f);
+            [Min(0f)] public float SuccessStep = 0.55f;
+            [Min(0.01f)] public float SuccessStepSeconds = 0.45f;
+            public AnimationClip DogGreeting;
+            public GameObject ThrowTrash;
+            [Min(0.01f)] public float ThrowLookSeconds = 1.2f;
+            [Range(0f, 90f)] public float ThrowLookAngle = 48f;
+            [Min(0f)] public float ThrowGripAt = 1f;
+            [Min(0.01f)] public float ThrowReleaseAt = 2.48f;
+            [Min(0.01f)] public float ThrowFlightSeconds = 0.82f;
+            [Min(0.01f)] public float ImpactHoldSeconds = 0.11f;
+            [Min(0.01f)] public float ImpactRecoverySeconds = 0.62f;
+            [Min(0.01f)] public float ThrowTargetHeight = 1.17f;
+            [Min(0f)] public float ThrowArcHeight = 1.5f;
+            [Min(0f)] public float ImpactRecoil = 0.2f;
+            public EndingShot Door = new EndingShot(new Vector3(1.15f, 0.42f, 3.55f), new Vector3(1.15f, 0.42f, 3.55f), new Vector3(0f, 0.24f, -0.8f), new Vector3(0f, 0.24f, -0.8f));
+            public EndingShot Entrance = new EndingShot(new Vector3(1.15f, 0.42f, 3.55f), new Vector3(3f, 2.9f, 9.45f), new Vector3(0f, 0.24f, -0.8f), new Vector3(-0.55f, 1.16f, 2.5f));
+            public EndingShot Faceoff = new EndingShot(new Vector3(8.1f, 3.35f, 4.7f), new Vector3(8.1f, 3.35f, 4.7f), new Vector3(0.6f, 1.02f, 4f), new Vector3(0.6f, 1.02f, 4f));
+            public EndingShot Success = new EndingShot(new Vector3(8.1f, 3.35f, 4.7f), new Vector3(9.2f, 4f, 5.1f), new Vector3(0.6f, 1.02f, 4f), new Vector3(0.5f, 1.05f, 4f));
+            public EndingShot Throw = new EndingShot(new Vector3(12.6f, 6.1f, 7.7f), new Vector3(12.95f, 6.25f, 7.7f), new Vector3(0.1f, 1.2f, 6.5f), new Vector3(0.1f, 1.2f, 6.5f));
+            public EndingShot Impact = new EndingShot(new Vector3(12.95f, 6.25f, 7.7f), new Vector3(13.2f, 6.4f, 7.7f), new Vector3(0.1f, 1.2f, 6.5f), new Vector3(0.1f, 1.2f, 6.5f));
+        }
+
+        [Header("마왕 도착 연출")]
+        [SerializeField] private EndingSettings _ending = new EndingSettings();
+        internal EndingSettings Ending => _ending;
+
         [Header("카메라")]
         [Tooltip("플레이어 위 높이(m)")]
         [SerializeField] private float _cameraHeight = 18f;

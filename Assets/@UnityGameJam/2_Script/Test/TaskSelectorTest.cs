@@ -53,7 +53,7 @@ namespace UnityGameJam.Test
         }
 
         [Test]
-        public void 유형을_먼저_비교하고_같은_유형이면_가까운_개체를_고른다()
+        public void 작업자별_선호_유형을_우선하고_같은_유형이면_가까운_개체를_고른다()
         {
             ContaminationRegistry registry = CreateRegistry(
                 CreateItem(1, EContaminationType.ClutterItem, 8f),
@@ -63,7 +63,8 @@ namespace UnityGameJam.Test
                 CreateItem(5, EContaminationType.FloorStain, 0f));
             var selector = new TaskSelector(registry, _capability);
 
-            Assert.That(selector.FindTask(EWorkerType.Orc, EZoneId.Workshop, Vector3.zero, false).Id, Is.EqualTo(2));
+            Assert.That(selector.FindTask(EWorkerType.Orc, EZoneId.Workshop, Vector3.zero, false).Id, Is.EqualTo(3));
+            Assert.That(selector.FindTask(EWorkerType.Goblin, EZoneId.Workshop, Vector3.zero, false).Id, Is.EqualTo(2));
             Assert.That(registry.TryPickUp(2, EWorkerType.Player), Is.True);
             Assert.That(registry.TryPickUp(1, EWorkerType.Goblin), Is.True);
 
@@ -140,22 +141,31 @@ namespace UnityGameJam.Test
             Assert.That(changes, Is.Zero);
         }
 
-        [Test]
-        public void 현관_적치_폐기물은_다시_운반하지_않고_슬라임은_먹을_수_있다()
+        [TestCase(EContaminationType.Trash)]
+        [TestCase(EContaminationType.HeavyDebris)]
+        public void 현관_적치_폐기물은_슬라임의_작업과_소화에서_제외한다(EContaminationType type)
         {
-            ContaminationRegistry registry = CreateRegistry(CreateItem(1, EContaminationType.Trash, 0f, EZoneId.Floor1Lobby));
+            var layout = new FacilityLayout { DischargeArea = new Bounds(Vector3.zero, Vector3.one) };
+            var registry = new ContaminationRegistry(new ZoneMap(layout), new[]
+            {
+                CreateItem(1, type, 0f, EZoneId.Floor1Lobby),
+                CreateItem(2, type, 2f, EZoneId.Floor1Lobby)
+            });
             var selector = new TaskSelector(registry, _capability);
+            var memory = new MinionMemory();
             Assert.That(registry.FindItem(1).State, Is.EqualTo(EItemState.InDischargeArea));
 
-            Assert.That(selector.FindTask(EWorkerType.Goblin, EZoneId.Floor1Lobby, Vector3.zero, false), Is.Null);
-            Assert.That(selector.FindTask(EWorkerType.Orc, EZoneId.Floor1Lobby, Vector3.zero, false), Is.Null);
-            Assert.That(selector.FindTask(EWorkerType.Hellhound, EZoneId.Floor1Lobby, Vector3.zero, false), Is.Null);
-            Assert.That(selector.FindTask(EWorkerType.Slime, EZoneId.Workshop, Vector3.zero, false), Is.Null);
+            memory.Observe(EZoneId.Floor1Lobby, Vector3.zero, 1f, registry, layout, 1);
+            Assert.That(memory.HasKnownWork(EZoneId.Floor1Lobby, EWorkerType.Slime, _capability, false), Is.False);
+            Assert.That(selector.FindTask(EWorkerType.Slime, EZoneId.Floor1Lobby, Vector3.zero, false).Id, Is.EqualTo(2));
+            Assert.That(registry.TryStartDigest(1), Is.False);
+            Assert.That(registry.FindItem(1).IsCounted, Is.True);
 
-            ContaminationItem target = selector.FindTask(EWorkerType.Slime, EZoneId.Floor1Lobby, Vector3.zero, false);
-            Assert.That(target.Id, Is.EqualTo(1));
-            Assert.That(registry.TryStartDigest(target.Id), Is.True);
-            Assert.That(registry.DispatchDischargeBatch(), Is.Zero);
+            memory.Observe(EZoneId.Floor1Lobby, Vector3.zero, 3f, registry, layout, 2);
+            Assert.That(memory.HasKnownWork(EZoneId.Floor1Lobby, EWorkerType.Slime, _capability, false), Is.True);
+            Assert.That(registry.TryStartDigest(2), Is.True);
+            Assert.That(registry.DispatchDischargeBatch(), Is.EqualTo(1));
+            Assert.That(registry.FindItem(1).State, Is.EqualTo(EItemState.Dispatched));
         }
 
         private static ContaminationItem CreateItem(int id, EContaminationType type, float x,

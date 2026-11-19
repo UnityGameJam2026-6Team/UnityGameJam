@@ -17,8 +17,16 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 6098302573967488453}
     - target: {fileID: 2767815194446335370, guid: ac5f6bde031b2c74d9ddc12548fac8f0, type: 3}
+      propertyPath: _modelTop
+      value: 2.129649
+      objectReference: {fileID: 0}
+    - target: {fileID: 2767815194446335370, guid: ac5f6bde031b2c74d9ddc12548fac8f0, type: 3}
       propertyPath: _modelScale
-      value: 0.5
+      value: 1.057932
+      objectReference: {fileID: 0}
+    - target: {fileID: 2767815194446335370, guid: ac5f6bde031b2c74d9ddc12548fac8f0, type: 3}
+      propertyPath: _modelOffset.y
+      value: 0.016066406
       objectReference: {fileID: 0}
     - target: {fileID: 2767815194446335370, guid: ac5f6bde031b2c74d9ddc12548fac8f0, type: 3}
       propertyPath: _modelOffset.z
@@ -125,11 +133,11 @@ MonoBehaviour:
   _pickUpEnd: 5.0000005
   _pickUpHeavyContact: 0
   _pickUpHeavyEnd: 0
-  _walkSpeed: 0.43445358
-  _runSpeed: 1.1758442
-  _carrySpeed: 0.41992742
+  _walkSpeed: 0.9192447
+  _runSpeed: 2.487927
+  _carrySpeed: 0.888509
   _carryHeavySpeed: 0
-  _mopWalkSpeed: 0.42393664
+  _mopWalkSpeed: 0.8969948
 --- !u!4 &7221415873878349863 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6379178708371745832, guid: ac5f6bde031b2c74d9ddc12548fac8f0, type: 3}
@@ -145,15 +153,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: b9b9569f546894849a099684460a822a, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.5
+      value: 1.057932
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: b9b9569f546894849a099684460a822a, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.5
+      value: 1.057932
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: b9b9569f546894849a099684460a822a, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.5
+      value: 1.057932
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: b9b9569f546894849a099684460a822a, type: 3}
       propertyPath: m_LocalPosition.x
@@ -161,7 +169,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: b9b9569f546894849a099684460a822a, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: 0.016066406
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: b9b9569f546894849a099684460a822a, type: 3}
       propertyPath: m_LocalPosition.z

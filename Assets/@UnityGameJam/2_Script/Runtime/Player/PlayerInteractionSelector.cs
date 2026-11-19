@@ -109,7 +109,7 @@ namespace UnityGameJam.Player
                 return new InteractionChoice(EInteractionKind.BorrowMop, -1, default, toilet.Floor, toilet.MopPickupPosition);
             }
 
-            if (context.IsHoldingMop && TryNearestItem(items, player, radius, i => i.Type == EContaminationType.FloorStain, out ItemSnapshot stain))
+            if (context.IsHoldingMop && TryNearestItem(items, context, out ItemSnapshot stain))
             {
                 return new InteractionChoice(EInteractionKind.StartMop, stain.ItemId, default, default, stain.Position);
             }
@@ -127,7 +127,7 @@ namespace UnityGameJam.Player
             }
 
             // 빈손으로 주울 수 있는 개체 옆
-            if (!context.IsHoldingMop && TryNearestItem(items, player, radius, i => i.Type != EContaminationType.FloorStain, out ItemSnapshot item))
+            if (!context.IsHoldingMop && TryNearestItem(items, context, out ItemSnapshot item))
             {
                 return new InteractionChoice(EInteractionKind.PickUp, item.ItemId, default, default, item.Position);
             }
@@ -135,16 +135,23 @@ namespace UnityGameJam.Player
             return InteractionChoice.None;
         }
 
-        private static bool TryNearestItem(IReadOnlyList<ItemSnapshot> items, Vector3 player, float radius, System.Func<ItemSnapshot, bool> filter, out ItemSnapshot nearest)
+        internal static bool CanHighlightItem(in PlayerInteractionContext context, in ItemSnapshot item) =>
+            item.State == EItemState.OnFloor && IsCompatibleItem(context, item)
+            && DistanceXZ(context.PlayerPosition, item.Position) <= context.Radius;
+
+        private static bool IsCompatibleItem(in PlayerInteractionContext context, in ItemSnapshot item) =>
+            !context.CarriedItem.HasValue && item.State is (EItemState.OnFloor or EItemState.InDischargeArea)
+            && context.IsHoldingMop == (item.Type == EContaminationType.FloorStain);
+
+        private static bool TryNearestItem(IReadOnlyList<ItemSnapshot> items, in PlayerInteractionContext context, out ItemSnapshot nearest)
         {
             nearest = default;
             float best = float.MaxValue;
             foreach (ItemSnapshot item in items)
             {
-                bool isOnGround = item.State == EItemState.OnFloor || item.State == EItemState.InDischargeArea;
-                if (!isOnGround || !filter(item)) { continue; }
-                float distance = DistanceXZ(player, item.Position);
-                if (distance <= radius && distance < best)
+                if (!IsCompatibleItem(context, item)) { continue; }
+                float distance = DistanceXZ(context.PlayerPosition, item.Position);
+                if (distance <= context.Radius && distance < best)
                 {
                     best = distance;
                     nearest = item;

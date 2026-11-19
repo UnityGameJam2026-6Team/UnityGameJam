@@ -1,7 +1,9 @@
-#if UNITY_EDITOR
+#if UNITY_EDITOR || UNITY_STANDALONE_WIN
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -13,10 +15,10 @@ using UnityGameJam.Contract;
 
 namespace UnityGameJam.Proposal
 {
-    internal sealed class OpenAiProposalDialogueProvider : IProposalDialogueProvider
+    internal sealed class OpenAiProposalDialogueProvider : IProposalDialogueProvider, ITaskPreferenceProvider
     {
-        private const string Model = "gpt-6-sol";
-        private static readonly HttpClient Client = new HttpClient();
+        private const string Model = "gpt-6-luna";
+        private static readonly HttpClient Client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false });
         private readonly string _key;
         private readonly TimeSpan _timeout;
         private int _hasReportedError;
@@ -29,6 +31,8 @@ namespace UnityGameJam.Proposal
 
         public static IProposalDialogueProvider Create(float timeoutSeconds)
         {
+            string environmentKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY")?.Trim();
+            if (!string.IsNullOrEmpty(environmentKey)) { return new OpenAiProposalDialogueProvider(environmentKey, timeoutSeconds); }
             try
             {
                 string path = Path.Combine(Path.GetDirectoryName(Application.dataPath), ".openai-api-key");
@@ -50,14 +54,24 @@ namespace UnityGameJam.Proposal
 
         private async Task RequestAsync(ProposalRequest request, Action<ProposalReply> reply)
         {
-            using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(request.Cancellation);
-            cancellation.CancelAfter(_timeout);
             var choices = new List<ProposalReply>();
             var options = new JArray();
-            foreach (EZoneId zone in request.Candidates)
+            if (request.Plans.Count > 0)
             {
-                AddChoice(request, zone, false, choices, options);
-                AddChoice(request, zone, true, choices, options);
+                for (int index = 0; index < request.Plans.Count; index++)
+                {
+                    AddPlanChoice(request, index, false, choices, options);
+                    AddPlanChoice(request, index, true, choices, options);
+                }
+            }
+            else
+            {
+                for (int index = 0; index < request.Candidates.Count; index++)
+                {
+                    EZoneId zone = request.Candidates[index];
+                    AddChoice(request, zone, index, false, choices, options);
+                    AddChoice(request, zone, index, true, choices, options);
+                }
             }
 
             try
@@ -65,48 +79,32 @@ namespace UnityGameJam.Proposal
                 var payload = new JObject
                 {
                     ["model"] = Model,
-                    ["store"] = false,
-                    ["reasoning"] = new JObject { ["effort"] = "none" },
-                    ["max_output_tokens"] = 128,
-                    ["instructions"] = "Choose one supplied option for the speaker. Options have equal priority. Return its index only in the required JSON.",
                     ["input"] = new JObject
                     {
                         ["worker"] = request.Worker.ToString(),
+                        ["persona"] = Persona(request.Worker),
                         ["reason"] = request.Reason.ToString(),
                         ["isHelpRequest"] = request.IsOrcHelp,
-                        ["options"] = options
-                    }.ToString(),
-                    ["text"] = new JObject
+                        ["preferredTask"] = request.PreferredTask?.ToString(),
+                        ["remainingSeconds"] = request.RemainingSeconds is float seconds ? new JValue(seconds) : JValue.CreateNull()
+                    }.ToString(Newtonsoft.Json.Formatting.None),
+                    ["questions"] = new JArray(new JObject
                     {
-                        ["format"] = new JObject
-                        {
-                            ["type"] = "json_schema",
-                            ["name"] = "proposal",
-                            ["strict"] = true,
-                            ["schema"] = new JObject
-                            {
-                                ["type"] = "object",
-                                ["properties"] = new JObject { ["index"] = new JObject { ["type"] = "integer" } },
-                                ["required"] = new JArray("index"),
-                                ["additionalProperties"] = false
-                            }
-                        }
-                    }
+                        ["type"] = "choice",
+                        ["name"] = "proposal",
+                        ["instructions"] = request.Plans.Count > 0
+                            ? "승인 가능한 분업 계획 중 하나를 고른다. 남은 시간, 이동할 층 수, 각자 맡을 작업을 비교한다. "
+                                + "시간이 짧으면 가까이 있는 사람이 바로 처리할 수 있는 계획을 우선한다. 비슷하면 화자가 선호 작업을 맡는 계획을 고른다."
+                            : "주어진 방과 대사 조합 중 하나를 고른다. 낮은 후보 순위가 게임의 우선 추천이다. "
+                                + "후보 순위에 확인된 작업량과 선호 작업을 반영한다. 조건이 비슷하면 화자의 성격에 맞는 대사를 고른다.",
+                        ["choices"] = options
+                    })
                 };
 
-                using var message = new HttpRequestMessage(HttpMethod.Post, "https://api.openai.com/v1/responses");
-                message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _key);
-                message.Content = new StringContent(payload.ToString(), Encoding.UTF8, "application/json");
-                using HttpResponseMessage response = await Client.SendAsync(message, cancellation.Token).ConfigureAwait(false);
-                if (!response.IsSuccessStatusCode)
-                {
-                    ReportError($"HTTP {(int)response.StatusCode}");
-                    reply(default);
-                    return;
-                }
-
-                string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                string json = await PostDecisionAsync(payload, request.Cancellation).ConfigureAwait(false);
                 if (request.Cancellation.IsCancellationRequested) { return; }
+                if (json == null) { reply(default); return; }
+
                 ProposalReply selected = ParseReply(json, choices);
                 if (selected.Text == null) { ReportError("선택 응답 형식 오류"); }
                 reply(selected);
@@ -122,32 +120,137 @@ namespace UnityGameJam.Proposal
             }
         }
 
+        public void RequestTaskPreferences(IReadOnlyDictionary<EWorkerType, EContaminationType[]> allowed, CancellationToken cancellation,
+            Action<IReadOnlyDictionary<EWorkerType, EContaminationType>> reply)
+        {
+            _ = RequestTaskPreferencesAsync(allowed, cancellation, reply);
+        }
+
+        private async Task RequestTaskPreferencesAsync(IReadOnlyDictionary<EWorkerType, EContaminationType[]> allowed,
+            CancellationToken cancellation, Action<IReadOnlyDictionary<EWorkerType, EContaminationType>> reply)
+        {
+            try
+            {
+                var questions = new JArray();
+                foreach (var entry in allowed)
+                {
+                    var choices = new JArray();
+                    foreach (EContaminationType type in entry.Value)
+                    {
+                        choices.Add(new JObject { ["value"] = type.ToString(), ["description"] = TaskDescription(type) });
+                    }
+                    questions.Add(new JObject
+                    {
+                        ["type"] = "choice",
+                        ["name"] = entry.Key.ToString(),
+                        ["instructions"] = $"{Persona(entry.Key)} {entry.Key}에게 맞는 선호 청소 작업 하나를 고른다. "
+                            + "고블린은 작은 물건 정리, 오크는 무거운 잔해 운반, 슬라임은 폐기물 소화에 강하다.",
+                        ["choices"] = choices
+                    });
+                }
+                var payload = new JObject
+                {
+                    ["model"] = Model,
+                    ["input"] = "시설 청소 팀에서 각 졸개의 성격과 역할에 맞는 선호 작업을 고른다.",
+                    ["questions"] = questions
+                };
+                string json = await PostDecisionAsync(payload, cancellation).ConfigureAwait(false);
+                if (json == null || cancellation.IsCancellationRequested || JObject.Parse(json)["answers"] is not JArray answers) { return; }
+
+                var preferences = new Dictionary<EWorkerType, EContaminationType>();
+                foreach (JObject answer in answers.OfType<JObject>())
+                {
+                    if ((string)answer["type"] != "choice"
+                        || !Enum.TryParse((string)answer["name"], out EWorkerType worker)
+                        || !allowed.TryGetValue(worker, out EContaminationType[] tasks)
+                        || !Enum.TryParse((string)answer["choice"], out EContaminationType task)
+                        || !tasks.Contains(task)) { continue; }
+                    preferences.TryAdd(worker, task);
+                }
+                if (preferences.Count > 0 && !cancellation.IsCancellationRequested) { reply(preferences); }
+            }
+            catch (Exception exception) when (exception is HttpRequestException or OperationCanceledException
+                or Newtonsoft.Json.JsonException or FormatException or ArgumentException)
+            {
+                if (!cancellation.IsCancellationRequested) { ReportError(exception.GetType().Name); }
+            }
+        }
+
+        private async Task<string> PostDecisionAsync(JObject payload, CancellationToken requestCancellation)
+        {
+            using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(requestCancellation);
+            cancellation.CancelAfter(_timeout);
+            using var message = new HttpRequestMessage(HttpMethod.Post, "https://api.openai.com/v1/decisions");
+            message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _key);
+            message.Content = new StringContent(payload.ToString(), Encoding.UTF8, "application/json");
+            using HttpResponseMessage response = await Client.SendAsync(message, cancellation.Token).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                ReportError($"HTTP {(int)response.StatusCode}");
+                return null;
+            }
+            return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        }
+
+        private static string TaskDescription(EContaminationType type) => type switch
+        {
+            EContaminationType.HeavyDebris => "무거운 잔해 처리",
+            EContaminationType.Trash => "일반 쓰레기 처리",
+            EContaminationType.ClutterItem => "작은 물건을 제자리에 놓기",
+            EContaminationType.FloorStain => "걸레로 바닥 얼룩 닦기",
+            _ => type.ToString()
+        };
+
         private void ReportError(string reason)
         {
             if (Interlocked.Exchange(ref _hasReportedError, 1) == 0)
             {
-                Debug.LogWarning($"OpenAI 제안 호출 실패 ({reason}). 기본 제안 대사를 사용합니다.");
+                Debug.LogWarning($"OpenAI 결정 호출 실패 ({reason}). 기본 설정을 사용합니다.");
             }
         }
 
-        private static void AddChoice(ProposalRequest request, EZoneId zone, bool useAlternate,
+        private static string Persona(EWorkerType worker) => worker switch
+        {
+            EWorkerType.Goblin => "호기심 많고 대장에게 친근하게 말한다.",
+            EWorkerType.Orc => "일과 동료 지원에 적극적이고 간단명료하게 말한다.",
+            EWorkerType.Skeleton => "꼼꼼하고 정중하게 확인한다.",
+            EWorkerType.Slime => "느긋하고 붙임성 있게 말한다.",
+            _ => "상황에 맞게 짧게 말한다."
+        };
+
+        private static void AddChoice(ProposalRequest request, EZoneId zone, int rank, bool useAlternate,
             List<ProposalReply> choices, JArray options)
         {
             string line = DefaultProposalDialogueProvider.Format(request, zone, useAlternate);
-            options.Add(new JObject { ["index"] = choices.Count, ["line"] = line });
+            options.Add(new JObject
+            {
+                ["value"] = choices.Count.ToString(CultureInfo.InvariantCulture),
+                ["description"] = $"후보 순위 {rank + 1}, {ZoneDisplayName.GetFullName(zone)}. {line}"
+            });
             choices.Add(new ProposalReply(zone, line));
         }
 
-        private static ProposalReply ParseReply(string json, IReadOnlyList<ProposalReply> choices)
+        private static void AddPlanChoice(ProposalRequest request, int index, bool alternate,
+            List<ProposalReply> choices, JArray options)
         {
-            JObject result = JObject.Parse(json);
-            if ((string)result["status"] != "completed") { return default; }
-            foreach (JToken part in result.SelectTokens("output[?(@.type == 'message')].content[?(@.type == 'output_text')]"))
+            CollaborationPlan plan = request.Plans[index];
+            ProposalReply reply = DefaultProposalDialogueProvider.CollaborationReply(request.Worker, plan, alternate);
+            options.Add(new JObject
             {
-                string text = (string)part["text"];
-                if (string.IsNullOrWhiteSpace(text)) { continue; }
-                JToken index = JObject.Parse(text)["index"];
-                if (index?.Type == JTokenType.Integer && int.TryParse(index.ToString(), out int choice)
+                ["value"] = choices.Count.ToString(CultureInfo.InvariantCulture),
+                ["description"] = $"후보 순위 {index + 1}, {plan.Kind}, 두 작업자의 층 이동 합계 {plan.FloorChanges}회. {reply.Text}"
+            });
+            choices.Add(reply);
+        }
+
+        internal static ProposalReply ParseReply(string json, IReadOnlyList<ProposalReply> choices)
+        {
+            if (JObject.Parse(json)["answers"] is not JArray answers) { return default; }
+            foreach (JToken entry in answers)
+            {
+                if (entry is not JObject answer || (string)answer["type"] != "choice" || (string)answer["name"] != "proposal") { continue; }
+                JToken value = answer["choice"];
+                if (value?.Type == JTokenType.String && int.TryParse((string)value, NumberStyles.None, CultureInfo.InvariantCulture, out int choice)
                     && choice >= 0 && choice < choices.Count)
                 {
                     return choices[choice];

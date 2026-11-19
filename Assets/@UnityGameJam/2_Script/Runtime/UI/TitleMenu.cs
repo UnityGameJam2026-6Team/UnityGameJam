@@ -1,7 +1,9 @@
 using System;
 using System.Collections;
 using System.IO;
+using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityGameJam.View;
 using UnityEngine.SceneManagement;
 
@@ -19,7 +21,14 @@ namespace UnityGameJam.UI
         [SerializeField] private NameInputPanel _nameInput;
         [SerializeField, Min(0.01f)] private float _fadeSeconds = 0.45f;
 
+        [Header("로딩 만화")]
+        [SerializeField] private CanvasGroup _comic;
+        [SerializeField] private CanvasGroup[] _comicPanels = Array.Empty<CanvasGroup>();
+        [SerializeField] private TMP_Text _comicHint;
+        [SerializeField, Min(0.01f)] private float _comicRevealSeconds = 0.24f;
+
         private bool _isLoading;
+        private AsyncOperation _pendingLoad;
 
         public void OpenLeaderboard()
         {
@@ -79,33 +88,99 @@ namespace UnityGameJam.UI
 
         private IEnumerator LoadGame()
         {
-            yield return FadeTo(1f);
+            // 페이드부터 로드를 시작하고 타이틀 연출이 끝난 뒤 씬을 활성화한다.
+            _pendingLoad = SceneManager.LoadSceneAsync(_gameScene, LoadSceneMode.Single);
+            _pendingLoad.allowSceneActivation = false;
+            yield return FadeTo(_fade, 1f);
 
-            _loadingLabel.SetActive(true);
-            yield return null;
-
-            // 씬이 교체되는 프레임을 검은 화면으로 덮은 뒤 게임 화면을 드러낸다.
             DontDestroyOnLoad(gameObject);
             _menu.SetActive(false);
-            yield return SceneManager.LoadSceneAsync(_gameScene, LoadSceneMode.Single);
+            if (_comic != null && _comicPanels.Length > 0)
+            {
+                yield return PlayComic();
+            }
+
+            _loadingLabel.SetActive(_pendingLoad.progress < 0.9f);
+            _pendingLoad.allowSceneActivation = true;
+            yield return _pendingLoad;
+            _pendingLoad = null;
             yield return null;
 
             _loadingLabel.SetActive(false);
-            yield return FadeTo(0f);
+            yield return FadeTo(_fade, 0f);
             Destroy(gameObject);
         }
 
-        private IEnumerator FadeTo(float target)
+        private IEnumerator PlayComic()
         {
-            float start = _fade.alpha;
+            foreach (CanvasGroup panel in _comicPanels) { panel.alpha = 0f; }
+            _comicHint.text = "아무 키를 누르세요";
+            _comic.gameObject.SetActive(true);
+            _comic.alpha = 1f;
+
+            foreach (CanvasGroup panel in _comicPanels)
+            {
+                yield return WaitForComicKey();
+                yield return RevealPanel(panel);
+            }
+
+            _comicHint.text = "아무 키를 눌러 시작";
+            yield return WaitForComicKey();
+            yield return FadeTo(_comic, 0f);
+            _comic.gameObject.SetActive(false);
+        }
+
+        private static IEnumerator WaitForComicKey()
+        {
+            // 같은 프레임의 입력을 다음 컷에서 다시 읽지 않는다.
+            do { yield return null; } while (!WasComicKeyPressed());
+        }
+
+        private static bool WasComicKeyPressed()
+        {
+            Keyboard keyboard = Keyboard.current;
+            if (keyboard == null) { return false; }
+            foreach (var key in keyboard.allKeys)
+            {
+                if (key.wasPressedThisFrame) { return true; }
+            }
+            return false;
+        }
+
+        private IEnumerator RevealPanel(CanvasGroup panel)
+        {
+            Transform panelTransform = panel.transform;
+            Vector3 startScale = Vector3.one * 0.96f;
+            panelTransform.localScale = startScale;
+            float elapsed = 0f;
+            while (elapsed < _comicRevealSeconds)
+            {
+                yield return null;
+                elapsed += Mathf.Min(Time.unscaledDeltaTime, 0.05f);
+                float progress = Mathf.SmoothStep(0f, 1f, elapsed / _comicRevealSeconds);
+                panel.alpha = progress;
+                panelTransform.localScale = Vector3.Lerp(startScale, Vector3.one, progress);
+            }
+            panel.alpha = 1f;
+            panelTransform.localScale = Vector3.one;
+        }
+
+        private IEnumerator FadeTo(CanvasGroup group, float target)
+        {
+            float start = group.alpha;
             float elapsed = 0f;
             while (elapsed < _fadeSeconds)
             {
                 yield return null;
                 elapsed += Mathf.Min(Time.unscaledDeltaTime, 0.05f);
-                _fade.alpha = Mathf.SmoothStep(start, target, elapsed / _fadeSeconds);
+                group.alpha = Mathf.SmoothStep(start, target, elapsed / _fadeSeconds);
             }
-            _fade.alpha = target;
+            group.alpha = target;
+        }
+
+        private void OnDisable()
+        {
+            if (_pendingLoad != null) { _pendingLoad.allowSceneActivation = true; }
         }
     }
 }

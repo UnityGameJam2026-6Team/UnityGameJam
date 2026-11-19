@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: M_FX_DreamHaze
+  m_Shader: {fileID: 4800000, guid: 0bde7bb38a0c0854093c6c1c2e41320d, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _BlurEnd: 1.1
+    - _BlurRadius: 0.011
+    - _BlurStart: 0.45
+    - _BlurStrength: 0.8
+    - _MoteAmount: 0.16
+    - _MoteDensity: 13
+    - _MoteEmberRatio: 0.4
+    - _MoteSize: 0.09
+    - _MoteSpeed: 0.04
+    - _MoteStrength: 1
+    - _ShaftCoverage: 0.55
+    - _ShaftFloorPool: 0.7
+    - _ShaftGround: 0
+    - _ShaftHeight: 2.6
+    - _ShaftScale: 0.8
+    - _ShaftSpeed: 0.12
+    - _ShaftStrength: 0.65
+    - _ShaftThin: 0.56
+    - _SmokeSpeed: 0.06
+    - _SmokeStart: 0.75
+    - _SmokeStrength: 0.55
+    - _WobbleAmount: 0.0007
+    - _WobbleSpeed: 0.5
+    m_Colors:
+    - _MoteColorA: {r: 1, g: 0.41999996, b: 0.95, a: 1}
+    - _MoteColorB: {r: 1, g: 0.45, b: 0.11999995, a: 1}
+    - _PoolColor: {r: 1, g: 0.58, b: 0.29999998, a: 1}
+    - _ShaftColor: {r: 1, g: 0.31999996, b: 0.78, a: 1}
+    - _ShaftDirection: {r: 0.55, g: -1, b: 0.35, a: 0}
+    - _SmokeColor: {r: 0.15999997, g: 0.049999982, b: 0.21999997, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

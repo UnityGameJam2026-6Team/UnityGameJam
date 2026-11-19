@@ -37,6 +37,7 @@ namespace UnityGameJam.View
         [SerializeField] private Vector3 _modelEuler = Vector3.zero;
         [Tooltip("Fit Mode로 맞춘 뒤 추가로 곱하는 배율")]
         [SerializeField] private float _modelScale = 1f;
+        [SerializeField] private float _modelTop;
 
         private Animator _animator;
 
@@ -48,6 +49,7 @@ namespace UnityGameJam.View
         public Vector3 ModelOffset => _modelOffset;
         public Vector3 ModelEuler => _modelEuler;
         public float ModelScale => _modelScale;
+        public float ModelTop => _modelTop;
         public CharacterAnimationSet AnimationSet => GetComponent<CharacterAnimationSet>();
 
         /// <summary>게임 스크립트는 Visual 아래를 경로로 찾지 말고 이 접근자로 애니메이터를 얻는다.</summary>

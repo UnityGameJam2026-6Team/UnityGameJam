@@ -14,8 +14,19 @@ namespace UnityGameJam.Test
             var presenter = new SerializedObject(hud.GetComponent<FacilityHud>());
             var panel = (GameObject)presenter.FindProperty("_choices").objectReferenceValue;
 
-            AssertTextReference(presenter, "_assignmentTitle", panel.transform, "Title");
-            AssertTextReference(presenter, "_assignmentRoom", panel.transform, "CurrentRoom");
+            var dialogue = (RectTransform)panel.transform.Find("Dialogue");
+            var orders = (RectTransform)panel.transform.Find("Choice");
+            Assert.That(dialogue, Is.Not.Null);
+            Assert.That(orders, Is.Not.Null);
+            AssertTextReference(presenter, "_assignmentTitle", orders, "Title");
+            AssertTextReference(presenter, "_assignmentRoom", orders, "CurrentRoom");
+            AssertTextReference(presenter, "_dialogueSpeaker", dialogue, "SpeakerBadge/Speaker");
+            Assert.That(dialogue.anchoredPosition.x, Is.EqualTo(orders.anchoredPosition.x));
+            Assert.That(dialogue.anchoredPosition.y, Is.GreaterThan(orders.anchoredPosition.y));
+            Assert.That(orders.Find("KeyboardHints"), Is.Null);
+            var dispatch = (Component)presenter.FindProperty("_hellhoundDispatch").objectReferenceValue;
+            Assert.That(dispatch, Is.Not.Null);
+            Assert.That(dispatch.transform, Is.EqualTo(orders.Find("DispatchHellhound")));
         }
 
         private static void AssertTextReference(SerializedObject presenter, string propertyName, Transform panel, string childName)

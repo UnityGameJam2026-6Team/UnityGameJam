@@ -58,7 +58,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.65, g: 0.91, b: 0.81, a: 1}
+  m_Color: {r: 0.38039216, g: 0.14509805, b: 0.28235295, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -135,15 +135,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.055, g: 0.069, b: 0.1, a: 0.94}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: c3de9d6f7e63f9d46af675dcb56cea13, type: 3}
+  m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -151,7 +151,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 2.5
 --- !u!1 &6553259299318190923
 GameObject:
   m_ObjectHideFlags: 0
@@ -219,15 +219,15 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\uBC14\uB2E5 \uB2E6\uB294 \uC911"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 34ade1e4eb331e44383bfed587ec0027, type: 2}
-  m_sharedMaterial: {fileID: -4169139571300012816, guid: 34ade1e4eb331e44383bfed587ec0027, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 0d2f65e7088ef104a8b93f8e0df57f08, type: 2}
+  m_sharedMaterial: {fileID: -390707184474330209, guid: 0d2f65e7088ef104a8b93f8e0df57f08, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+  m_fontColor: {r: 0.22745098, g: 0.13333334, b: 0.18039216, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:

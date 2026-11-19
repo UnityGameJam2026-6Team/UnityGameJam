@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.UI;
 
 namespace DemonKing.UI
 {
@@ -67,6 +68,7 @@ namespace DemonKing.UI
         struct Pose { public Vector2 pos; public Vector3 scale; public float rot; }
         Pose _crown, _banner, _line1, _line2, _shaker;
         CanvasGroup _gCrown, _gBanner, _gLine1, _gLine2;
+        Graphic _line1ShadowGraphic, _line2ShadowGraphic;
         bool _captured, _playing, _finished, _evSlam, _evLine2, _evCrown;
         float _t, _idleT, _nextPunch;
 
@@ -138,6 +140,8 @@ namespace DemonKing.UI
             _captured = true;
             _shaker = Grab(shaker); _crown = Grab(crown); _banner = Grab(banner); _line1 = Grab(line1); _line2 = Grab(line2);
             _gCrown = Group(crown); _gBanner = Group(banner); _gLine1 = Group(line1); _gLine2 = Group(line2);
+            if (line1Shadow != null) { _line1ShadowGraphic = line1Shadow.GetComponent<Graphic>(); }
+            if (line2Shadow != null) { _line2ShadowGraphic = line2Shadow.GetComponent<Graphic>(); }
         }
 
         static Pose Grab(RectTransform rt)
@@ -163,7 +167,8 @@ namespace DemonKing.UI
             Set(line1, _line1, Vector2.zero, Vector2.one, 0f);
             Set(line2, _line2, Vector2.zero, Vector2.one, 0f);
             SetAlpha(_gCrown, 1f); SetAlpha(_gBanner, 1f); SetAlpha(_gLine1, 1f); SetAlpha(_gLine2, 1f);
-            SetShadow(line1Shadow, 0f); SetShadow(line2Shadow, 0f);
+            SetShadow(line1Shadow, _line1ShadowGraphic, 0f);
+            SetShadow(line2Shadow, _line2ShadowGraphic, 0f);
         }
 
         // ------------------------------------------------------------------ curves
@@ -295,27 +300,39 @@ namespace DemonKing.UI
             Set(banner, _banner, o3, s3, r3);
             Set(crown, _crown, o4, s4, r4);
             SetAlpha(_gLine1, al1); SetAlpha(_gLine2, al2); SetAlpha(_gBanner, al3); SetAlpha(_gCrown, al4);
-            SetShadow(line1Shadow, h1);
-            SetShadow(line2Shadow, 0f);
+            SetShadow(line1Shadow, _line1ShadowGraphic, h1);
+            SetShadow(line2Shadow, _line2ShadowGraphic, 0f);
         }
 
-        void SetShadow(RectTransform sh, float height)
+        void SetShadow(RectTransform sh, Graphic graphic, float height)
         {
-            if (sh == null) return;
+            if (sh == null) { return; }
             // the higher the letters "fly" above the screen, the further and fainter the shadow
-            sh.anchoredPosition = shadowOffset * (1f + height * 2.2f);
-            var g = sh.GetComponent<UnityEngine.UI.Graphic>();
-            if (g != null) { var c = g.color; c.a = shadowAlpha / (1f + height * 1.5f); g.color = c; }
+            Vector2 position = shadowOffset * (1f + height * 2.2f);
+            if (sh.anchoredPosition != position) { sh.anchoredPosition = position; }
+            if (graphic == null) { return; }
+
+            Color color = graphic.color;
+            float alpha = shadowAlpha / (1f + height * 1.5f);
+            if (color.a == alpha) { return; }
+            color.a = alpha;
+            graphic.color = color;
         }
 
         static void Set(RectTransform rt, Pose p, Vector2 offset, Vector2 scale, float rot)
         {
-            if (rt == null) return;
-            rt.anchoredPosition = p.pos + offset;
-            rt.localScale = new Vector3(p.scale.x * scale.x, p.scale.y * scale.y, p.scale.z);
-            rt.localEulerAngles = new Vector3(0f, 0f, p.rot + rot);
+            if (rt == null) { return; }
+            Vector2 position = p.pos + offset;
+            Vector3 localScale = new Vector3(p.scale.x * scale.x, p.scale.y * scale.y, p.scale.z);
+            Quaternion rotation = Quaternion.Euler(0f, 0f, p.rot + rot);
+            if (rt.anchoredPosition != position) { rt.anchoredPosition = position; }
+            if (rt.localScale != localScale) { rt.localScale = localScale; }
+            if (!rt.localRotation.Equals(rotation)) { rt.localRotation = rotation; }
         }
 
-        static void SetAlpha(CanvasGroup g, float a) { if (g != null) g.alpha = a; }
+        static void SetAlpha(CanvasGroup g, float a)
+        {
+            if (g != null && g.alpha != a) { g.alpha = a; }
+        }
     }
 }

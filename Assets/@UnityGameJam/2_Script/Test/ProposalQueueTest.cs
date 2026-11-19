@@ -8,6 +8,39 @@ namespace UnityGameJam.Test
     public class ProposalQueueTest
     {
         [Test]
+        public void 방_정보는_발화자의_통보로_나오고_제안만_승인할_수_있다()
+        {
+            var queue = new ProposalQueue(7f, 3f, 2f, new DefaultProposalDialogueProvider());
+            queue.AddRoomReport(EWorkerType.Orc, EWorkerType.Goblin, 0f);
+            queue.AddRoomReport(EWorkerType.Goblin, EWorkerType.Orc, .1f);
+            queue.Request(EWorkerType.Skeleton, 1, EZoneId.Workshop, EProposalReason.OtherWorker, false,
+                coworkers: new System.Collections.Generic.Dictionary<EZoneId, EWorkerType> { [EZoneId.Workshop] = EWorkerType.Orc });
+            queue.Tick(.2f);
+
+            Assert.That(queue.Messages.Count, Is.EqualTo(2));
+            MessageEntry notice = queue.Messages[0];
+            Assert.That(notice.Minion, Is.EqualTo(EWorkerType.Orc));
+            Assert.That(notice.Kind, Is.EqualTo(EMessageKind.Notice));
+            Assert.That(notice.Text, Does.StartWith("고블린,"));
+            Assert.That(notice.IsInputTarget, Is.False);
+            Assert.That(queue.Messages[1].Text, Does.Contain("오크"));
+            Assert.That(queue.Messages[1].IsInputTarget, Is.True);
+            Assert.That(queue.RespondOldest(true), Is.True);
+            Assert.That(queue.Messages.Count, Is.EqualTo(1));
+            queue.Tick(3.1f);
+            Assert.That(queue.Messages, Is.Empty);
+        }
+
+        [Test]
+        public void Decisions_선택값이_준비된_대사를_찾고_범위를_벗어나면_거부한다()
+        {
+            var choices = new[] { new ProposalReply(EZoneId.Storage, "대장, 창고로 갈까?") };
+            const string valid = "{\"answers\":[{\"type\":\"choice\",\"name\":\"proposal\",\"choice\":\"0\"}]}";
+            Assert.That(OpenAiProposalDialogueProvider.ParseReply(valid, choices).Text, Is.EqualTo(choices[0].Text));
+            Assert.That(OpenAiProposalDialogueProvider.ParseReply(valid.Replace("\"0\"", "\"7\""), choices).Text, Is.Null);
+        }
+
+        [Test]
         public void 제안은_개별_만료되고_통보가_입력_순서에_끼지_않는다()
         {
             var queue = new ProposalQueue(7f, 20f, 2f, new DefaultProposalDialogueProvider());

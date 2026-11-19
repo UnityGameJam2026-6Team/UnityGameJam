@@ -17,12 +17,14 @@ namespace UnityGameJam.UI
         [SerializeField] private float _maximumHeight = 420f;
         [SerializeField] private float _topReserve = 340f;
         private const int SharedLane = 4;
+        private const float ExposedFraction = 0.25f;
         private readonly EZoneId?[] _assignedZones = new EZoneId?[SharedLane];
         private readonly Dictionary<int, EZoneId?> _reportedZones = new Dictionary<int, EZoneId?>();
         private readonly List<ProposalCard> _cards = new List<ProposalCard>();
         private readonly float[] _heights = new float[SharedLane + 1];
         private readonly int[] _counts = new int[SharedLane + 1];
-        private readonly int[] _lastMessage = new int[SharedLane + 1];
+        private readonly int[] _frontCards = new int[SharedLane + 1];
+        private readonly int[] _lastFront = new int[SharedLane + 1];
         private RectTransform _rect;
         private RectTransform _parent;
         private Vector2 _defaultOrigin;
@@ -32,7 +34,6 @@ namespace UnityGameJam.UI
         private bool _enabledApprove;
         private bool _enabledHold;
         private int _targetId = -1;
-        private int _lastTargetId = -1;
         private Action<int, bool> _response;
 
         private void Awake()
@@ -43,9 +44,17 @@ namespace UnityGameJam.UI
             _response = Respond;
             if (_lanes.Length > SharedLane && _lanes[SharedLane] != null)
             {
-                _sharedMaximumHeight = ((RectTransform)_lanes[SharedLane].transform).rect.height;
+                var sharedLane = (RectTransform)_lanes[SharedLane].transform;
+                _sharedMaximumHeight = sharedLane.rect.height;
+                sharedLane.SetAsFirstSibling();
             }
-            Array.Fill(_lastMessage, -1);
+            foreach (UnityEngine.UI.ScrollRect lane in _lanes)
+            {
+                if (lane == null) { continue; }
+                if (lane.content.TryGetComponent(out UnityEngine.UI.VerticalLayoutGroup layout)) { layout.enabled = false; }
+                if (lane.content.TryGetComponent(out UnityEngine.UI.ContentSizeFitter fitter)) { fitter.enabled = false; }
+            }
+            Array.Fill(_lastFront, -1);
         }
 
         private void OnEnable()
@@ -62,10 +71,9 @@ namespace UnityGameJam.UI
             if (_enabledHold) { _hold.action.Disable(); }
             _session = null;
             _targetId = -1;
-            _lastTargetId = -1;
             _reportedZones.Clear();
             Array.Clear(_assignedZones, 0, _assignedZones.Length);
-            Array.Fill(_lastMessage, -1);
+            Array.Fill(_lastFront, -1);
         }
 
         internal static int LaneIndex(EWorkerType worker) => worker switch
@@ -102,6 +110,7 @@ namespace UnityGameJam.UI
             _rect.anchoredPosition = origin;
             Array.Clear(_heights, 0, _heights.Length);
             Array.Clear(_counts, 0, _counts.Length);
+            Array.Fill(_frontCards, -1);
             float fallbackBottom = 0f;
             for (int i = 0; i < count; i++)
             {
@@ -118,33 +127,40 @@ namespace UnityGameJam.UI
                 UnityEngine.UI.ScrollRect lane = laneIndex < _lanes.Length ? _lanes[laneIndex] : null;
                 ProposalCard card = _cards[i];
                 Transform parent = lane != null ? lane.content : transform;
-                bool changed = card.MessageId != message.MessageId || card.transform.parent != parent;
                 if (card.transform.parent != parent) { card.transform.SetParent(parent, false); }
                 if (!card.gameObject.activeSelf) { card.gameObject.SetActive(true); }
-                if (changed) { card.transform.SetAsLastSibling(); }
                 var cardRect = (RectTransform)card.transform;
                 if (lane != null) { cardRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, lane.content.rect.width); }
                 float height = card.Show(message, ReportedZone(message, laneIndex), elapsed, isTarget, fallbackBottom);
-                _heights[laneIndex] += height + _spacing;
-                _counts[laneIndex]++;
-                fallbackBottom += height + _spacing;
+                if (lane == null) { fallbackBottom += height + _spacing; }
+                else if (isTarget || _frontCards[laneIndex] < 0 || messages[_frontCards[laneIndex]].MessageId != _targetId)
+                {
+                    _frontCards[laneIndex] = i;
+                }
             }
             for (int i = count; i < _cards.Count; i++)
             {
                 if (_cards[i].gameObject.activeSelf) { _cards[i].gameObject.SetActive(false); }
             }
+            for (int lane = 0; lane < _frontCards.Length; lane++)
+            {
+                if (_frontCards[lane] >= 0) { PlaceCard(lane, _cards[_frontCards[lane]]); }
+            }
+            for (int i = count - 1; i >= 0; i--)
+            {
+                int lane = LaneIndex(messages[i].Minion);
+                if (_frontCards[lane] >= 0 && _frontCards[lane] != i) { PlaceCard(lane, _cards[i]); }
+            }
+
             float availableHeight = _parent != null ? Mathf.Max(0f, _parent.rect.height - origin.y - _topReserve) : _maximumHeight;
-            float sharedHeight = Mathf.Min(_sharedMaximumHeight, Mathf.Max(0f, _heights[SharedLane] - _spacing));
-            float tallestWorkerLane = 0f;
+            float sharedHeight = Mathf.Min(_sharedMaximumHeight, Mathf.Min(_heights[SharedLane], availableHeight));
+            float workerHeightLimit = Mathf.Min(_maximumHeight, availableHeight - sharedHeight * ExposedFraction);
+            float workerTop = 0f;
             for (int i = 0; i < SharedLane; i++)
             {
-                tallestWorkerLane = Mathf.Max(tallestWorkerLane, _heights[i] - _spacing);
+                workerTop = Mathf.Max(workerTop, Mathf.Min(workerHeightLimit, _heights[i]));
             }
-            if (tallestWorkerLane > 0f) { sharedHeight = Mathf.Min(sharedHeight, availableHeight * 0.5f); }
-            else { sharedHeight = Mathf.Min(sharedHeight, availableHeight); }
-            float workerSpace = availableHeight - (sharedHeight > 0f ? sharedHeight + _spacing : 0f);
-            float workerHeightLimit = Mathf.Clamp(workerSpace, 0f, _maximumHeight);
-            float sharedBottom = tallestWorkerLane > 0f ? Mathf.Min(tallestWorkerLane, workerHeightLimit) + _spacing : 0f;
+            float sharedBottom = Mathf.Max(0f, workerTop - sharedHeight * (1f - ExposedFraction));
 
             for (int i = 0; i < _lanes.Length && i < _heights.Length; i++)
             {
@@ -152,42 +168,39 @@ namespace UnityGameJam.UI
                 if (lane == null) { continue; }
                 bool active = _counts[i] > 0;
                 if (lane.gameObject.activeSelf != active) { lane.gameObject.SetActive(active); }
-                if (!active) { _lastMessage[i] = -1; continue; }
-                float height = i == SharedLane ? sharedHeight : Mathf.Min(workerHeightLimit, _heights[i] - _spacing);
+                if (!active) { _lastFront[i] = -1; continue; }
+                float height = i == SharedLane ? sharedHeight : Mathf.Min(workerHeightLimit, _heights[i]);
                 var laneRect = (RectTransform)lane.transform;
                 if (i == SharedLane) { laneRect.anchoredPosition = new Vector2(0f, sharedBottom); }
                 bool isHeightChanged = !Mathf.Approximately(laneRect.rect.height, height);
                 if (isHeightChanged) { laneRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height); }
-                int newestId = -1;
-                for (int j = count - 1; j >= 0; j--)
+                bool isContentChanged = !Mathf.Approximately(lane.content.rect.height, _heights[i]);
+                if (isContentChanged) { lane.content.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, _heights[i]); }
+                int frontId = messages[_frontCards[i]].MessageId;
+                if (isHeightChanged || isContentChanged || _lastFront[i] != frontId)
                 {
-                    if (LaneIndex(messages[j].Minion) == i) { newestId = messages[j].MessageId; break; }
-                }
-                bool hasNewTarget = _targetId != _lastTargetId && _targetId >= 0;
-                if (isHeightChanged || _lastMessage[i] != newestId || hasNewTarget)
-                {
-                    UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(lane.content);
+                    lane.StopMovement();
                     lane.verticalNormalizedPosition = 0f;
-                    // 응답 대상 카드를 먼저 보여 주고 나머지 메시지는 스크롤로 읽는다.
-                    for (int j = 0; j < count; j++)
-                    {
-                        if (messages[j].MessageId != _targetId || LaneIndex(messages[j].Minion) != i) { continue; }
-                        var target = (RectTransform)_cards[j].transform;
-                        float scrollRange = lane.content.rect.height - lane.viewport.rect.height;
-                        if (scrollRange > 0f)
-                        {
-                            float top = -target.anchoredPosition.y;
-                            lane.verticalNormalizedPosition = 1f - Mathf.Clamp01(top / scrollRange);
-                        }
-                        break;
-                    }
-                    _lastMessage[i] = newestId;
+                    _lastFront[i] = frontId;
                 }
             }
-            _lastTargetId = _targetId;
             if (_targetId < 0) { return; }
             if (_approve != null && _approve.action.WasPressedThisFrame()) { Respond(_targetId, true); }
             else if (_hold != null && _hold.action.WasPressedThisFrame()) { Respond(_targetId, false); }
+        }
+
+        private void PlaceCard(int lane, ProposalCard card)
+        {
+            var rect = (RectTransform)card.transform;
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.right;
+            int depth = _counts[lane]++;
+            float height = rect.rect.height;
+            _heights[lane] += depth == 0 ? height : height * ExposedFraction;
+            float pivotOffset = height * (1f - rect.pivot.y) * rect.localScale.y;
+            rect.anchoredPosition = new Vector2(0f, _heights[lane] - pivotOffset);
+            int sibling = rect.parent.childCount - 1 - depth;
+            if (rect.GetSiblingIndex() != sibling) { rect.SetSiblingIndex(sibling); }
         }
 
         private void RememberAssignments(IReadOnlyList<MinionStatus> minions)
@@ -204,10 +217,10 @@ namespace UnityGameJam.UI
 
         private EZoneId? ReportedZone(MessageEntry message, int lane)
         {
-            if (lane == SharedLane) { return null; }
+            if (lane == SharedLane || message.Kind != EMessageKind.Proposal) { return null; }
             if (!_reportedZones.TryGetValue(message.MessageId, out EZoneId? zone))
             {
-                // 복귀 통보가 도착하면 세션에서는 이미 배정이 해제되어 있다.
+                // 제안이 열린 뒤에 재배정되어도 기존 담당 방을 표시한다.
                 zone = _assignedZones[lane];
                 _reportedZones.Add(message.MessageId, zone);
             }
@@ -232,6 +245,13 @@ namespace UnityGameJam.UI
                 {
                     GameAudioPresenter.MarkHandled(messageId);
                     GameSfxPlayer.Play(approve ? ESfxCue.Confirm : ESfxCue.Cancel);
+                    int cardIndex = _cards.FindIndex(card => card.MessageId == messageId);
+                    if (cardIndex >= 0 && _cards[cardIndex].ShowDecisionStamp(_rect, approve))
+                    {
+                        ProposalCard stamped = _cards[cardIndex];
+                        _cards.RemoveAt(cardIndex);
+                        stamped.StartCoroutine(stamped.AnimateDecisionStamp());
+                    }
                 }
                 return;
             }

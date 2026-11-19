@@ -67,6 +67,7 @@ namespace UnityGameJam.Contract
         AwaitingResponse, // 이동 제안 응답 대기 (정지)
         ReturningToLobby, // 1층 로비 복귀
         Dispatching,      // 헬하운드 배출 이동
+        Recalling,        // 호통 집결지로 이동
     }
 
     public enum EMatchState

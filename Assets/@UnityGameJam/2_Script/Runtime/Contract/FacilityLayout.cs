@@ -16,10 +16,34 @@ namespace UnityGameJam.Contract
         public List<PatrolRoute> PatrolRoutes { get; } = new List<PatrolRoute>();
         public List<SpawnPoint> SpawnPoints { get; } = new List<SpawnPoint>();
         public List<HomeSlot> HomeSlots { get; } = new List<HomeSlot>(); // TODO: 보류 (미정 U3. 작은 물건 제자리)
+        public List<WasteBin> WasteBins { get; } = new List<WasteBin>();
         public Dictionary<EWorkerType, Vector3> StartPositions { get; } = new Dictionary<EWorkerType, Vector3>();
 
         /// <summary>1층 현관 배출 구역. 이 안의 폐기물만 헬하운드가 가져간다(GDD §7.2).</summary>
         public Bounds DischargeArea { get; set; }
+
+        public WasteBin FindNearestWasteBin(EFloor floor, Vector3 position, float reach = float.PositiveInfinity)
+        {
+            WasteBin nearest = null;
+            float bestDistance = reach * reach;
+            foreach (WasteBin bin in WasteBins)
+            {
+                if (bin.Floor != floor) { continue; }
+                Vector3 offset = bin.Position - position;
+                offset.y = 0f;
+                float distance = offset.sqrMagnitude;
+                if (distance > bestDistance) { continue; }
+                bestDistance = distance;
+                nearest = bin;
+            }
+            return nearest;
+        }
+    }
+
+    public sealed class WasteBin
+    {
+        public EFloor Floor { get; set; }
+        public Vector3 Position { get; set; }
     }
 
     /// <summary>층 전체 범위. 판정 구역 밖(화장실·계단)에 떨어진 물건의 층을 찾는 데 쓴다.</summary>

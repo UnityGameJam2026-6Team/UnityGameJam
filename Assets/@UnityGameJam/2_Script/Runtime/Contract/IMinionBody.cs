@@ -22,5 +22,6 @@ namespace UnityGameJam.Contract
 
         /// <summary>종별 속도와 무게 감속은 규칙이 계산해서 넘긴다.</summary>
         void SetMoveSpeed(float speed);
+        void SetActionRate(float rate) { }
     }
 }

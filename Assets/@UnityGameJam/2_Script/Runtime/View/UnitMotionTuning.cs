@@ -56,8 +56,8 @@ namespace UnityGameJam.View
             float rate = holdingMop ? _mopWalkRate : carried switch
             {
                 EContaminationType.HeavyDebris => _heavyCarryRate,
-                not null => _carryRate,
-                null => running ? _runRate : _walkRate
+                not null when !running => _carryRate,
+                _ => running ? _runRate : _walkRate
             };
             float speed = carried == EContaminationType.HeavyDebris && ruleMultiplier < 1f
                 ? walkSpeed * NormalizeRate(_walkRate) : measuredSpeed;

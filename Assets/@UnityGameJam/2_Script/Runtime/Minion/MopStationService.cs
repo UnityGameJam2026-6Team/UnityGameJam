@@ -85,8 +85,13 @@ namespace UnityGameJam.Minion
             ToiletStation station = GetBorrowedFrom(worker);
             if (body == null || station == null || !IsInReach(station, body)) { return false; }
 
-            _borrowed.Remove(worker);
-            _available[station.Floor]++;
+            return Release(worker);
+        }
+
+        public bool Release(EWorkerType worker)
+        {
+            if (!_borrowed.Remove(worker, out EFloor floor)) { return false; }
+            _available[floor]++;
             return true;
         }
 

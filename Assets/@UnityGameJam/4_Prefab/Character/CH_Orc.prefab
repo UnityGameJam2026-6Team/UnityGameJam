@@ -9,12 +9,24 @@ PrefabInstance:
     m_TransformParent: {fileID: 6981013755988565555}
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 434d7bc77378a134e9b105d0fa3f9842, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1.0704193
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 434d7bc77378a134e9b105d0fa3f9842, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1.0704193
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 434d7bc77378a134e9b105d0fa3f9842, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1.0704193
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 434d7bc77378a134e9b105d0fa3f9842, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 434d7bc77378a134e9b105d0fa3f9842, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: 0.0018558651
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 434d7bc77378a134e9b105d0fa3f9842, type: 3}
       propertyPath: m_LocalPosition.z
@@ -284,6 +296,18 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 265823252287155716}
     - target: {fileID: 2767815194446335370, guid: ac5f6bde031b2c74d9ddc12548fac8f0, type: 3}
+      propertyPath: _modelTop
+      value: 2.1176927
+      objectReference: {fileID: 0}
+    - target: {fileID: 2767815194446335370, guid: ac5f6bde031b2c74d9ddc12548fac8f0, type: 3}
+      propertyPath: _modelScale
+      value: 1.0704193
+      objectReference: {fileID: 0}
+    - target: {fileID: 2767815194446335370, guid: ac5f6bde031b2c74d9ddc12548fac8f0, type: 3}
+      propertyPath: _modelOffset.y
+      value: 0.0018558651
+      objectReference: {fileID: 0}
+    - target: {fileID: 2767815194446335370, guid: ac5f6bde031b2c74d9ddc12548fac8f0, type: 3}
       propertyPath: _artKeyOverride
       value: CH_GoblinTrailblazer
       objectReference: {fileID: 0}
@@ -392,11 +416,11 @@ MonoBehaviour:
   _pickUpEnd: 4.3430943
   _pickUpHeavyContact: 3.414365
   _pickUpHeavyEnd: 4.3430943
-  _walkSpeed: 0.9251073
-  _runSpeed: 2.4762688
-  _carrySpeed: 0.8309032
-  _carryHeavySpeed: 0.27555645
-  _mopWalkSpeed: 0.84391123
+  _walkSpeed: 0.99025303
+  _runSpeed: 2.6506455
+  _carrySpeed: 0.88941437
+  _carryHeavySpeed: 0.29496157
+  _mopWalkSpeed: 0.9033385
 --- !u!4 &6981013755988565555 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6379178708371745832, guid: ac5f6bde031b2c74d9ddc12548fac8f0, type: 3}

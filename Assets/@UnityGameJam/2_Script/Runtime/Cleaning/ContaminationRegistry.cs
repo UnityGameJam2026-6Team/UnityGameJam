@@ -80,6 +80,19 @@ namespace UnityGameJam.Cleaning
             return true;
         }
 
+        public bool TryDisposeTrash(int itemId, EWorkerType worker, IWorkerBody body, float reach)
+        {
+            ContaminationItem item = FindItem(itemId);
+            if (body == null || !IsCarriedBy(item, worker) || item.Type != EContaminationType.Trash) { return false; }
+            WasteBin bin = _zoneMap.FindWasteBinInReach(body, reach);
+            if (bin == null) { return false; }
+
+            item.SetLocation(_zoneMap.ResolveDropZone(bin.Position, bin.Floor), bin.Position);
+            item.SetState(EItemState.Resolved);
+            ItemChanged?.Invoke(item.Snapshot);
+            return true;
+        }
+
         public int DropAllCarried(IReadOnlyDictionary<EWorkerType, IWorkerBody> workers)
         {
             if (workers == null) { throw new ArgumentNullException(nameof(workers)); }
@@ -138,7 +151,7 @@ namespace UnityGameJam.Cleaning
         public bool TryStartDigest(int itemId)
         {
             ContaminationItem item = FindItem(itemId);
-            if (!CanStartWork(item, EWorkerType.Slime) || !item.IsWaste) { return false; }
+            if (item?.State != EItemState.OnFloor || !CanStartWork(item, EWorkerType.Slime) || !item.IsWaste) { return false; }
             if (Items.Any(other => other.State == EItemState.Digesting)) { return false; }
 
             item.SetState(EItemState.Digesting, EWorkerType.Slime);

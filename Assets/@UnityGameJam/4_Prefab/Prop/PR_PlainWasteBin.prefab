@@ -99,6 +99,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2356910299729534955}
+  - component: {fileID: 2021991273562956037}
   m_Layer: 0
   m_Name: PR_PlainWasteBin
   m_TagString: Untagged
@@ -122,6 +123,19 @@ Transform:
   - {fileID: 5804887886604861179}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2021991273562956037
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6594326256755037387}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f48b05d494d13e41bccfc08b7321d0c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.View.WasteBinAuthoring
+  _useOffset: {x: 0, y: 0, z: 0.65}
 --- !u!1 &6599613398145225438
 GameObject:
   m_ObjectHideFlags: 0
@@ -176,6 +190,7 @@ MonoBehaviour:
   _modelOffset: {x: -0.00038020313, y: 0.3468406, z: 0.0011331588}
   _modelEuler: {x: 0, y: 0, z: 0}
   _modelScale: 10
+  _modelTop: 0
 --- !u!1001 &5299820609716568936
 PrefabInstance:
   m_ObjectHideFlags: 0

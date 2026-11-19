@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 using UnityGameJam.View;
 
 namespace UnityGameJam.Player
@@ -14,9 +16,22 @@ namespace UnityGameJam.Player
         [SerializeField] private ViewSettingsSO _settings;
 
         private Camera _camera;
+        private Canvas _screenFadeCanvas;
+        private CanvasRenderer _screenFadeRenderer;
         private Transform _target;
         private Transform _conversationPartner;
-        private Vector3 _velocity;
+        private Vector3 _focus;
+        private Vector3 _focusVelocity;
+        private Vector3 _cameraOffset;
+        private Quaternion _viewRotation;
+        private Vector3 _transitionFocus;
+        private Vector3 _transitionOffset;
+        private Quaternion _transitionRotation;
+        private float _transitionElapsed;
+        private bool _isOpening;
+        private bool _isEnding;
+
+        private float TransitionDuration => Mathf.Max(0.25f, _settings.CameraSmoothTime * 3f);
         private Quaternion _conversationRotation;
         private Vector3 _conversationFocusOffset;
         private float _conversationDistance;
@@ -25,10 +40,42 @@ namespace UnityGameJam.Player
         private readonly List<Vector3> _framingPoints = new();
         private readonly RaycastHit[] _obstructions = new RaycastHit[12];
 
-        private void Awake() => _camera = GetComponent<Camera>();
+        private void Awake()
+        {
+            _camera = GetComponent<Camera>();
+            var overlay = new GameObject("Screen Fade", typeof(RectTransform), typeof(Canvas));
+            if (overlay.scene != gameObject.scene) { SceneManager.MoveGameObjectToScene(overlay, gameObject.scene); }
+            _screenFadeCanvas = overlay.GetComponent<Canvas>();
+            _screenFadeCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            _screenFadeCanvas.targetDisplay = _camera.targetDisplay;
+            _screenFadeCanvas.sortingOrder = short.MaxValue;
+            _screenFadeCanvas.enabled = false;
+
+            var image = new GameObject("Black", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+            RectTransform rect = image.rectTransform;
+            rect.SetParent(overlay.transform, false);
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            image.color = Color.black;
+            image.raycastTarget = false;
+            _screenFadeRenderer = image.canvasRenderer;
+        }
+
+        internal void SetScreenFade(float opacity)
+        {
+            if (_screenFadeCanvas == null) { return; }
+            _screenFadeRenderer.SetAlpha(opacity);
+            bool visible = opacity > 0f && isActiveAndEnabled;
+            if (_screenFadeCanvas.enabled != visible) { _screenFadeCanvas.enabled = visible; }
+        }
+
+        private void OnDisable() => SetScreenFade(0f);
 
         private void OnDestroy()
         {
+            if (_screenFadeCanvas != null) { Destroy(_screenFadeCanvas.gameObject); }
             if (_framingMesh != null) { Destroy(_framingMesh); }
         }
 
@@ -36,14 +83,21 @@ namespace UnityGameJam.Player
         {
             _target = target;
             if (_target == null || _settings == null) { return; }
-            GetDesiredPose(out Vector3 position, out Quaternion rotation);
-            transform.SetPositionAndRotation(position, rotation);
-            _velocity = Vector3.zero;
+            GetDesiredView(out _focus, out _viewRotation, out _cameraOffset);
+            transform.SetPositionAndRotation(_focus + _viewRotation * _cameraOffset, _viewRotation);
+            _focusVelocity = Vector3.zero;
+            _transitionElapsed = TransitionDuration;
         }
 
         public void SetConversationPartner(Transform partner)
         {
+            if (_conversationPartner == partner) { return; }
             _conversationPartner = partner;
+            _transitionFocus = _focus;
+            _transitionRotation = _viewRotation;
+            _transitionOffset = _cameraOffset;
+            _transitionElapsed = 0f;
+            _focusVelocity = Vector3.zero;
             if (_target == null || partner == null || _settings == null) { return; }
             Vector3 line = Vector3.ProjectOnPlane(partner.position - _target.position, Vector3.up);
             Vector3 side = Vector3.Cross(Vector3.up, line);
@@ -62,35 +116,89 @@ namespace UnityGameJam.Player
 
         public void SnapToTarget() => SetTarget(_target);
 
-        private void LateUpdate()
+        internal void ShowOpeningShot(Vector3 center, int number, float progress)
         {
             if (_target == null || _settings == null) { return; }
-            GetDesiredPose(out Vector3 position, out Quaternion rotation);
-            float smoothTime = Mathf.Max(0.01f, _settings.CameraSmoothTime);
-            transform.position = Vector3.SmoothDamp(transform.position, position, ref _velocity, smoothTime);
-            transform.rotation = Quaternion.Slerp(transform.rotation, rotation, 1f - Mathf.Exp(-2f * Time.deltaTime / smoothTime));
+            _isOpening = true;
+            float amount = Mathf.SmoothStep(0f, 1f, progress);
+            ViewSettingsSO.OpeningCameraShot shot = _settings.GetOpeningShot(number);
+            Vector3 lookAt = center + shot.FocusOffset;
+            Vector3 position = center + Vector3.Lerp(shot.StartOffset, shot.EndOffset, amount);
+            if (number == 1)
+            {
+                GetDesiredView(out Vector3 focus, out Quaternion followRotation, out Vector3 offset);
+                Vector3 followPosition = focus + followRotation * offset;
+                Vector3 followLookAt = followPosition + followRotation * Vector3.forward * offset.magnitude;
+                position = Vector3.Lerp(center + shot.EndOffset, followPosition, amount);
+                lookAt = Vector3.Lerp(lookAt, followLookAt, amount);
+            }
+            transform.SetPositionAndRotation(position, Quaternion.LookRotation(lookAt - position));
         }
 
-        private void GetDesiredPose(out Vector3 position, out Quaternion rotation)
+        internal void EndOpening()
         {
-            Vector3 followOffset = new Vector3(0f, _settings.CameraHeight, -_settings.CameraBackDistance);
+            _isOpening = false;
+            SnapToTarget();
+        }
+
+        internal void ShowEndingShot(Vector3 position, Vector3 focus)
+        {
+            _isEnding = true;
+            transform.SetPositionAndRotation(position, Quaternion.LookRotation(focus - position));
+        }
+
+        internal void ClearEndingShot()
+        {
+            _isEnding = false;
+            SnapToTarget();
+        }
+
+        private void LateUpdate()
+        {
+            if (_isOpening || _isEnding || _target == null || _settings == null) { return; }
+            GetDesiredView(out Vector3 focus, out Quaternion rotation, out Vector3 cameraOffset);
+            if (_transitionElapsed < TransitionDuration)
+            {
+                _transitionElapsed += Time.deltaTime;
+                float amount = Mathf.SmoothStep(0f, 1f, _transitionElapsed / TransitionDuration);
+                _focus = Vector3.Lerp(_transitionFocus, focus, amount);
+                _viewRotation = Quaternion.Slerp(_transitionRotation, rotation, amount);
+                _cameraOffset = Vector3.Lerp(_transitionOffset, cameraOffset, amount);
+            }
+            else
+            {
+                float smoothTime = Mathf.Max(0.01f, _settings.CameraSmoothTime);
+                _focus = Vector3.SmoothDamp(_focus, focus, ref _focusVelocity, smoothTime);
+                float amount = 1f - Mathf.Exp(-Time.deltaTime / smoothTime);
+                _viewRotation = Quaternion.Slerp(_viewRotation, rotation, amount);
+                _cameraOffset = Vector3.Lerp(_cameraOffset, cameraOffset, amount);
+            }
+            // 카메라가 두 위치 사이의 직선을 가로지르지 않고 초점 주변을 돌아간다.
+            transform.SetPositionAndRotation(_focus + _viewRotation * _cameraOffset, _viewRotation);
+        }
+
+        private void GetDesiredView(out Vector3 focus, out Quaternion rotation, out Vector3 offset)
+        {
             if (_conversationPartner == null)
             {
-                position = _target.position + followOffset;
+                focus = _target.position;
                 rotation = Quaternion.Euler(_settings.CameraPitch, 0f, 0f);
+                Vector3 followOffset = new Vector3(0f, _settings.CameraHeight, -_settings.CameraBackDistance);
+                offset = Quaternion.Inverse(rotation) * followOffset;
                 return;
             }
 
+            focus = ConversationMidpoint() + _conversationFocusOffset;
             rotation = _conversationRotation;
-            position = ConversationPosition(ConversationMidpoint() + _conversationFocusOffset, rotation, _conversationDistance);
+            offset = ConversationOffset(_conversationDistance);
         }
 
         private Vector3 ConversationMidpoint() => (_target.position + _conversationPartner.position) * 0.5f;
 
         private float VerticalSlope => Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
 
-        private Vector3 ConversationPosition(Vector3 focus, Quaternion rotation, float distance) =>
-            focus + rotation * new Vector3(0f, distance * VerticalSlope * 0.12f, -distance);
+        private Vector3 ConversationOffset(float distance) =>
+            new Vector3(0f, distance * VerticalSlope * 0.12f, -distance);
 
         private void SetConversationFraming(Vector3 focus, float yaw)
         {
@@ -109,7 +217,7 @@ namespace UnityGameJam.Player
             _conversationRotation = Quaternion.Euler(pitch, yaw, 0f);
             Quaternion inverseRotation = Quaternion.Inverse(_conversationRotation);
             float vertical = VerticalSlope * _settings.ConversationFrameHeight;
-            // 양옆 대사와 지시 패널 사이의 중앙 영역에 두 유닛을 담는다.
+            // 오른쪽 대화 패널을 피하도록 화면 중앙에 두 유닛을 담는다.
             float horizontal = VerticalSlope * _camera.aspect * 0.44f;
             float distance = 2.3f;
             foreach (Vector3 point in _framingPoints)
@@ -122,7 +230,7 @@ namespace UnityGameJam.Player
 
         private bool HasClearView(Vector3 focus)
         {
-            Vector3 offset = ConversationPosition(focus, _conversationRotation, _conversationDistance) - focus;
+            Vector3 offset = _conversationRotation * ConversationOffset(_conversationDistance);
             int count = Physics.RaycastNonAlloc(focus, offset.normalized, _obstructions, offset.magnitude,
                 Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
             for (int i = 0; i < count; i++)
@@ -147,7 +255,7 @@ namespace UnityGameJam.Player
                     {
                         // 애니메이션 전체의 컬링 상자 대신 화면에 보이는 자세를 기준으로 잰다.
                         if (_framingMesh == null) { _framingMesh = new Mesh { name = "ConversationFraming" }; }
-                        skin.BakeMesh(_framingMesh);
+                        skin.BakeMesh(_framingMesh, true);
                         _framingMesh.GetVertices(_modelVertices);
                         Matrix4x4 localToWorld = skin.localToWorldMatrix;
                         int step = Mathf.Max(1, _modelVertices.Count / 2048);

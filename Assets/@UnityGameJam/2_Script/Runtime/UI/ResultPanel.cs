@@ -127,10 +127,17 @@ namespace UnityGameJam.UI
         private void Restart()
         {
             if (_isReloading) { return; }
+            int sceneIndex = SceneUtility.GetBuildIndexByScenePath(gameObject.scene.path);
+            if (sceneIndex < 0)
+            {
+                Debug.LogWarning("다시 하려면 현재 씬이 빌드 목록에 있어야 합니다.", this);
+                return;
+            }
+
             _isReloading = true;
             GameSfxPlayer.Restart();
             _restartButton.interactable = false;
-            SceneManager.LoadSceneAsync(gameObject.scene.buildIndex, LoadSceneMode.Single);
+            SceneManager.LoadSceneAsync(sceneIndex, LoadSceneMode.Single);
         }
     }
 }

@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10b202a92b0be3f4d8d0f21ddefa8a14, type: 3}
+  m_Name: TitleSfxLibrary
+  m_EditorClassIdentifier: UnityGameJam.Runtime::UnityGameJam.View.SfxLibrarySO
+  _cues:
+  - Kind: 1
+    Clips:
+    - {fileID: 8300000, guid: 3ce8ca5584b479b47a996638d8ec387a, type: 3}
+    Volume: 0.6
+  - Kind: 2
+    Clips:
+    - {fileID: 8300000, guid: 0fb4dcd19ad43f34c802e08e73057528, type: 3}
+    Volume: 0.6
+  - Kind: 3
+    Clips:
+    - {fileID: 8300000, guid: df78bed234063814290490ecd33d19ba, type: 3}
+    Volume: 0.6
+  - Kind: 4
+    Clips:
+    - {fileID: 8300000, guid: cd6f7f114f464f74a9dc2889d1d948ea, type: 3}
+    Volume: 0.6
+  - Kind: 5
+    Clips:
+    - {fileID: 8300000, guid: c6b51629d0635d74b919d773c1c7b7c8, type: 3}
+    Volume: 0.6
+  - Kind: 6
+    Clips:
+    - {fileID: 8300000, guid: 6cc1f8f0b4d746b4f9543f4cb519a04f, type: 3}
+    Volume: 0.6
+  - Kind: 10
+    Clips:
+    - {fileID: 8300000, guid: 7db9d4589b2152f449dcd78b2d7d33ce, type: 3}
+    Volume: 0.6
+  - Kind: 11
+    Clips:
+    - {fileID: 8300000, guid: 1553b6221deb54845a2ef7bcac16c3d0, type: 3}
+    Volume: 0.6
+  - Kind: 12
+    Clips:
+    - {fileID: 8300000, guid: 91a98d17981adc44db69822f2c8e5727, type: 3}
+    Volume: 0.6
+  _worldVoices: 1
+  _stepVoices: 1
+  _minionScrubVoices: 1
+  _minimumDistance: 1.5
+  _maximumDistance: 12
+  _stepDistance: 0.8
+  _slimeStepDistance: 0.65
+  _impactInterval: 0.06

@@ -25,7 +25,7 @@ namespace UnityGameJam.Match
             if (setup == null) { throw new System.ArgumentNullException(nameof(setup)); }
 
             IProposalDialogueProvider dialogue = null;
-#if UNITY_EDITOR
+#if UNITY_EDITOR || UNITY_STANDALONE_WIN
             if (_rules != null) { dialogue = OpenAiProposalDialogueProvider.Create(_rules.ApiTimeoutSeconds); }
 #endif
             return new MatchSimulation(setup, _rules, _types, _workerStats, Spawn(setup.Layout, setup.Seed), dialogue);

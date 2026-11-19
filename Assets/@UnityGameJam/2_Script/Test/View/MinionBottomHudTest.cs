@@ -5,6 +5,7 @@ using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
 using UnityGameJam.Contract;
+using UnityGameJam.Proposal;
 using UnityGameJam.UI;
 
 namespace UnityGameJam.Test.View
@@ -13,6 +14,31 @@ namespace UnityGameJam.Test.View
     {
         private const BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
         private const string HudPath = "Assets/@UnityGameJam/4_Prefab/UI/UI_HudRoot.prefab";
+
+        [Test]
+        public void 캔버스_그룹이_없는_카드도_통보와_제안을_다시_표시한다()
+        {
+            var hud = AssetDatabase.LoadAssetAtPath<GameObject>(HudPath);
+            var stack = hud.GetComponentInChildren<ProposalStackView>(true);
+            var template = (ProposalCard)new SerializedObject(stack).FindProperty("_template").objectReferenceValue;
+            var card = UnityEngine.Object.Instantiate(template);
+            try
+            {
+                if (card.TryGetComponent(out CanvasGroup existing)) { UnityEngine.Object.DestroyImmediate(existing); }
+                card.gameObject.SetActive(true);
+                var notice = new MessageEntry(1, EMessageKind.Notice, EWorkerType.Goblin, "오크, 방 상황을 알려줄게.", null, 0f, 4f, false);
+                card.Show(notice, null, 0f, false, 0f);
+                Assert.That(card.TryGetComponent(out CanvasGroup opacity), Is.True);
+                Assert.That(opacity.alpha, Is.Zero);
+
+                var proposal = new MessageEntry(2, EMessageKind.Proposal, EWorkerType.Orc, "작업실에 가도 될까?",
+                    EZoneId.Workshop, 1f, 7f, true);
+                card.Show(proposal, null, 1f, true, 0f);
+                Assert.That(opacity.alpha, Is.EqualTo(1f));
+                Assert.That(card.GetComponents<CanvasGroup>(), Has.Length.EqualTo(1));
+            }
+            finally { UnityEngine.Object.DestroyImmediate(card.gameObject); }
+        }
 
         [Test]
         public void 하단_현황은_헬하운드를_제외한_4명을_타입으로_연결한다()
@@ -30,6 +56,46 @@ namespace UnityGameJam.Test.View
                     Assert.That(slot.FindPropertyRelative(field).objectReferenceValue, Is.Not.Null, field);
                 }
             }
+        }
+
+        [Test]
+        public void 방_정보가_발화자_칸에서_제안_뒤에_사분의_일만_보인다()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/@UnityGameJam/4_Prefab/UI/UI_ProposalStack.prefab");
+            var root = new GameObject("Hud", typeof(RectTransform));
+            try
+            {
+                ((RectTransform)root.transform).sizeDelta = new Vector2(1920f, 1080f);
+                var stack = UnityEngine.Object.Instantiate(prefab, root.transform).GetComponent<ProposalStackView>();
+                typeof(ProposalStackView).GetMethod("Awake", Private).Invoke(stack, null);
+                var session = new StubSession();
+                var queue = new ProposalQueue(7f, 4f, 2f, new DefaultProposalDialogueProvider());
+                queue.Request(EWorkerType.Orc, 1, EZoneId.Workshop, EProposalReason.OtherWorker, false);
+                queue.Tick(0f);
+                queue.AddRoomReport(EWorkerType.Orc, EWorkerType.Goblin, 1f);
+                queue.Tick(1.5f);
+                session.Messages.AddRange(queue.Messages);
+                session.Statuses.Add(new MinionStatus(EWorkerType.Orc, EMinionActivity.Working, EZoneId.Storage, null, false));
+                stack.Show(session, session.Minions, 1.5f, null, false);
+
+                Assert.That(stack.transform.Find("SharedNotices").gameObject.activeSelf, Is.False);
+                Assert.That(stack.transform.Find("GoblinMessages").gameObject.activeSelf, Is.False);
+                var lane = stack.transform.Find("OrcMessages").GetComponent<UnityEngine.UI.ScrollRect>();
+                var front = (RectTransform)lane.content.GetChild(1);
+                var back = (RectTransform)lane.content.GetChild(0);
+                Assert.That(front.GetComponent<ProposalCard>().MessageId, Is.EqualTo(session.Messages[0].MessageId));
+                Assert.That(back.GetComponent<ProposalCard>().MessageId, Is.EqualTo(session.Messages[1].MessageId));
+                Assert.That(CardText(back.GetComponent<ProposalCard>(), "_title"), Is.EqualTo("오크"));
+                Assert.That(CardText(back.GetComponent<ProposalCard>(), "_dialogue"), Is.EqualTo(session.Messages[1].Text));
+                Assert.That(back.Find("ApproveButton").gameObject.activeSelf, Is.False);
+                Assert.That(front.Find("ApproveButton").gameObject.activeSelf, Is.True);
+                float frontTop = front.anchoredPosition.y + front.rect.yMax;
+                float backTop = back.anchoredPosition.y + back.rect.yMax;
+                Assert.That(backTop - frontTop, Is.EqualTo(back.rect.height * .25f).Within(.01f));
+                Assert.That(((RectTransform)lane.transform).rect.height,
+                    Is.EqualTo(front.rect.height + back.rect.height * .25f).Within(.01f));
+            }
+            finally { UnityEngine.Object.DestroyImmediate(root); }
         }
 
         [Test]
@@ -87,7 +153,7 @@ namespace UnityGameJam.Test.View
         }
 
         [Test]
-        public void 복귀_통보는_재배정되어도_메시지_도착_당시_담당_방을_표시한다()
+        public void 작업_제안은_재배정되어도_메시지_도착_당시_담당_방을_표시한다()
         {
             var obj = new GameObject("Notice", typeof(RectTransform), typeof(ProposalStackView));
             try
@@ -100,20 +166,27 @@ namespace UnityGameJam.Test.View
                 {
                     new MinionStatus(EWorkerType.Goblin, EMinionActivity.Working, EZoneId.Floor1Lobby, null, false)
                 } });
-                var notice = new MessageEntry(11, EMessageKind.Notice, EWorkerType.Goblin, "로비로 돌아갈게.", null, 0f, 4f, false);
-                var zone = (EZoneId?)report.Invoke(stack, new object[] { notice, 0 });
+                var proposal = new MessageEntry(11, EMessageKind.Proposal, EWorkerType.Goblin, "작업실에 가도 될까?",
+                    EZoneId.Workshop, 0f, 7f, false);
+                var zone = (EZoneId?)report.Invoke(stack, new object[] { proposal, 0 });
                 remember.Invoke(stack, new object[] { new[]
                 {
                     new MinionStatus(EWorkerType.Goblin, EMinionActivity.MovingToRoom, EZoneId.Floor2Lobby, null, false)
                 } });
 
                 Assert.That(zone, Is.EqualTo(EZoneId.Floor1Lobby));
-                Assert.That(report.Invoke(stack, new object[] { notice, 0 }), Is.EqualTo(zone));
-                string dialogue = (string)format.Invoke(null, new object[] { notice.Text, zone });
+                Assert.That(report.Invoke(stack, new object[] { proposal, 0 }), Is.EqualTo(zone));
+                string dialogue = (string)format.Invoke(null, new object[] { proposal.Text, zone });
                 Assert.That(dialogue, Does.Contain(ZoneDisplayName.GetFullName(EZoneId.Floor1Lobby)));
-                Assert.That(dialogue, Does.EndWith(notice.Text));
+                Assert.That(dialogue, Does.EndWith(proposal.Text));
             }
             finally { UnityEngine.Object.DestroyImmediate(obj); }
+        }
+
+        private static string CardText(ProposalCard card, string field)
+        {
+            var label = new SerializedObject(card).FindProperty(field).objectReferenceValue;
+            return (string)label.GetType().GetProperty("text").GetValue(label);
         }
 
         private static string ReadActivity(MinionStatusPanel panel, int index)

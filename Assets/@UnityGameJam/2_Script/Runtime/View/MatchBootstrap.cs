@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityGameJam.Contract;
@@ -12,6 +13,9 @@ namespace UnityGameJam.View
     /// </summary>
     public sealed class MatchBootstrap : MonoBehaviour
     {
+        private const int OpeningSeconds = 5;
+        private const float OpeningFadeSeconds = 0.2f;
+
         [Header("판")]
         [Tooltip("M1 전까지 FakeMatchSessionFactory, 이후 A 레인의 실제 팩토리")]
         [SerializeField] private MatchSessionFactoryBase _factory;
@@ -48,14 +52,19 @@ namespace UnityGameJam.View
         public FacilityLayout Layout { get; private set; }
         public PlayerBody Player { get; private set; }
         public IReadOnlyList<MinionAgent> Minions => _minions;
+        internal FloorCameraFollow ViewCamera => _camera;
+        internal FloorAuthoring ArrivalFloor => Array.Find(_floors, floor => floor != null && floor.Floor == EFloor.Floor1);
+        public int OpeningNumber { get; private set; }
+        public float OpeningBeatProgress { get; private set; }
 
         internal bool CanSeeMinion(MinionAgent minion)
         {
-            return Player != null && minion != null && minion.Floor == Player.Floor
-                && (_roomVisibility == null || !_roomVisibility.IsCovered(minion.Floor, minion.Position));
+            return minion != null && CanSeeAt(minion.Position, minion.Floor);
         }
 
-        internal bool CanHearAt(Vector3 position, EFloor floor)
+        internal bool CanHearAt(Vector3 position, EFloor floor) => CanSeeAt(position, floor);
+
+        internal bool CanSeeAt(Vector3 position, EFloor floor)
         {
             return Player != null && Player.Floor == floor
                 && (_roomVisibility == null || !_roomVisibility.IsCovered(floor, position));
@@ -76,7 +85,7 @@ namespace UnityGameJam.View
         /// <summary>판이 만들어지고 시작된 직후. HUD 등 보기 전용 컴포넌트가 구독한다.</summary>
         public event Action<MatchBootstrap> MatchStarted;
 
-        private void Start()
+        private IEnumerator Start()
         {
             var warnings = new List<string>();
             Layout = FacilityLayoutBuilder.Build(_floors, warnings);
@@ -85,7 +94,7 @@ namespace UnityGameJam.View
             if (!Layout.StartPositions.TryGetValue(EWorkerType.Player, out Vector3 start))
             {
                 Debug.LogError("[Bootstrap] 플레이어 시작점이 없습니다.", this);
-                return;
+                yield break;
             }
 
             foreach (FloorAuthoring floor in _floors)
@@ -97,8 +106,10 @@ namespace UnityGameJam.View
                 }
             }
 
+            _camera?.SetScreenFade(1f);
             StairDirectory stairs = StairDirectory.FromFloors(_floors);
-            Player = Instantiate(_playerPrefab, start, Quaternion.identity);
+            Vector3 lineCenter = start - Vector3.forward * _viewSettings.OpeningLineDistance;
+            Player = Instantiate(_playerPrefab, start, Quaternion.LookRotation(lineCenter - start));
             ApplyMotionTuning(Player, EWorkerType.Player);
             Player.Initialize(Layout.Floors);
             if (_roomCoverPrefab != null)
@@ -108,22 +119,57 @@ namespace UnityGameJam.View
             }
 
             var setup = new MatchSetup { Layout = Layout, Seed = _seed, PlayerBody = Player };
-            SpawnMinions(setup, stairs);
+            yield return SpawnMinions(setup, stairs, lineCenter);
             Session = _factory.Create(setup);
 
             _playerController = Player.GetComponent<PlayerController>();
             _playerController.Initialize(Session, stairs, _viewSettings, _camera);
             var interactor = Player.GetComponent<PlayerInteractor>();
             _playerInteractor = interactor;
-            interactor.Initialize(Session, Layout, _factory.InteractionDistance ?? _viewSettings.InteractRadius);
+            interactor.Initialize(Session, Layout, _factory.InteractionDistance ?? _viewSettings.InteractRadius, _camera, stairs);
             foreach (MinionAgent minion in _minions)
             {
-                interactor.RegisterMinion(minion.Worker, minion.transform);
-                minion.GetComponent<MinionStatusPresenter>().Initialize(Session);
+                var status = minion.GetComponent<MinionStatusPresenter>();
+                status.Initialize(Session);
+                interactor.RegisterMinion(minion, status);
             }
             if (_camera != null) { _camera.SetTarget(Player.transform); }
 
             Session.ItemChanged += OnItemChanged;
+            if (TryGetComponent(out ContaminationView contaminationView) && contaminationView.isActiveAndEnabled)
+            {
+                contaminationView.Prepare();
+            }
+
+            Vector3 openingCenter = (start + lineCenter) * 0.5f;
+            if (_camera != null)
+            {
+                // 컷에 처음 들어오는 지오메트리와 셰이더를 카운트다운 전에 그린다.
+                for (int number = 1; number <= OpeningSeconds; number++)
+                {
+                    _camera.ShowOpeningShot(openingCenter, number, number == OpeningSeconds ? 0f : 1f);
+                    yield return null;
+                }
+            }
+
+            bool revealingOpening = _camera != null;
+            for (float elapsed = 0f; elapsed < OpeningSeconds; elapsed += Mathf.Min(1f, Time.unscaledDeltaTime))
+            {
+                OpeningNumber = OpeningNumberAt(elapsed);
+                OpeningBeatProgress = elapsed - Mathf.Floor(elapsed);
+                _camera?.ShowOpeningShot(openingCenter, OpeningNumber, OpeningBeatProgress);
+                if (revealingOpening)
+                {
+                    _camera.SetScreenFade(Mathf.SmoothStep(1f, 0f, elapsed / OpeningFadeSeconds));
+                    revealingOpening = elapsed < OpeningFadeSeconds;
+                }
+                yield return null;
+            }
+
+            _camera?.SetScreenFade(0f);
+
+            _camera?.EndOpening();
+            OpeningNumber = 0;
             Session.StartMatch();
             _initialMatchTime = Session.RemainingTime;
             MatchStarted?.Invoke(this);
@@ -131,7 +177,7 @@ namespace UnityGameJam.View
 
         private void Update()
         {
-            if (Session == null) { return; }
+            if (Session == null || Session.MatchState == EMatchState.Ready) { return; }
             if (IsFastForwarding)
             {
                 Session.Tick(Time.unscaledDeltaTime * _fastForwardRate);
@@ -181,7 +227,7 @@ namespace UnityGameJam.View
         }
 
         /// <summary>졸개를 시작점(1층 로비, 헬하운드는 현관)에 만들고 규칙에 몸으로 넘긴다.</summary>
-        private void SpawnMinions(MatchSetup setup, StairDirectory stairs)
+        private IEnumerator SpawnMinions(MatchSetup setup, StairDirectory stairs, Vector3 lineCenter)
         {
             foreach (MinionAgent prefab in _minionPrefabs)
             {
@@ -191,12 +237,36 @@ namespace UnityGameJam.View
                     Debug.LogWarning($"[Bootstrap] {prefab.Worker} 시작점이 없습니다.", this);
                     continue;
                 }
-                MinionAgent minion = Instantiate(prefab, position, Quaternion.identity);
+                Quaternion rotation = Quaternion.identity;
+                if (TryGetOpeningMinionPosition(prefab.Worker, lineCenter, _viewSettings.OpeningMinionSpacing, out Vector3 openingPosition))
+                {
+                    position = openingPosition;
+                    Vector3 facing = Vector3.ProjectOnPlane(Player.Position - position, Vector3.up);
+                    rotation = Quaternion.LookRotation(facing);
+                }
+                MinionAgent minion = Instantiate(prefab, position, rotation);
                 ApplyMotionTuning(minion, minion.Worker);
                 minion.Initialize(stairs, Layout.Floors, _viewSettings.StairTransitSeconds);
                 setup.MinionBodies[minion.Worker] = minion;
                 _minions.Add(minion);
+                yield return null;
             }
+        }
+
+        internal static int OpeningNumberAt(float elapsed) => Mathf.Clamp(OpeningSeconds - Mathf.FloorToInt(elapsed), 0, OpeningSeconds);
+
+        internal static bool TryGetOpeningMinionPosition(EWorkerType worker, Vector3 lineCenter, float spacing, out Vector3 position)
+        {
+            int index = worker switch
+            {
+                EWorkerType.Goblin => 0,
+                EWorkerType.Orc => 1,
+                EWorkerType.Skeleton => 2,
+                EWorkerType.Slime => 3,
+                _ => -1
+            };
+            position = index < 0 ? default : lineCenter + Vector3.right * ((index - 1.5f) * spacing);
+            return index >= 0;
         }
 
         private void ApplyMotionTuning(Component unit, EWorkerType worker)

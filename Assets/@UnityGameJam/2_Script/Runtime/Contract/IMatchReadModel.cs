@@ -66,8 +66,11 @@ namespace UnityGameJam.Contract
         }
     }
 
+    public enum EProposalKind { Move, MinionCollaboration, PlayerAssistance }
+
     public readonly struct MessageEntry
     {
+        public EProposalKind ProposalKind { get; }
         public int MessageId { get; }
         public EMessageKind Kind { get; }
         public EWorkerType Minion { get; }
@@ -78,8 +81,9 @@ namespace UnityGameJam.Contract
         public bool IsInputTarget { get; }  // 지금 승인·보류 입력이 적용될 제안인지
 
         public MessageEntry(int messageId, EMessageKind kind, EWorkerType minion, string text, EZoneId? proposedZone,
-            float shownAt, float remainingTime, bool isInputTarget)
+            float shownAt, float remainingTime, bool isInputTarget, EProposalKind proposalKind = EProposalKind.Move)
         {
+            ProposalKind = proposalKind;
             MessageId = messageId;
             Kind = kind;
             Minion = minion;
